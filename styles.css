@@ -556,19 +556,36 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 }
 
 .slider {
+  /* One place to change the size. The two vendor pseudo-elements below cannot
+   * share a rule, so without tokens the thumb and its offset drift apart. */
+  --track-height: 10px;
+  --thumb-size: 28px;
+
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 30px;            /* the touch target, not the track */
+  height: calc(var(--thumb-size) + 8px);   /* the grab area, not the track */
   background: transparent;
   margin: 0;
   cursor: pointer;
+  touch-action: pan-y;     /* drag the handle without scrolling the page */
+}
+
+/* A finger is not a mouse pointer. On a phone the handle has to be big enough
+ * to find and hold while walking, which is most of what this tool is used for,
+ * and there is no hover state to help. Desktop keeps the smaller one. */
+@media (pointer: coarse) {
+  .slider {
+    --thumb-size: 38px;
+    --track-height: 12px;
+  }
+  .slider-row { gap: 8px; }
 }
 
 /* The track is painted twice, once per engine, because the two pseudo-elements
  * cannot be selected together: a rule listing both is dropped whole by both. */
 .slider::-webkit-slider-runnable-track {
-  height: 8px;
+  height: var(--track-height);
   border-radius: 999px;
   background:
     linear-gradient(to right,
@@ -576,7 +593,7 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
       var(--track-pass) var(--below-minimum, 0%) 100%);
 }
 .slider::-moz-range-track {
-  height: 8px;
+  height: var(--track-height);
   border-radius: 999px;
   background:
     linear-gradient(to right,
@@ -586,17 +603,19 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 24px;
-  height: 24px;
-  margin-top: -8px;        /* centres a 24px thumb on an 8px track */
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  /* Chrome puts the thumb's top edge on the track's top edge; Firefox centres
+   * it for you, which is why only this one needs the offset. */
+  margin-top: calc((var(--track-height) - var(--thumb-size)) / 2);
   border-radius: 50%;
   background: var(--cardinal);
   border: 3px solid var(--surface);
   box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
 }
 .slider::-moz-range-thumb {
-  width: 24px;
-  height: 24px;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
   border: 3px solid var(--surface);
   border-radius: 50%;
   background: var(--cardinal);
