@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=0ffde57773';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=70f7413afd';
 
 /* --- altitude time correction (AFMAN 36-2905 Attachment 3) ---------------
  *
@@ -470,11 +470,16 @@ function scoreAscendingComponent(data, { component, event, kind, sex, band, valu
   const altitudeNote = addShuttles ? Object.freeze({
     group: altitude.id,
     groupLabel: altitude.label,
+    rangeLabel: altitude.range_label,
+    // 'measurement' means the member's own number was adjusted; 'standard'
+    // means the bar moved instead. The page says those two differently.
+    kind: 'measurement',
+    fromLabel: `${value} shuttles`,
+    toLabel: `${effective} shuttles`,
+    detail: `Table A3.4 adds ${addShuttles}`,
     addedShuttles: addShuttles,
     recorded: value,
-    effective,
-    text: `${value} shuttles at ${altitude.label} (${altitude.range_label}) score as ` +
-      `${effective}: Attachment 3 Table A3.4 adds ${addShuttles}.`
+    effective
   }) : null;
 
   const { row, index } = lookupAtLeast(rows, effective, measure.field);
@@ -546,12 +551,14 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status,
   const altitudeNote = altitude ? Object.freeze({
     group: altitude.id,
     groupLabel: altitude.label,
+    rangeLabel: altitude.range_label,
+    kind: 'measurement',
+    fromLabel: formatTime(seconds),
+    toLabel: formatTime(effective),
+    detail: `Table A3.1 allows ${formatTime(takeOff)}`,
     correctionSeconds: takeOff,
     recordedSeconds: seconds,
-    effectiveSeconds: effective,
-    text: `${formatTime(seconds)} at ${altitude.label} (${altitude.range_label}) ` +
-      `scores as ${formatTime(effective)}: Attachment 3 Table A3.1 allows ` +
-      `${formatTime(takeOff)}.`
+    effectiveSeconds: effective
   }) : null;
 
   const { row, index } = lookupTime(rows, effective);
@@ -632,14 +639,18 @@ function scoreWalkComponent(data, { component, event, sex, band, seconds, status
 
   const passed = seconds <= row.max_seconds;
   const groupLabel = data.walk_age_group_labels[group];
+  // The walk is the odd one: the member's time is untouched and the standard
+  // moves instead, so this reads as a changed bar rather than a changed score.
   const altitudeNote = higher ? Object.freeze({
     group: altitude.id,
     groupLabel: altitude.label,
+    rangeLabel: altitude.range_label,
+    kind: 'standard',
+    fromLabel: sea.max_time,
+    toLabel: higher.max_time,
+    detail: `Table ${sex === 'M' ? 'A3.2' : 'A3.3'} raises the maximum`,
     seaLevelTime: sea.max_time,
-    maxTime: higher.max_time,
-    text: `At ${altitude.label} (${altitude.range_label}) the maximum is ` +
-      `${higher.max_time} rather than ${sea.max_time}: Attachment 3 Table ` +
-      `${sex === 'M' ? 'A3.2' : 'A3.3'}.`
+    maxTime: higher.max_time
   }) : null;
 
   return baseResult(component, event, {

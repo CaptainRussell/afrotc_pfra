@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=0ffde57773">
+<link rel="stylesheet" href="styles.css?v=70f7413afd">
 </head>
 <body>
 
@@ -276,6 +276,15 @@
                aria-label="Run time">
         <span class="slider-end high" id="slider-high-cardiorespiratory"></span>
       </div>
+      <div class="altitude-applied" id="altitude-applied" aria-live="polite" hidden>
+        <p class="altitude-applied-tag" id="altitude-applied-tag"></p>
+        <p class="altitude-applied-change">
+          <span id="altitude-from"></span>
+          <span class="altitude-arrow" aria-hidden="true">&rarr;</span>
+          <span class="altitude-to" id="altitude-to"></span>
+        </p>
+        <p class="altitude-applied-detail" id="altitude-applied-detail"></p>
+      </div>
       <div class="range" id="range-cardiorespiratory" aria-label="Chart range"></div>
       <div class="document inline-doc" id="doc-hamr" hidden>
         <div class="document-head">
@@ -499,6 +508,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=0ffde57773"></script>
+<script type="module" src="app.js?v=70f7413afd"></script>
 </body>
 </html>

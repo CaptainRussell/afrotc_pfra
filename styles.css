@@ -302,6 +302,55 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 }
 
 
+/* --- an applied altitude correction -------------------------------------
+ *
+ * A number that silently changes the score has to be readable at a glance, so
+ * this is a strip of its own rather than a clause on the end of the chart row.
+ * Gold, because that is what this tool uses for a setting that has been chosen,
+ * the same as the age and sex segments.
+ */
+.altitude-applied {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border-left: 4px solid var(--gold-deep);
+  border-radius: 8px;
+  background: var(--warn-bg);
+}
+
+.altitude-applied-tag {
+  margin: 0;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* The conversion is the fact, so it is the biggest thing in the strip. */
+.altitude-applied-change {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.altitude-applied-change .altitude-arrow { color: var(--ink-faint); font-weight: 400; }
+.altitude-applied-change .altitude-to { color: var(--gold-deep); }
+
+.altitude-applied-detail {
+  margin: 0;
+  font-size: .8rem;
+  color: var(--ink-soft);
+}
+
+/* The walk moves the bar rather than the member's time, so the emphasis moves
+ * with it: the new maximum is the thing that changed. */
+.altitude-applied.is-standard .altitude-applied-tag::after { content: "  b7 standard raised"; }
+
 /* An altitude that actually changes a score says so in the tool's own
  * attention colour, because a quiet hint is easy to leave switched on. */
 .altitude-on {
@@ -1192,6 +1241,8 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   .cue { animation: none; box-shadow: none; padding: 0; margin: 0; }
   .slider-row { display: none; }
   .event-tools { display: none; }
+  /* The correction changed the score, so it belongs on the printout. */
+  .altitude-applied { border-left-color: #8a6d1f; background: #fff; }
 
   .masthead {
     background: none;

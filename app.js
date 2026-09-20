@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=0ffde57773';
-import { createAnalyzer } from './src/analysis.js?v=0ffde57773';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=0ffde57773';
+} from './src/engine.js?v=70f7413afd';
+import { createAnalyzer } from './src/analysis.js?v=70f7413afd';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=70f7413afd';
 
 const $ = (id) => document.getElementById(id);
 
@@ -81,7 +81,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=0ffde57773').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=70f7413afd').then((r) => r.json());
   return { data };
 }
 
@@ -126,11 +126,18 @@ async function boot() {
   }
   $('altitude-toggle').addEventListener('click', () => {
     const panel = $('altitude-panel');
-    panel.hidden = !panel.hidden;
-    $('altitude-toggle').setAttribute('aria-expanded', String(!panel.hidden));
-    if (!panel.hidden) $('altitude-group').focus();
+    if (panel.hidden) {
+      panel.hidden = false;
+      $('altitude-toggle').setAttribute('aria-expanded', 'true');
+      $('altitude-group').focus();
+    } else {
+      closeAltitudePanel();
+    }
   });
-  $('altitude-group').addEventListener('change', update);
+  $('altitude-group').addEventListener('change', () => {
+    update();
+    closeAltitudePanel();
+  });
 
   for (const button of document.querySelectorAll('.verbiage-open')) {
     button.addEventListener('click', () => openVerbiage(button.dataset.verbiage));
@@ -248,6 +255,16 @@ function openPicker(component) {
   document.querySelector(`.swap[data-swap="${component}"]`)
     .setAttribute('aria-expanded', 'true');
   $(`event-select-${component}`).focus();
+}
+
+/** Mirrors closePicker: choosing is the end of the errand, so it folds away. */
+function closeAltitudePanel() {
+  const panel = $('altitude-panel');
+  const toggle = $('altitude-toggle');
+  panel.hidden = true;
+  toggle.setAttribute('aria-expanded', 'false');
+  // Focus would otherwise sit on a control that is no longer on screen.
+  if (panel.contains(document.activeElement)) toggle.focus();
 }
 
 function closePicker(component) {
@@ -610,6 +627,7 @@ function update() {
 
   showTally(result, ready);
   showAltitudeGroup();
+  showAltitudeApplied(lastResult);
 
   if (!complete) {
     $('results').hidden = true;
@@ -656,6 +674,39 @@ function showHeightInFeet() {
   hint.textContent = rounded === inches
     ? `${shown}, recorded to the nearest ½ inch.`
     : `Recorded as ${rounded} inches, which is ${shown}.`;
+}
+
+/**
+ * Show an applied altitude correction as the conversion it is.
+ *
+ * It used to be tacked onto the end of the chart-row line, in the same small
+ * monospace as everything else, which is where a number that silently changed
+ * the score is least likely to be read. It gets its own strip: the two values
+ * and an arrow between them, because "14:49 became 14:47" is the whole fact and
+ * a sentence is a slower way to say it.
+ *
+ * For the run and the HAMR the member's number moves. For the walk it does not
+ * -- the standard moves instead -- so the strip says which.
+ */
+function showAltitudeApplied(result) {
+  const strip = $('altitude-applied');
+  const scored = result?.components?.cardiorespiratory;
+  const altitude = scored?.altitude ?? null;
+
+  if (!altitude) {
+    strip.hidden = true;
+    return;
+  }
+
+  $('altitude-applied-tag').textContent =
+    `${altitude.groupLabel} · ${altitude.rangeLabel}`;
+  $('altitude-from').textContent = altitude.fromLabel;
+  $('altitude-to').textContent = altitude.toLabel;
+  $('altitude-applied-detail').textContent = altitude.kind === 'standard'
+    ? `${altitude.detail}, so the time you walked is scored against the later one.`
+    : `${altitude.detail}, and the chart is read on the corrected figure.`;
+  strip.classList.toggle('is-standard', altitude.kind === 'standard');
+  strip.hidden = false;
 }
 
 /**
@@ -1073,13 +1124,11 @@ function fillChip(component, scored) {
     setMeter(`meter-${component}`, scored.walk.passed ? scored.maxPoints : 0,
       scored.maxPoints, scored.walk.passed ? 'is-pass' : 'is-fail', null);
     const walkRow = $(`row-${component}`);
-    const walkAltitude = scored.altitude ? ` · ${scored.altitude.text}` : '';
     walkRow.textContent = scored.walk.passed
       ? `${formatTime(scored.walk.seconds)} of ${scored.walk.maxTime} maximum ` +
         `→ pass, no points (component exempt)`
       : `${formatTime(scored.walk.seconds)} is over the ${scored.walk.maxTime} maximum ` +
         `→ the assessment fails`;
-    walkRow.textContent += walkAltitude;
     walkRow.hidden = false;
     return;
   }
@@ -1093,11 +1142,7 @@ function fillChip(component, scored) {
 
   const row = $(`row-${component}`);
   if (scored.chartRowLabel) {
-    // The altitude sentence goes with the chart row, because together they are
-    // the whole story of how a recorded number became a score.
-    row.textContent = scored.altitude
-      ? `${scored.chartRowLabel} · ${scored.altitude.text}`
-      : scored.chartRowLabel;
+    row.textContent = scored.chartRowLabel;
     row.hidden = false;
   } else {
     row.textContent = scored.status === 'below_minimum'
