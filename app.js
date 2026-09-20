@@ -525,6 +525,7 @@ function update() {
   showHeightInFeet();
   renderRanges(ageBand);   // reads the height, so it must run after it changes
   renderSliders(ageBand); // same bounds, same reason to run here
+  renderHeightSlider();   // fixed bounds, so it needs no band at all
 
   const { input, ready } = readForm();
   showCue(ready);
@@ -729,6 +730,34 @@ function renderSliders(band) {
   }
 }
 
+/**
+ * Height gets a slider too, but it is not a score.
+ *
+ * Its range is the chart's own. The waist-to-height grid runs 58.0 to 78.0
+ * inches in half inches, which is the useful travel; the field stays wider,
+ * because the ratio is arithmetic rather than a lookup and a height off the
+ * printed grid still scores. A height outside the range pins the handle to the
+ * end, the same as a rep count past full marks does.
+ *
+ * Nothing here depends on age, sex or the event, so unlike the component
+ * sliders this one is usable from the moment the page loads.
+ */
+const HEIGHT_SLIDER = Object.freeze({ min: 58, max: 78 });
+
+function renderHeightSlider() {
+  if (dragging === 'height') return;
+  const input = $('slide-height');
+  const current = decimal('height') ?? null;
+  // Empty parks at the left, as every other slider does, so five tracks that
+  // have not been set read the same way rather than one looking half answered.
+  const value = current == null
+    ? HEIGHT_SLIDER.min
+    : Math.max(HEIGHT_SLIDER.min, Math.min(HEIGHT_SLIDER.max, current));
+  input.value = String(value);
+  input.setAttribute('aria-valuetext',
+    current == null ? 'not entered' : `${current} inches`);
+}
+
 /** The measurement now in the form, in the unit its chart is read in. */
 function currentMeasurement(component) {
   if (component === 'body_composition') return decimal('waist') ?? null;
@@ -745,6 +774,14 @@ function currentMeasurement(component) {
 
 /** Write a dragged value into the fields the rest of the app reads. */
 function onSliderInput(component) {
+  if (component === 'height') {
+    const raw = Number($('slide-height').value);
+    $('height').value = raw.toFixed(1);
+    $('slide-height').setAttribute('aria-valuetext', `${raw} inches`);
+    update();
+    return;
+  }
+
   const bounds = sliderBounds[component];
   if (!bounds) return;
   const raw = toRaw(bounds, Number($(`slide-${component}`).value));

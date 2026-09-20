@@ -235,21 +235,31 @@
           <label for="height">Height (inches)</label>
           <input type="number" id="height" inputmode="decimal" min="36" max="90" step="0.5"
                  placeholder="in" enterkeyhint="next">
+          <!-- 58 to 78 is the height axis of the waist-to-height grid on page 9
+               of the scoring charts. The field itself is left wider: the ratio
+               is arithmetic, not a lookup, so a height off the printed grid
+               still scores. -->
+          <div class="slider-row" id="slider-height">
+            <span class="slider-end low">58</span>
+            <input type="range" class="slider" id="slide-height" data-component="height"
+                   min="58" max="78" step="0.5" value="58" aria-label="Height in inches">
+            <span class="slider-end high">78</span>
+          </div>
           <p class="hint" id="height-hint">Nearest &frac12; inch, as the 4446 records it.</p>
         </div>
         <div class="field">
           <label for="waist">Waist</label>
           <input type="number" id="waist" inputmode="decimal" min="16" max="70" step="0.5"
                  placeholder="in" enterkeyhint="done">
+          <div class="slider-row" id="slider-body_composition" hidden>
+            <span class="slider-end low" id="slider-low-body_composition"></span>
+            <input type="range" class="slider" id="slide-body_composition"
+                   data-component="body_composition" min="0" max="1" step="1" value="0"
+                   aria-label="Waist in inches">
+            <span class="slider-end high" id="slider-high-body_composition"></span>
+          </div>
           <p class="hint">Rounded <em>down</em> to &frac12; inch.</p>
         </div>
-      </div>
-      <div class="slider-row" id="slider-body_composition" hidden>
-        <span class="slider-end low" id="slider-low-body_composition"></span>
-        <input type="range" class="slider" id="slide-body_composition"
-               data-component="body_composition" min="0" max="1" step="1" value="0"
-               aria-label="Waist in inches">
-        <span class="slider-end high" id="slider-high-body_composition"></span>
       </div>
       <div class="range" id="range-body_composition" aria-label="Chart range"></div>
       <p class="chart-row" id="row-body_composition" hidden></p>

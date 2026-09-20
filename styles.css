@@ -547,6 +547,10 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   padding: 0 2px;
 }
 
+/* Height and waist each sit in their own field, directly under the input they
+ * set, which is what says which slider is which without labelling either. */
+.field > .slider-row { margin-top: 2px; }
+
 .slider-end {
   font-size: .72rem;
   font-weight: 600;
@@ -969,6 +973,11 @@ footer {
 /* Three buttons plus a description will not share a phone-width row without
  * crushing the text, so below this the buttons take their own line. */
 @media (max-width: 560px) {
+  /* Height and waist each carry a slider now. Side by side they leave about a
+   * hundred pixels of track apiece, which is not enough to aim a finger at, so
+   * this pair splits earlier than the other two-column rows do. */
+  .measure-row { grid-template-columns: 1fr; }
+
   .document-head { grid-template-columns: 1fr; }
   .document-actions { flex-wrap: wrap; }
 }
