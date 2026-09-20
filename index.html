@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Det 250 PFRA Score Calculator</title>
+<title>AFROTC PFRA Calculator — Det 250</title>
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-storm.svg" type="image/svg+xml">
@@ -14,7 +14,7 @@
 <header class="masthead">
   <div class="masthead-inner">
     <div class="mark patch" role="img" aria-label="AFROTC Detachment 250 patch"></div>
-    <h1>PFRA Score Calculator</h1>
+    <h1>AFROTC PFRA Calculator</h1>
   </div>
 </header>
 
@@ -24,7 +24,7 @@
   <form id="assessment" class="card" novalidate autocomplete="off">
 
     <div class="row about-row">
-      <div class="field">
+      <div class="field" id="field-age">
         <span class="label-text" id="age-label">Age</span>
         <div class="segmented" role="radiogroup" aria-labelledby="age-label">
           <button type="button" class="segment" role="radio" aria-checked="false"
@@ -34,7 +34,7 @@
         </div>
         <p class="hint">Charts differ by age band.</p>
       </div>
-      <div class="field">
+      <div class="field" id="field-sex">
         <span class="label-text" id="sex-label">Sex</span>
         <div class="segmented" role="radiogroup" aria-labelledby="sex-label">
           <button type="button" class="segment" role="radio" aria-checked="false"
@@ -337,9 +337,9 @@
           <button type="button" class="secondary small view-toggle" aria-expanded="false"
                   hidden>View</button>
           <a class="secondary small doc-flat" href="references/af-form-4446-flat.pdf"
-             download hidden>Flat</a>
+             download hidden>Save Flat</a>
           <a class="secondary small doc-link" href="references/af-form-4446.pdf"
-             download>Fillable</a>
+             download>Save Fillable</a>
         </div>
       </div>
       <div class="viewer" hidden></div>
@@ -355,9 +355,9 @@
           <button type="button" class="secondary small view-toggle" aria-expanded="false"
                   hidden>View</button>
           <a class="secondary small doc-flat" href="references/af-form-4446a-fsq-flat.pdf"
-             download hidden>Flat</a>
+             download hidden>Save Flat</a>
           <a class="secondary small doc-link" href="references/af-form-4446a-fsq.pdf"
-             download>Fillable</a>
+             download>Save Fillable</a>
         </div>
       </div>
       <div class="viewer" hidden></div>

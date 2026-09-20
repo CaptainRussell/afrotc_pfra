@@ -466,6 +466,40 @@ function readForm() {
 
 // --- the live update -------------------------------------------------------
 
+/**
+ * Glow whichever part of the form comes next, one at a time.
+ *
+ * A cadet opening this on a phone sees an empty form with four events and no
+ * indication of where to start. Exactly one cue is on screen at any moment, in
+ * the order the assessment is administered, so the form reads as a queue that
+ * empties rather than a wall to be surveyed. A section stops glowing the
+ * instant it holds a usable value, which is why `ready` drives it: that is the
+ * same set the scoring engine is given, so the cue can never disagree with the
+ * chips about what has been filled in.
+ */
+const CUE_ORDER = ['muscular_strength', 'core_endurance', 'cardiorespiratory',
+  'body_composition'];
+
+function showCue(ready) {
+  let target = null;
+
+  if (!ageBand) {
+    // Tapping "25 or older" answers the age question but does not settle the
+    // band, so the cue moves to the dropdown that still has to be answered.
+    target = $('band-picker').hidden ? $('field-age') : $('band-picker');
+  } else if (!sex) {
+    target = $('field-sex');
+  } else {
+    const next = CUE_ORDER.find((component) => !ready.has(component));
+    if (next) target = document.querySelector(`.event[data-component="${next}"]`);
+  }
+
+  for (const node of document.querySelectorAll('.cue')) {
+    if (node !== target) node.classList.remove('cue');
+  }
+  if (target) target.classList.add('cue');
+}
+
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -478,6 +512,7 @@ function update() {
   renderRanges(ageBand);   // reads the height, so it must run after it changes
 
   const { input, ready } = readForm();
+  showCue(ready);
 
   if (!input) {
     for (const component of COMPONENTS) resetChip(component);

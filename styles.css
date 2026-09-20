@@ -1,4 +1,4 @@
-/* Det 250 PFRA Score Calculator
+/* AFROTC PFRA Calculator — Det 250
  *
  * Iowa State cardinal and gold. Mobile first: a cadet opens this on a phone,
  * often standing outside right after PT, so type stays large, targets stay big,
@@ -286,10 +286,50 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   border: none;
   transition: background .15s ease, color .15s ease;
 }
+/* Gold rather than cardinal: these two answers are settings, not scores, and
+ * cardinal is what the tool uses to mean "attention here". Dark ink is fixed
+ * rather than --ink because gold does not change between themes. */
 .segment.on {
-  background: var(--cardinal);
-  color: #fff;
+  background: var(--gold);
+  color: #2a2205;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .18);
+}
+
+/* --- the guide cue ------------------------------------------------------
+ *
+ * One section glows at a time: the next one still to be answered. The ring is
+ * drawn with box-shadow so it never participates in layout, and the padding on
+ * .field is cancelled by an equal negative margin so that the cue moving from
+ * age to sex to the events does not shift anything on the page.
+ */
+.cue {
+  border-radius: var(--radius);
+  animation: cue-glow 2.4s ease-in-out infinite;
+}
+
+.field.cue, .band-picker.cue {
+  padding: 6px;
+  margin: -6px;
+}
+
+/* .band-picker carries its own reveal animation, and a later rule of equal
+ * specificity would win, so the cue is restated here with both running. */
+.band-picker.cue {
+  margin: -10px -6px -6px;
+  animation: rise .22s ease both, cue-glow 2.4s ease-in-out infinite;
+}
+
+.event.cue { border-color: var(--gold-deep); }
+
+@keyframes cue-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(202, 160, 66, .45); }
+  50%      { box-shadow: 0 0 0 5px rgba(241, 190, 72, .55); }
+}
+
+/* A steady ring still says "this one next" without anything moving. */
+@media (prefers-reduced-motion: reduce) {
+  .cue,
+  .band-picker.cue { animation: none; box-shadow: 0 0 0 3px rgba(241, 190, 72, .45); }
 }
 
 /* Revealed only when a cadet says they are 25 or older. */
@@ -926,6 +966,9 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   }
 
   body { background: #fff; color: #000; font-size: 11pt; }
+
+  /* The cue is guidance for filling the form in, not part of the record. */
+  .cue { animation: none; box-shadow: none; padding: 0; margin: 0; }
 
   .masthead {
     background: none;
