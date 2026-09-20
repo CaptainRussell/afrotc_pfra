@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=ad6fd29817';
-import { createAnalyzer } from './src/analysis.js?v=ad6fd29817';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=ad6fd29817';
+} from './src/engine.js?v=20481b2c55';
+import { createAnalyzer } from './src/analysis.js?v=20481b2c55';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=20481b2c55';
 
 const $ = (id) => document.getElementById(id);
 
@@ -81,7 +81,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=ad6fd29817').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=20481b2c55').then((r) => r.json());
   return { data };
 }
 
@@ -123,6 +123,14 @@ async function boot() {
       update();
     });
   }
+  $('altitude-toggle').addEventListener('click', () => {
+    const panel = $('altitude-panel');
+    panel.hidden = !panel.hidden;
+    $('altitude-toggle').setAttribute('aria-expanded', String(!panel.hidden));
+    if (!panel.hidden) $('altitude-feet').focus();
+  });
+  $('altitude-feet').addEventListener('input', update);
+
   for (const button of document.querySelectorAll('.verbiage-open')) {
     button.addEventListener('click', () => openVerbiage(button.dataset.verbiage));
   }
@@ -142,7 +150,10 @@ async function boot() {
   $('tally-button').addEventListener('click', () => {
     $('scoreboard').scrollIntoView({ behavior: motion(), block: 'start' });
   });
-  for (const button of document.querySelectorAll('.swap')) {
+  // Scoped to [data-swap], not to .swap: the Altitude control borrows the same
+  // class for its looks and would otherwise be wired up as an event picker for
+  // a component named "undefined".
+  for (const button of document.querySelectorAll('.swap[data-swap]')) {
     button.addEventListener('click', () => {
       const component = button.dataset.swap;
       if ($(`event-${component}`).hidden) openPicker(component);
@@ -438,6 +449,11 @@ function readForm() {
 
   const input = { ageBand, sex };
 
+  // One altitude for the whole assessment: it is a property of where the test
+  // was administered, not of any one event.
+  const feet = wholeNumber('altitude-feet');
+  if (feet != null) input.altitudeFeet = feet;
+
   // Each of the three timed or counted components reads whichever control its
   // currently selected event uses.
   for (const component of ['muscular_strength', 'core_endurance', 'cardiorespiratory']) {
@@ -572,6 +588,7 @@ function update() {
   }
 
   showTally(result, ready);
+  showAltitudeGroup();
 
   if (!complete) {
     $('results').hidden = true;
@@ -618,6 +635,34 @@ function showHeightInFeet() {
   hint.textContent = rounded === inches
     ? `${shown}, recorded to the nearest ½ inch.`
     : `Recorded as ${rounded} inches, which is ${shown}.`;
+}
+
+/**
+ * Say which altitude group the typed elevation falls in.
+ *
+ * "No correction applies" and "a correction of zero" are different things, so
+ * below 5,250 feet this says so rather than showing a group with nothing in it.
+ */
+function showAltitudeGroup() {
+  const note = $('altitude-note');
+  const feet = wholeNumber('altitude-feet');
+  const base = 'AFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet. ' +
+    'Det 250 assesses at Ames, about 955 feet.';
+
+  if (feet == null) {
+    note.textContent = base;
+    note.classList.remove('altitude-on');
+    return;
+  }
+  const group = lastResult?.altitudeGroup ?? null;
+  if (!group) {
+    note.textContent = `${feet.toLocaleString()} ft is below 5,250 ft, so no correction applies.`;
+    note.classList.remove('altitude-on');
+    return;
+  }
+  note.textContent = `${feet.toLocaleString()} ft falls in ${group.label}, ` +
+    'so Attachment 3 applies to the cardiorespiratory component.';
+  note.classList.add('altitude-on');
 }
 
 /* --- the verbiage dialog -------------------------------------------------
@@ -755,7 +800,9 @@ function renderSliders(band) {
     }
 
     const range = (sex && band)
-      ? scorer.rangeFor({ component, event, sex, band, heightInches: decimal('height') || null })
+      ? scorer.rangeFor({ component, event, sex, band,
+        heightInches: decimal('height') || null,
+        altitudeFeet: wholeNumber('altitude-feet') })
       : null;
 
     // No chart yet, or — for the waist — no height, so there is no way to turn
@@ -901,7 +948,8 @@ function renderRanges(band) {
     const event = events[component] ?? 'whtr';
     const heightInches = decimal('height') || null;
     const range = (sex && band)
-      ? scorer.rangeFor({ component, event, sex, band, heightInches })
+      ? scorer.rangeFor({ component, event, sex, band, heightInches,
+        altitudeFeet: wholeNumber('altitude-feet') })
       : null;
 
     if (!range) {
@@ -912,7 +960,9 @@ function renderRanges(band) {
     // Pass or fail: one number, and it is a ceiling rather than a floor.
     if (range.passFail) {
       host.append(rangeItem('Maximum time', range.standard.label,
-        `aged ${range.standard.groupLabel}`, false));
+        range.altitudeGroupLabel
+          ? `aged ${range.standard.groupLabel} · ${range.altitudeGroupLabel}`
+          : `aged ${range.standard.groupLabel}`, false));
       host.append(rangeItem('Worth', 'No points',
         'pass or fail · para 3.7.3', true));
       continue;
@@ -998,11 +1048,13 @@ function fillChip(component, scored) {
     setMeter(`meter-${component}`, scored.walk.passed ? scored.maxPoints : 0,
       scored.maxPoints, scored.walk.passed ? 'is-pass' : 'is-fail', null);
     const walkRow = $(`row-${component}`);
+    const walkAltitude = scored.altitude ? ` · ${scored.altitude.text}` : '';
     walkRow.textContent = scored.walk.passed
       ? `${formatTime(scored.walk.seconds)} of ${scored.walk.maxTime} maximum ` +
         `→ pass, no points (component exempt)`
       : `${formatTime(scored.walk.seconds)} is over the ${scored.walk.maxTime} maximum ` +
         `→ the assessment fails`;
+    walkRow.textContent += walkAltitude;
     walkRow.hidden = false;
     return;
   }
@@ -1016,7 +1068,11 @@ function fillChip(component, scored) {
 
   const row = $(`row-${component}`);
   if (scored.chartRowLabel) {
-    row.textContent = scored.chartRowLabel;
+    // The altitude sentence goes with the chart row, because together they are
+    // the whole story of how a recorded number became a score.
+    row.textContent = scored.altitude
+      ? `${scored.chartRowLabel} · ${scored.altitude.text}`
+      : scored.chartRowLabel;
     row.hidden = false;
   } else {
     row.textContent = scored.status === 'below_minimum'

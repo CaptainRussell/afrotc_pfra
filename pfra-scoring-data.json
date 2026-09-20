@@ -13713,5 +13713,591 @@
     "40-49": "40-49",
     "50-59": "50-59",
     "60plus": "60 or older"
+  },
+  "altitude_correction": {
+    "note": "AFMAN 36-2905 Attachment 3. Applies only at 5,250 feet and above; below that there is no correction. The run correction is subtracted from the recorded time, the HAMR correction is added to the shuttle count, and the walk gets a replacement maximum time.",
+    "lowest_feet": 5250,
+    "groups": [
+      {
+        "id": "group1",
+        "min_feet": 5250,
+        "max_feet": 5499,
+        "label": "5,250 – 5,499 ft"
+      },
+      {
+        "id": "group2",
+        "min_feet": 5500,
+        "max_feet": 5999,
+        "label": "5,500 – 5,999 ft"
+      },
+      {
+        "id": "group3",
+        "min_feet": 6000,
+        "max_feet": 6599,
+        "label": "6,000 – 6,599 ft"
+      },
+      {
+        "id": "group4",
+        "min_feet": 6600,
+        "max_feet": null,
+        "label": "6,600 ft and above"
+      }
+    ],
+    "run_2mile": {
+      "table": "A3.1",
+      "unit": "seconds subtracted from the recorded time",
+      "rows": [
+        {
+          "max_time": "13:25",
+          "max_seconds": 805,
+          "seconds": {
+            "group1": 2,
+            "group2": 6,
+            "group3": 11,
+            "group4": 18
+          }
+        },
+        {
+          "max_time": "13:55",
+          "max_seconds": 835,
+          "seconds": {
+            "group1": 2,
+            "group2": 6,
+            "group3": 11,
+            "group4": 19
+          }
+        },
+        {
+          "max_time": "14:12",
+          "max_seconds": 852,
+          "seconds": {
+            "group1": 2,
+            "group2": 7,
+            "group3": 12,
+            "group4": 20
+          }
+        },
+        {
+          "max_time": "14:27",
+          "max_seconds": 867,
+          "seconds": {
+            "group1": 2,
+            "group2": 7,
+            "group3": 12,
+            "group4": 20
+          }
+        },
+        {
+          "max_time": "14:41",
+          "max_seconds": 881,
+          "seconds": {
+            "group1": 2,
+            "group2": 7,
+            "group3": 12,
+            "group4": 20
+          }
+        },
+        {
+          "max_time": "15:05",
+          "max_seconds": 905,
+          "seconds": {
+            "group1": 2,
+            "group2": 7,
+            "group3": 12,
+            "group4": 21
+          }
+        },
+        {
+          "max_time": "15:17",
+          "max_seconds": 917,
+          "seconds": {
+            "group1": 2,
+            "group2": 7,
+            "group3": 12,
+            "group4": 21
+          }
+        },
+        {
+          "max_time": "15:28",
+          "max_seconds": 928,
+          "seconds": {
+            "group1": 2,
+            "group2": 8,
+            "group3": 13,
+            "group4": 22
+          }
+        },
+        {
+          "max_time": "15:38",
+          "max_seconds": 938,
+          "seconds": {
+            "group1": 2,
+            "group2": 8,
+            "group3": 13,
+            "group4": 22
+          }
+        },
+        {
+          "max_time": "16:09",
+          "max_seconds": 969,
+          "seconds": {
+            "group1": 2,
+            "group2": 8,
+            "group3": 13,
+            "group4": 22
+          }
+        },
+        {
+          "max_time": "16:29",
+          "max_seconds": 989,
+          "seconds": {
+            "group1": 3,
+            "group2": 8,
+            "group3": 14,
+            "group4": 23
+          }
+        },
+        {
+          "max_time": "16:49",
+          "max_seconds": 1009,
+          "seconds": {
+            "group1": 3,
+            "group2": 9,
+            "group3": 15,
+            "group4": 24
+          }
+        },
+        {
+          "max_time": "17:08",
+          "max_seconds": 1028,
+          "seconds": {
+            "group1": 3,
+            "group2": 9,
+            "group3": 15,
+            "group4": 25
+          }
+        },
+        {
+          "max_time": "17:18",
+          "max_seconds": 1038,
+          "seconds": {
+            "group1": 3,
+            "group2": 9,
+            "group3": 15,
+            "group4": 26
+          }
+        },
+        {
+          "max_time": "17:37",
+          "max_seconds": 1057,
+          "seconds": {
+            "group1": 3,
+            "group2": 9,
+            "group3": 16,
+            "group4": 26
+          }
+        },
+        {
+          "max_time": "17:55",
+          "max_seconds": 1075,
+          "seconds": {
+            "group1": 3,
+            "group2": 9,
+            "group3": 16,
+            "group4": 27
+          }
+        },
+        {
+          "max_time": "18:23",
+          "max_seconds": 1103,
+          "seconds": {
+            "group1": 3,
+            "group2": 10,
+            "group3": 16,
+            "group4": 28
+          }
+        },
+        {
+          "max_time": "18:39",
+          "max_seconds": 1119,
+          "seconds": {
+            "group1": 3,
+            "group2": 10,
+            "group3": 17,
+            "group4": 28
+          }
+        },
+        {
+          "max_time": "19:07",
+          "max_seconds": 1147,
+          "seconds": {
+            "group1": 3,
+            "group2": 10,
+            "group3": 17,
+            "group4": 29
+          }
+        },
+        {
+          "max_time": "19:36",
+          "max_seconds": 1176,
+          "seconds": {
+            "group1": 3,
+            "group2": 11,
+            "group3": 18,
+            "group4": 31
+          }
+        },
+        {
+          "max_time": "19:45",
+          "max_seconds": 1185,
+          "seconds": {
+            "group1": 3,
+            "group2": 11,
+            "group3": 18,
+            "group4": 31
+          }
+        },
+        {
+          "max_time": "20:06",
+          "max_seconds": 1206,
+          "seconds": {
+            "group1": 4,
+            "group2": 11,
+            "group3": 19,
+            "group4": 32
+          }
+        },
+        {
+          "max_time": "20:44",
+          "max_seconds": 1244,
+          "seconds": {
+            "group1": 4,
+            "group2": 12,
+            "group3": 20,
+            "group4": 34
+          }
+        },
+        {
+          "max_time": "21:09",
+          "max_seconds": 1269,
+          "seconds": {
+            "group1": 5,
+            "group2": 13,
+            "group3": 21,
+            "group4": 36
+          }
+        },
+        {
+          "max_time": "22:04",
+          "max_seconds": 1324,
+          "seconds": {
+            "group1": 5,
+            "group2": 13,
+            "group3": 22,
+            "group4": 37
+          }
+        },
+        {
+          "max_time": "22:28",
+          "max_seconds": 1348,
+          "seconds": {
+            "group1": 5,
+            "group2": 14,
+            "group3": 23,
+            "group4": 38
+          }
+        },
+        {
+          "max_time": "22:45",
+          "max_seconds": 1365,
+          "seconds": {
+            "group1": 5,
+            "group2": 14,
+            "group3": 24,
+            "group4": 40
+          }
+        },
+        {
+          "max_time": "22:50",
+          "max_seconds": 1370,
+          "seconds": {
+            "group1": 5,
+            "group2": 15,
+            "group3": 25,
+            "group4": 42
+          }
+        },
+        {
+          "max_time": "22:58",
+          "max_seconds": 1378,
+          "seconds": {
+            "group1": 5,
+            "group2": 15,
+            "group3": 26,
+            "group4": 43
+          }
+        },
+        {
+          "max_time": "23:15",
+          "max_seconds": 1395,
+          "seconds": {
+            "group1": 6,
+            "group2": 17,
+            "group3": 28,
+            "group4": 46
+          }
+        },
+        {
+          "max_time": "23:30",
+          "max_seconds": 1410,
+          "seconds": {
+            "group1": 6,
+            "group2": 18,
+            "group3": 29,
+            "group4": 49
+          }
+        },
+        {
+          "max_time": "23:36",
+          "max_seconds": 1416,
+          "seconds": {
+            "group1": 6,
+            "group2": 18,
+            "group3": 31,
+            "group4": 51
+          }
+        },
+        {
+          "max_time": "24:00",
+          "max_seconds": 1440,
+          "seconds": {
+            "group1": 6,
+            "group2": 19,
+            "group3": 32,
+            "group4": 54
+          }
+        },
+        {
+          "max_time": "24:48",
+          "max_seconds": 1488,
+          "seconds": {
+            "group1": 7,
+            "group2": 20,
+            "group3": 34,
+            "group4": 57
+          }
+        },
+        {
+          "max_time": "25:00",
+          "max_seconds": 1500,
+          "seconds": {
+            "group1": 8,
+            "group2": 22,
+            "group3": 37,
+            "group4": 62
+          }
+        }
+      ]
+    },
+    "hamr_20m": {
+      "table": "A3.4",
+      "unit": "shuttles added to the recorded count",
+      "shuttles": {
+        "group1": 1,
+        "group2": 2,
+        "group3": 3,
+        "group4": 4
+      }
+    },
+    "walk_2km": {
+      "table": "A3.2 and A3.3",
+      "unit": "replacement maximum time",
+      "max": {
+        "M": {
+          "under30": {
+            "group1": {
+              "max_time": "16:18",
+              "max_seconds": 978
+            },
+            "group2": {
+              "max_time": "16:22",
+              "max_seconds": 982
+            },
+            "group3": {
+              "max_time": "16:25",
+              "max_seconds": 985
+            },
+            "group4": {
+              "max_time": "16:31",
+              "max_seconds": 991
+            }
+          },
+          "30-39": {
+            "group1": {
+              "max_time": "16:20",
+              "max_seconds": 980
+            },
+            "group2": {
+              "max_time": "16:24",
+              "max_seconds": 984
+            },
+            "group3": {
+              "max_time": "16:27",
+              "max_seconds": 987
+            },
+            "group4": {
+              "max_time": "16:33",
+              "max_seconds": 993
+            }
+          },
+          "40-49": {
+            "group1": {
+              "max_time": "16:25",
+              "max_seconds": 985
+            },
+            "group2": {
+              "max_time": "16:28",
+              "max_seconds": 988
+            },
+            "group3": {
+              "max_time": "16:31",
+              "max_seconds": 991
+            },
+            "group4": {
+              "max_time": "16:37",
+              "max_seconds": 997
+            }
+          },
+          "50-59": {
+            "group1": {
+              "max_time": "16:42",
+              "max_seconds": 1002
+            },
+            "group2": {
+              "max_time": "16:45",
+              "max_seconds": 1005
+            },
+            "group3": {
+              "max_time": "16:48",
+              "max_seconds": 1008
+            },
+            "group4": {
+              "max_time": "16:53",
+              "max_seconds": 1013
+            }
+          },
+          "60plus": {
+            "group1": {
+              "max_time": "16:59",
+              "max_seconds": 1019
+            },
+            "group2": {
+              "max_time": "17:02",
+              "max_seconds": 1022
+            },
+            "group3": {
+              "max_time": "17:05",
+              "max_seconds": 1025
+            },
+            "group4": {
+              "max_time": "17:10",
+              "max_seconds": 1030
+            }
+          }
+        },
+        "F": {
+          "under30": {
+            "group1": {
+              "max_time": "17:25",
+              "max_seconds": 1045
+            },
+            "group2": {
+              "max_time": "17:30",
+              "max_seconds": 1050
+            },
+            "group3": {
+              "max_time": "17:34",
+              "max_seconds": 1054
+            },
+            "group4": {
+              "max_time": "17:42",
+              "max_seconds": 1062
+            }
+          },
+          "30-39": {
+            "group1": {
+              "max_time": "17:30",
+              "max_seconds": 1050
+            },
+            "group2": {
+              "max_time": "17:35",
+              "max_seconds": 1055
+            },
+            "group3": {
+              "max_time": "17:40",
+              "max_seconds": 1060
+            },
+            "group4": {
+              "max_time": "17:47",
+              "max_seconds": 1067
+            }
+          },
+          "40-49": {
+            "group1": {
+              "max_time": "17:52",
+              "max_seconds": 1072
+            },
+            "group2": {
+              "max_time": "17:56",
+              "max_seconds": 1076
+            },
+            "group3": {
+              "max_time": "18:00",
+              "max_seconds": 1080
+            },
+            "group4": {
+              "max_time": "18:07",
+              "max_seconds": 1087
+            }
+          },
+          "50-59": {
+            "group1": {
+              "max_time": "18:13",
+              "max_seconds": 1093
+            },
+            "group2": {
+              "max_time": "18:17",
+              "max_seconds": 1097
+            },
+            "group3": {
+              "max_time": "18:21",
+              "max_seconds": 1101
+            },
+            "group4": {
+              "max_time": "18:28",
+              "max_seconds": 1108
+            }
+          },
+          "60plus": {
+            "group1": {
+              "max_time": "18:54",
+              "max_seconds": 1134
+            },
+            "group2": {
+              "max_time": "18:58",
+              "max_seconds": 1138
+            },
+            "group3": {
+              "max_time": "19:02",
+              "max_seconds": 1142
+            },
+            "group4": {
+              "max_time": "19:08",
+              "max_seconds": 1148
+            }
+          }
+        }
+      }
+    }
   }
 }

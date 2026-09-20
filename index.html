@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=ad6fd29817">
+<link rel="stylesheet" href="styles.css?v=20481b2c55">
 </head>
 <body>
 
@@ -218,6 +218,9 @@
                   title="Change exercise">Change Exercise</button>
           <button type="button" class="verbiage-open" data-verbiage="cardiorespiratory"
                 title="What the assessment administrator reads out">Verbiage</button>
+          <button type="button" class="swap" id="altitude-toggle"
+                  aria-expanded="false" aria-controls="altitude-panel"
+                  title="Altitude time correction">Altitude</button>
         </div>
         <output class="chip" id="chip-cardiorespiratory" aria-live="polite">&ndash; / 50</output>
       </div>
@@ -228,6 +231,15 @@
         <div class="meter-mark" hidden></div>
       </div>
       <p class="alt-note" id="alt-cardiorespiratory" hidden></p>
+      <div class="event-picker" id="altitude-panel" hidden>
+        <label for="altitude-feet">Test altitude (feet)</label>
+        <input type="number" id="altitude-feet" inputmode="numeric" min="0" max="20000"
+               step="10" placeholder="feet above sea level">
+        <p class="hint" id="altitude-note">
+          AFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet.
+          Det 250 assesses at Ames, about 955 feet.
+        </p>
+      </div>
       <div class="event-picker" id="event-cardiorespiratory" hidden>
         <label for="event-select-cardiorespiratory">Event</label>
         <select id="event-select-cardiorespiratory" data-component="cardiorespiratory">
@@ -481,6 +493,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=ad6fd29817"></script>
+<script type="module" src="app.js?v=20481b2c55"></script>
 </body>
 </html>

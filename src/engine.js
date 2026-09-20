@@ -18,7 +18,47 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=ad6fd29817';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=20481b2c55';
+
+/* --- altitude time correction (AFMAN 36-2905 Attachment 3) ---------------
+ *
+ * Thin air costs time, so above 5,250 feet the manual gives it back: seconds
+ * off a run, shuttles onto a HAMR, and a later maximum for the walk. Below that
+ * there is no correction at all, which is why this returns null rather than a
+ * zero group — "no correction applies" and "a correction of zero" are different
+ * things to say on screen.
+ *
+ * Det 250 assesses at Ames, about 955 feet, so this never fires for a cadet.
+ * It is here because cadre read these tables for members testing elsewhere.
+ */
+export function altitudeGroupFor(data, feet) {
+  const table = data.altitude_correction;
+  if (!table || feet == null || !Number.isFinite(feet)) return null;
+  if (feet < table.lowest_feet) return null;
+  for (const group of table.groups) {
+    if (feet >= group.min_feet && (group.max_feet == null || feet <= group.max_feet)) {
+      return group;
+    }
+  }
+  return null;
+}
+
+/**
+ * Seconds to take off a 2 mile run, from Table A3.1.
+ *
+ * The table is indexed by the time actually run, not by the corrected one, so
+ * the lookup takes the first row the recorded time reaches. A time slower than
+ * the last row takes the last row: the table stops at 25:00 and a correction
+ * has to come from somewhere.
+ */
+function runAltitudeSeconds(data, group, seconds) {
+  if (!group) return 0;
+  const rows = data.altitude_correction.run_2mile.rows;
+  for (const row of rows) {
+    if (seconds <= row.max_seconds) return row.seconds[group.id];
+  }
+  return rows[rows.length - 1].seconds[group.id];
+}
 
 /** Component result states. Only 'scored' and 'exempt' can pass a component. */
 export const STATUS = Object.freeze({
@@ -373,7 +413,7 @@ function notCompletedResult(component, event, status, maxPoints, minimumPoints, 
   });
 }
 
-function scoreAscendingComponent(data, { component, event, kind, sex, band, value, status }) {
+function scoreAscendingComponent(data, { component, event, kind, sex, band, value, status, altitude }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
   const references = ['afman.3.7.4', 'charts.minimum-asterisk'];
@@ -393,7 +433,23 @@ function scoreAscendingComponent(data, { component, event, kind, sex, band, valu
     : data[TABLES[event].path]?.[sex]?.[band];
   if (!rows) throw new RangeError(`no ${event} table for ${sex}/${band}`);
 
-  const { row, index } = lookupAtLeast(rows, value, measure.field);
+  // Only the HAMR takes an altitude correction, and it takes it as shuttles
+  // added on (Table A3.4). Reps and a plank hold get none: thin air is not why
+  // a push-up is hard.
+  const addShuttles = (altitude && event === 'hamr_20m')
+    ? data.altitude_correction.hamr_20m.shuttles[altitude.id] : 0;
+  const effective = value + addShuttles;
+  const altitudeNote = addShuttles ? Object.freeze({
+    group: altitude.id,
+    groupLabel: altitude.label,
+    addedShuttles: addShuttles,
+    recorded: value,
+    effective,
+    text: `${value} shuttles at ${altitude.label} score as ${effective}: ` +
+      `Attachment 3 Table A3.4 adds ${addShuttles}.`
+  }) : null;
+
+  const { row, index } = lookupAtLeast(rows, effective, measure.field);
   const floor = rows[rows.length - 1];
   const who = sex === 'M' ? 'male' : 'female';
   const measured = measure.key === 'seconds'
@@ -411,9 +467,10 @@ function scoreAscendingComponent(data, { component, event, kind, sex, band, valu
       chartRow: null,
       chartRowIndex: -1,
       chartRowLabel: null,
-      nextThreshold: ascendingThreshold(rows, -1, value, measure),
+      nextThreshold: ascendingThreshold(rows, -1, effective, measure),
+      altitude: altitudeNote,
       explanation:
-        `${measure.show(value)} is below the ${measure.threshold(floor[measure.field])} ` +
+        `${measure.show(effective)} is below the ${measure.threshold(floor[measure.field])} ` +
         `minimum for a ${who} in the ${data.age_band_ranges[band]} band. Below the ` +
         'minimum the component scores 0 and fails.',
       references
@@ -430,16 +487,17 @@ function scoreAscendingComponent(data, { component, event, kind, sex, band, valu
     chartRow: row,
     chartRowIndex: index,
     chartRowLabel: `${measure.atLeast(row[measure.field])} → ${row.points.toFixed(1)} points`,
-    nextThreshold: ascendingThreshold(rows, index, value, measure),
+    nextThreshold: ascendingThreshold(rows, index, effective, measure),
+    altitude: altitudeNote,
     explanation:
-      `${measure.show(value)} meets the ${measure.threshold(row[measure.field])} row on the ` +
+      `${measure.show(effective)} meets the ${measure.threshold(row[measure.field])} row on the ` +
       `${EVENT_LABELS[event]} chart (${who}, ${data.age_band_ranges[band]}), ` +
       `worth ${row.points.toFixed(1)} points.`,
     references
   });
 }
 
-function scoreRunComponent(data, { component, event, sex, band, seconds, status }) {
+function scoreRunComponent(data, { component, event, sex, band, seconds, status, altitude }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
   const references = ['afman.3.7.4', 'afman.3.15.12.1', 'charts.minimum-asterisk'];
@@ -452,7 +510,23 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status 
   const rows = data[event]?.[sex]?.[band];
   if (!rows) throw new RangeError(`no ${event} table for ${sex}/${band}`);
 
-  const { row, index } = lookupTime(rows, seconds);
+  // The correction comes off the recorded time, and the chart is then read on
+  // what is left. `measured` keeps the time the member actually ran, because
+  // that is what goes on the 4446.
+  const takeOff = runAltitudeSeconds(data, altitude, seconds);
+  const effective = Math.max(0, seconds - takeOff);
+  const altitudeNote = altitude ? Object.freeze({
+    group: altitude.id,
+    groupLabel: altitude.label,
+    correctionSeconds: takeOff,
+    recordedSeconds: seconds,
+    effectiveSeconds: effective,
+    text: `${formatTime(seconds)} at ${altitude.label} scores as ` +
+      `${formatTime(effective)}: Attachment 3 Table A3.1 allows ` +
+      `${formatTime(takeOff)}.`
+  }) : null;
+
+  const { row, index } = lookupTime(rows, effective);
   const floor = rows[rows.length - 1];
   const measured = { seconds, time: formatTime(seconds) };
 
@@ -467,9 +541,10 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status 
       chartRow: null,
       chartRowIndex: -1,
       chartRowLabel: null,
-      nextThreshold: timeThreshold(rows, -1, seconds),
+      nextThreshold: timeThreshold(rows, -1, effective),
+      altitude: altitudeNote,
       explanation:
-        `${formatTime(seconds)} is slower than the ${floor.max_time} minimum for a ` +
+        `${formatTime(effective)} is slower than the ${floor.max_time} minimum for a ` +
         `${sex === 'M' ? 'male' : 'female'} in the ${data.age_band_ranges[band]} band. ` +
         'Slower than the minimum the component scores 0 and fails.',
       references
@@ -486,9 +561,10 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status 
     chartRow: row,
     chartRowIndex: index,
     chartRowLabel: `${row.max_time} or faster → ${row.points.toFixed(1)} points`,
-    nextThreshold: timeThreshold(rows, index, seconds),
+    nextThreshold: timeThreshold(rows, index, effective),
+    altitude: altitudeNote,
     explanation:
-      `${formatTime(seconds)} falls in the ${row.max_time} row on the 2 mile run chart ` +
+      `${formatTime(effective)} falls in the ${row.max_time} row on the 2 mile run chart ` +
       `(${sex === 'M' ? 'male' : 'female'}, ${data.age_band_ranges[band]}), worth ${row.points.toFixed(1)} points.`,
     references
   });
@@ -507,7 +583,7 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status 
  * (under 30, then by decade), which is why `walk_age_groups` maps a PFRA band
  * onto a walk group rather than the two being assumed to line up.
  */
-function scoreWalkComponent(data, { component, event, sex, band, seconds, status }) {
+function scoreWalkComponent(data, { component, event, sex, band, seconds, status, altitude }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
   const references = ['afman.3.7.3', 'afman.3.6.2', 'afman.3.10.1', 'charts.walk'];
@@ -517,11 +593,25 @@ function scoreWalkComponent(data, { component, event, sex, band, seconds, status
   }
 
   const group = data.walk_age_groups[band];
-  const row = data.walk_2km?.[sex]?.[group];
-  if (!row) throw new RangeError(`no 2 kilometer walk standard for ${sex}/${band}`);
+  const sea = data.walk_2km?.[sex]?.[group];
+  if (!sea) throw new RangeError(`no 2 kilometer walk standard for ${sex}/${band}`);
+
+  // Tables A3.2 and A3.3 give a later maximum outright rather than a number of
+  // seconds to allow, so at altitude the standard is replaced, not adjusted.
+  const higher = altitude
+    ? data.altitude_correction.walk_2km.max[sex][group][altitude.id] : null;
+  const row = higher ?? sea;
 
   const passed = seconds <= row.max_seconds;
   const groupLabel = data.walk_age_group_labels[group];
+  const altitudeNote = higher ? Object.freeze({
+    group: altitude.id,
+    groupLabel: altitude.label,
+    seaLevelTime: sea.max_time,
+    maxTime: higher.max_time,
+    text: `At ${altitude.label} the maximum is ${higher.max_time} rather than ` +
+      `${sea.max_time}: Attachment 3 Table ${sex === 'M' ? 'A3.2' : 'A3.3'}.`
+  }) : null;
 
   return baseResult(component, event, {
     // Exempt either way: the walk never scores points, and the pass or fail is
@@ -545,6 +635,7 @@ function scoreWalkComponent(data, { component, event, sex, band, seconds, status
       groupLabel,
       marginSeconds: row.max_seconds - seconds
     }),
+    altitude: altitudeNote,
     explanation: passed
       ? `${formatTime(seconds)} meets the ${row.max_time} standard for a ` +
         `${sex === 'M' ? 'male' : 'female'} aged ${groupLabel}. The walk is pass or fail: ` +
@@ -702,7 +793,7 @@ function waistBoundary(heightInches, hundredths, direction) {
   return answer;
 }
 
-function rangeFor(data, { component, event, sex, band, heightInches }) {
+function rangeFor(data, { component, event, sex, band, heightInches, altitudeFeet }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
   const kind = EVENT_KINDS[event];
@@ -746,17 +837,24 @@ function rangeFor(data, { component, event, sex, band, heightInches }) {
   // The walk has one number rather than a range: a maximum time to beat. There
   // is no "full marks" end, because there are no marks.
   if (kind === 'walk') {
-    const row = data.walk_2km?.[sex]?.[data.walk_age_groups[band]];
-    if (!row) return null;
+    const group = data.walk_age_groups[band];
+    const sea = data.walk_2km?.[sex]?.[group];
+    if (!sea) return null;
+    // At altitude the standard itself moves, so the strip has to move with it
+    // or it will quote 16:16 next to a row that just said the maximum is 16:31.
+    const altitude = altitudeGroupFor(data, altitudeFeet ?? null);
+    const row = altitude
+      ? data.altitude_correction.walk_2km.max[sex][group][altitude.id] : sea;
     return Object.freeze({
       component,
       event,
       unit: 'time',
       passFail: true,
+      altitudeGroupLabel: altitude ? altitude.label : null,
       standard: {
         seconds: row.max_seconds,
         label: `${row.max_time} or faster`,
-        groupLabel: data.walk_age_group_labels[data.walk_age_groups[band]]
+        groupLabel: data.walk_age_group_labels[group]
       },
       best: null,
       floor: null,
@@ -834,7 +932,7 @@ export function createScorer(data) {
     return data.events[component] ?? [];
   }
 
-  function scoreComponent(component, entry, sex, band) {
+  function scoreComponent(component, entry, sex, band, altitude) {
     const allowed = eventsFor(component);
     const event = entry?.event ?? allowed[0];
     if (!allowed.includes(event)) {
@@ -849,15 +947,17 @@ export function createScorer(data) {
         ? parseTime(entry?.time ?? entry?.seconds)
         : entry?.[MEASURES[kind].key];
       return scoreAscendingComponent(data,
-        { component, event, kind, sex, band, value, status });
+        { component, event, kind, sex, band, value, status, altitude });
     }
     if (kind === 'time') {
       const seconds = status ? null : parseTime(entry?.time ?? entry?.seconds);
-      return scoreRunComponent(data, { component, event, sex, band, seconds, status });
+      return scoreRunComponent(data,
+        { component, event, sex, band, seconds, status, altitude });
     }
     if (kind === 'walk') {
       const seconds = status ? null : parseTime(entry?.time ?? entry?.seconds);
-      return scoreWalkComponent(data, { component, event, sex, band, seconds, status });
+      return scoreWalkComponent(data,
+        { component, event, sex, band, seconds, status, altitude });
     }
     if (kind === 'ratio') {
       return scoreWhtrComponent(data, { component, event, ...entry, status });
@@ -875,9 +975,14 @@ export function createScorer(data) {
     const sex = normalizeSex(input.sex);
     const band = normalizeBand(data, input);
 
+    // One lookup for the whole assessment: the test altitude is a property of
+    // where it was administered, not of any one event.
+    const altitude = altitudeGroupFor(data, input.altitudeFeet ?? null);
+
     const components = {};
     for (const component of COMPONENTS) {
-      components[component] = Object.freeze(scoreComponent(component, input[component], sex, band));
+      components[component] =
+        Object.freeze(scoreComponent(component, input[component], sex, band, altitude));
     }
 
     /*
@@ -978,6 +1083,8 @@ export function createScorer(data) {
       ageBandLabel: data.age_band_ranges[band],
       age: input.age ?? null,
       components: Object.freeze(components),
+      altitudeFeet: input.altitudeFeet ?? null,
+      altitudeGroup: altitude,
       composite,
       compositeText: composite.toFixed(1),
       compositeOutOf: available,

@@ -302,6 +302,13 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 }
 
 
+/* An altitude that actually changes a score says so in the tool's own
+ * attention colour, because a quiet hint is easy to leave switched on. */
+.altitude-on {
+  color: var(--cardinal);
+  font-weight: 600;
+}
+
 /* --- the verbiage dialog -------------------------------------------------
  *
  * A quotation of a regulation, so it is set to be read: a comfortable measure,
