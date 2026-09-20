@@ -295,6 +295,16 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 /* Gold rather than cardinal: these two answers are settings, not scores, and
  * cardinal is what the tool uses to mean "attention here". Dark ink is fixed
  * rather than --ink because gold does not change between themes. */
+/* Mars and Venus sit slightly large next to the word, and a touch lighter so
+ * the label still leads. Decorative: the word is what is read out. */
+.sex-glyph {
+  font-size: 1.05em;
+  line-height: 1;
+  opacity: .75;
+  margin-right: 2px;
+}
+.segment.on .sex-glyph { opacity: 1; }
+
 .segment.on {
   background: var(--gold);
   color: #2a2205;

@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=70f7413afd';
-import { createAnalyzer } from './src/analysis.js?v=70f7413afd';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=70f7413afd';
+} from './src/engine.js?v=9a5424c9d4';
+import { createAnalyzer } from './src/analysis.js?v=9a5424c9d4';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=9a5424c9d4';
 
 const $ = (id) => document.getElementById(id);
 
@@ -81,7 +81,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=70f7413afd').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=9a5424c9d4').then((r) => r.json());
   return { data };
 }
 
@@ -338,14 +338,18 @@ function showAltNotes() {
  * with the component the moment HAMR is chosen and goes away again otherwise.
  */
 function showEventDocs() {
-  const doc = $('doc-hamr');
   const wanted = events.cardiorespiratory === 'hamr_20m';
-  if (!wanted && !doc.hidden) {
-    // Collapse the viewer too, or it would reopen already expanded later.
-    const toggle = doc.querySelector('.view-toggle');
-    if (toggle.getAttribute('aria-expanded') === 'true') toggle.click();
+  // The tally sheet and the pacing audio both belong to the HAMR and nothing
+  // else, so they appear and disappear together.
+  for (const id of ['doc-hamr', 'doc-hamr-audio']) {
+    const doc = $(id);
+    if (!wanted && !doc.hidden) {
+      // Collapse the viewer too, or it would reopen already expanded later.
+      const toggle = doc.querySelector('.view-toggle');
+      if (toggle && toggle.getAttribute('aria-expanded') === 'true') toggle.click();
+    }
+    doc.hidden = !wanted;
   }
-  doc.hidden = !wanted;
 }
 
 const fieldOf = (component) => ({
@@ -724,7 +728,7 @@ function showAltitudeGroup() {
 
   if (!group) {
     note.textContent =
-      'AFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet. ' +
+      'DAFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet. ' +
       'Det 250 assesses at Ames, about 955 feet.';
     note.classList.remove('altitude-on');
     toggle.textContent = 'Altitude';
@@ -743,7 +747,7 @@ function showAltitudeGroup() {
 
 /* --- the verbiage dialog -------------------------------------------------
  *
- * Attachment 2 of AFMAN 36-2905 is the script an assessment administrator reads
+ * Attachment 2 of DAFMAN 36-2905 is the script an assessment administrator reads
  * out before each event. It is quoted rather than summarised, because the point
  * of it is that the same words reach every member.
  *
@@ -912,7 +916,7 @@ function renderSliders(band) {
     // which on a run is one second of a six minute range and would render as
     // nothing, so it is floored at a width that can actually be seen: this is
     // an affordance marking the failing end, not a plot of anything. Body
-    // composition has no minimum (AFMAN 36-2905 para 3.7.1) and gets no tip.
+    // composition has no minimum (DAFMAN 36-2905 para 3.7.1) and gets no tip.
     const span = bounds.max - bounds.min;
     const threshold = range.floor.isFloor ? range.floor.value : null;
     const cut = (threshold == null || span === 0)
@@ -1229,7 +1233,7 @@ function renderScoreboard(result) {
   board.classList.toggle('is-pass', result.pass);
   board.classList.toggle('is-fail', !result.pass);
   $('composite').textContent = result.compositeText;
-  // AFMAN 36-2905 para 3.6.1 names the three categories. Unsatisfactory is the
+  // DAFMAN 36-2905 para 3.6.1 names the three categories. Unsatisfactory is the
   // failing one, so the badge carries the pass or fail colour without printing
   // the words "pass" or "fail".
   $('verdict').textContent = result.rating;
@@ -1409,7 +1413,7 @@ function renderReferences(result) {
     const sourceName = {
       'pfra-charts': 'PFRA Scoring charts',
       'notacc-cy26-092': 'NOTACC CY26-092'
-    }[reference.source] ?? 'AFMAN 36-2905';
+    }[reference.source] ?? 'DAFMAN 36-2905';
     box.append(el('span', 'reference-id', `${sourceName} · ${reference.paragraph}`));
     box.append(el('span', 'reference-text', reference.text));
     host.append(box);

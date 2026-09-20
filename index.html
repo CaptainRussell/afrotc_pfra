@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=70f7413afd">
+<link rel="stylesheet" href="styles.css?v=9a5424c9d4">
 </head>
 <body>
 
@@ -38,9 +38,9 @@
         <span class="label-text" id="sex-label">Sex</span>
         <div class="segmented" role="radiogroup" aria-labelledby="sex-label">
           <button type="button" class="segment" role="radio" aria-checked="false"
-                  data-sex="M">Male</button>
+                  data-sex="M"><span class="sex-glyph" aria-hidden="true">♂</span> Male</button>
           <button type="button" class="segment" role="radio" aria-checked="false"
-                  data-sex="F">Female</button>
+                  data-sex="F"><span class="sex-glyph" aria-hidden="true">♀</span> Female</button>
         </div>
         <p class="hint">Charts differ by sex.</p>
       </div>
@@ -56,7 +56,7 @@
     <!-- Body composition — measured first ----------------------------- -->
     <section class="event" data-component="body_composition">
       <div class="event-head">
-        <h2>Waist to height</h2>
+        <h2>Waist to height (WHtR)</h2>
         <div class="event-tools">
           <button type="button" class="verbiage-open" data-verbiage="body_composition"
                 title="What the assessment administrator reads out">Verbiage</button>
@@ -242,7 +242,7 @@
           <option value="">Below 5,250 ft &mdash; no correction</option>
         </select>
         <p class="hint" id="altitude-note">
-          AFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet.
+          DAFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet.
           Det 250 assesses at Ames, about 955 feet.
         </p>
       </div>
@@ -299,6 +299,25 @@
             <button type="button" class="secondary small view-toggle"
                     aria-expanded="false">View</button>
             <a class="secondary small doc-link" href="references/hamr-shuttle-tally.pdf"
+               download>Save</a>
+          </div>
+        </div>
+        <div class="viewer" hidden></div>
+      </div>
+
+      <!-- No View button: 9 MB of audio is a download, not something to open
+           inline on a phone on cellular. -->
+      <div class="document inline-doc" id="doc-hamr-audio" hidden>
+        <div class="document-head">
+          <div>
+            <p class="document-name">HAMR pacing audio</p>
+            <p class="document-note">
+              The official beep track the shuttle run is paced to. 9 MB &mdash;
+              download it before test day rather than streaming it on the field.
+            </p>
+          </div>
+          <div class="document-actions">
+            <a class="secondary small doc-link" href="references/hamr-audio.m4a"
                download>Save</a>
           </div>
         </div>
@@ -378,7 +397,7 @@
     <details class="card foldable">
       <summary>
         <h2>The rules behind these numbers</h2>
-        <span class="summary-hint">AFMAN 36-2905 and NOTACC CY26-092</span>
+        <span class="summary-hint">DAFMAN 36-2905 and NOTACC CY26-092</span>
       </summary>
       <div id="reference-list"></div>
     </details>
@@ -412,7 +431,7 @@
     <div class="document">
       <div class="document-head">
         <div>
-          <p class="document-name">AF Form 4446</p>
+          <p class="document-name">AF Form 4446 &ndash; Scorecard</p>
           <p class="document-note">The scorecard you sign.</p>
         </div>
         <div class="document-actions">
@@ -430,7 +449,7 @@
     <div class="document">
       <div class="document-head">
         <div>
-          <p class="document-name">AF Form 4446A</p>
+          <p class="document-name">AF Form 4446A &ndash; FSQ</p>
           <p class="document-note">Fitness Screening Questionnaire.</p>
         </div>
         <div class="document-actions">
@@ -445,6 +464,25 @@
       <div class="viewer" hidden></div>
     </div>
 
+    <div class="document">
+      <div class="document-head">
+        <div>
+          <p class="document-name">AFROTCI 36-2011 Volume 3 &ndash; Cadet Operations</p>
+          <p class="document-note">
+            24 June 2026. The AFROTC side of the assessment: what a PFA is worth,
+            what failing one costs, and the Fitness Award in Table 15.1.
+          </p>
+        </div>
+        <div class="document-actions">
+          <button type="button" class="secondary small view-toggle"
+                  aria-expanded="false">View</button>
+          <a class="secondary small doc-link" href="references/afrotci-36-2011v3.pdf"
+             download>Save</a>
+        </div>
+      </div>
+      <div class="viewer" hidden></div>
+    </div>
+
     <!-- No View button: this is a 116 page scan with no text layer, and the
          file is not linearised, so a browser has to pull all 40 MB before it
          can draw page one. On a phone on cellular that is a trap, so the only
@@ -452,7 +490,7 @@
     <div class="document">
       <div class="document-head">
         <div>
-          <p class="document-name">AFMAN 36-2905</p>
+          <p class="document-name">DAFMAN 36-2905</p>
           <p class="document-note">
             Air Force Physical Fitness Readiness Program, 24 March 2026. The manual
             every scoring rule in this tool comes from. Large scanned file (40 MB);
@@ -460,7 +498,7 @@
           </p>
         </div>
         <div class="document-actions">
-          <a class="secondary small doc-link" href="references/afman-36-2905.pdf"
+          <a class="secondary small doc-link" href="references/dafman-36-2905.pdf"
              download>Save</a>
         </div>
       </div>
@@ -499,7 +537,7 @@
   <p class="footer-note">AFROTC Detachment 250 &middot; Iowa State University</p>
 
   <p class="source-line">
-    Scored against <strong>AFMAN 36-2905</strong> (24 March 2026) and the Final USAF PFRA
+    Scored against <strong>DAFMAN 36-2905</strong> (24 March 2026) and the Final USAF PFRA
     Scoring charts, <strong>effective 1 March 2026</strong>, as published by AFPC
     current as of 17 March 2026. AFROTC events are set by
     <strong>NOTACC CY26-092</strong>, AY2026-2027 Fitness Guidance.
@@ -508,6 +546,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=70f7413afd"></script>
+<script type="module" src="app.js?v=9a5424c9d4"></script>
 </body>
 </html>

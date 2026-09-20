@@ -3,7 +3,7 @@
  *
  * The engine attaches citation ids to its results; the UI resolves them here so
  * a cadet can see the authority next to the number. Paragraph text is quoted
- * from AFMAN 36-2905, 24 March 2026, and from the Final USAF PFRA Scoring
+ * from DAFMAN 36-2905, 24 March 2026, and from the Final USAF PFRA Scoring
  * charts effective 1 March 2026.
  *
  * Keep this file in step with the DAFMAN. When a paragraph is renumbered, the
@@ -11,8 +11,8 @@
  */
 
 export const PUBLICATION = Object.freeze({
-  id: 'afman36-2905',
-  title: 'AFMAN 36-2905, Air Force Physical Fitness Readiness Program',
+  id: 'dafman36-2905',
+  title: 'DAFMAN 36-2905, Air Force Physical Fitness Readiness Program',
   date: '24 March 2026',
   effective: '1 March 2026',
   url: 'https://static.e-publishing.af.mil/production/1/af_a1/publication/afman36-2905/dafman36-2905.pdf'
@@ -56,14 +56,14 @@ export const REFERENCES = Object.freeze({
       'Assessment will utilize the Waist-to-Height Ratio (WHtR). Cadets are ' +
       'authorized to conduct WHtR measurements.'
   },
-  'afman.3.6.1': {
+  'dafman.3.6.1': {
     source: PUBLICATION.id,
     paragraph: '3.6.1',
     text: 'The categories of PFRA scores when assessing all components are: ' +
       'Excellent (≥ 90), Satisfactory (75 - 89.9) and Unsatisfactory ' +
       '(≤ 74.9 and/or any component minimum not met).'
   },
-  'afman.3.7.1': {
+  'dafman.3.7.1': {
     source: PUBLICATION.id,
     paragraph: '3.7.1',
     text: 'Members achieve a composite score from 0 to 100 based on the following ' +
@@ -71,7 +71,7 @@ export const REFERENCES = Object.freeze({
       'Cardiorespiratory, 20 points for Body Composition (does not have a minimum ' +
       'requirement), 15 points for Muscular Strength, and 15 points for Core Endurance.'
   },
-  'afman.3.7.4': {
+  'dafman.3.7.4': {
     source: PUBLICATION.id,
     paragraph: '3.7.4',
     text: 'Completing the minimum exercise repetition/duration in all fitness ' +
@@ -79,50 +79,50 @@ export const REFERENCES = Object.freeze({
       'composite score of 75 or greater. Repetition/durations below the required ' +
       'minimum receive a component score of zero.'
   },
-  'afman.3.15.2.3': {
+  'dafman.3.15.2.3': {
     source: PUBLICATION.id,
     paragraph: '3.15.2.3',
     text: "Member's height measurement will be recorded to the nearest ½ inch."
   },
-  'afman.3.15.4.2': {
+  'dafman.3.15.4.2': {
     source: PUBLICATION.id,
     paragraph: '3.15.4.2',
     text: 'WHtR is an age agnostic assessment and is calculated by dividing Waist ' +
       'Circumference Measurement (WCM) by height. WHtR results are truncated (not ' +
       'rounded) to the first two decimal points.'
   },
-  'afman.3.15.4.5': {
+  'dafman.3.15.4.5': {
     source: PUBLICATION.id,
     paragraph: '3.15.4.5',
     text: 'The WCM is taken at the midpoint between the member’s lowest rib and ' +
       'the top of their hip bone (iliac crest). The measurement will be taken three ' +
       'times and will be rounded down to the nearest 1/2 inch.'
   },
-  'afman.3.15.4.7': {
+  'dafman.3.15.4.7': {
     source: PUBLICATION.id,
     paragraph: '3.15.4.7',
     text: 'A secondary BFA must be accomplished for members identified with a WHtR ' +
       '≥ .55 and not meeting PFRA standards.'
   },
-  'afman.3.15.11': {
+  'dafman.3.15.11': {
     source: PUBLICATION.id,
     paragraph: '3.15.11',
     text: 'Muscular Strength is measured with a one-minute timed push-up or ' +
       'two-minute hand release push-ups.'
   },
-  'afman.3.15.12': {
+  'dafman.3.15.12': {
     source: PUBLICATION.id,
     paragraph: '3.15.12',
     text: 'Core Endurance is measured with a one-minute timed sit-up, two-minute ' +
       'cross leg reverse crunch or timed forearm plank.'
   },
-  'afman.3.15.12.1': {
+  'dafman.3.15.12.1': {
     source: PUBLICATION.id,
     paragraph: '3.15.12.1',
     text: 'Cardiorespiratory fitness is measured with 2.0 mile run or 20-meter HAMR ' +
       'on a certified track or course.'
   },
-  'afman.3.15.13': {
+  'dafman.3.15.13': {
     source: PUBLICATION.id,
     paragraph: '3.15.13',
     text: 'Members have one opportunity to complete each of the PFRA components per ' +
@@ -130,7 +130,7 @@ export const REFERENCES = Object.freeze({
       'to meet the minimum in one or more components, their incomplete PFRA will be ' +
       'recorded as a “Did Not Finish” PFRA.'
   },
-  'afman.3.7.3': {
+  'dafman.3.7.3': {
     source: PUBLICATION.id,
     paragraph: '3.7.3',
     text: 'The 2-kilometer walk is a pass or fail assessment for members that are ' +
@@ -138,13 +138,13 @@ export const REFERENCES = Object.freeze({
       'awarded for successful completion, nor can this assessment apply to the ' +
       'Excellent PFRA score.'
   },
-  'afman.3.6.2': {
+  'dafman.3.6.2': {
     source: PUBLICATION.id,
     paragraph: '3.6.2',
     text: 'Members assessed on the 2-kilometer walk are considered component exempt ' +
       'and will fall under frequency standards in accordance with paragraph 3.10.'
   },
-  'afman.3.10.1': {
+  'dafman.3.10.1': {
     source: PUBLICATION.id,
     paragraph: '3.10.1',
     text: 'Members who meet the 2 kilometer walk standard in Table 3.1 are not ' +
@@ -154,7 +154,7 @@ export const REFERENCES = Object.freeze({
     source: CHARTS.id,
     paragraph: 'Table 3.1, 2.0 Kilometer Walk',
     text: 'Maximum walk times by sex and age group. The same five rows appear in ' +
-      'AFMAN 36-2905 Table 3.1 and on the scoring charts.'
+      'DAFMAN 36-2905 Table 3.1 and on the scoring charts.'
   },
   'charts.minimum-asterisk': {
     source: CHARTS.id,

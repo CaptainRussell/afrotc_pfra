@@ -18,9 +18,9 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=70f7413afd';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=9a5424c9d4';
 
-/* --- altitude time correction (AFMAN 36-2905 Attachment 3) ---------------
+/* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
  * Thin air costs time, so above 5,250 feet the manual gives it back: seconds
  * off a run, shuttles onto a HAMR, and a later maximum for the walk. Below that
@@ -444,12 +444,12 @@ function notCompletedResult(component, event, status, maxPoints, minimumPoints, 
 function scoreAscendingComponent(data, { component, event, kind, sex, band, value, status, altitude }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
-  const references = ['afman.3.7.4', 'charts.minimum-asterisk'];
+  const references = ['dafman.3.7.4', 'charts.minimum-asterisk'];
   const measure = MEASURES[kind];
 
   if (status) {
     return notCompletedResult(component, event, status, maxPoints, minimumPoints,
-      [...references, 'afman.3.15.13']);
+      [...references, 'dafman.3.15.13']);
   }
   if (!Number.isInteger(value) || value < 0) {
     throw new RangeError(
@@ -533,11 +533,11 @@ function scoreAscendingComponent(data, { component, event, kind, sex, band, valu
 function scoreRunComponent(data, { component, event, sex, band, seconds, status, altitude }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
-  const references = ['afman.3.7.4', 'afman.3.15.12.1', 'charts.minimum-asterisk'];
+  const references = ['dafman.3.7.4', 'dafman.3.15.12.1', 'charts.minimum-asterisk'];
 
   if (status) {
     return notCompletedResult(component, event, status, maxPoints, minimumPoints,
-      [...references, 'afman.3.15.13']);
+      [...references, 'dafman.3.15.13']);
   }
 
   const rows = data[event]?.[sex]?.[band];
@@ -621,7 +621,7 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status,
 function scoreWalkComponent(data, { component, event, sex, band, seconds, status, altitude }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
-  const references = ['afman.3.7.3', 'afman.3.6.2', 'afman.3.10.1', 'charts.walk'];
+  const references = ['dafman.3.7.3', 'dafman.3.6.2', 'dafman.3.10.1', 'charts.walk'];
 
   if (status) {
     return notCompletedResult(component, event, status, maxPoints, minimumPoints, references);
@@ -688,14 +688,14 @@ function scoreWalkComponent(data, { component, event, sex, band, seconds, status
 }
 
 /**
- * Waist to height ratio. Measurements follow AFMAN 36-2905: height to the
+ * Waist to height ratio. Measurements follow DAFMAN 36-2905: height to the
  * nearest half inch, waist rounded down to the nearest half inch, and the
  * resulting ratio truncated rather than rounded to two decimals.
  */
 function scoreWhtrComponent(data, { component, event, waistInches, heightInches, ratio, points, status }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
-  const references = ['afman.3.15.4.2', 'afman.3.15.4.5', 'afman.3.7.1', 'charts.whtr'];
+  const references = ['dafman.3.15.4.2', 'dafman.3.15.4.5', 'dafman.3.7.1', 'charts.whtr'];
   const warnings = [];
 
   if (status) {
@@ -770,9 +770,9 @@ function scoreWhtrComponent(data, { component, event, waistInches, heightInches,
   if (effectiveRatio >= 0.55) {
     warnings.push(
       'A waist to height ratio of 0.55 or higher requires a secondary body fat assessment ' +
-      'if the member does not meet PFRA standards (AFMAN 36-2905 para 3.15.4.7).'
+      'if the member does not meet PFRA standards (DAFMAN 36-2905 para 3.15.4.7).'
     );
-    references.push('afman.3.15.4.7');
+    references.push('dafman.3.15.4.7');
   }
 
   const label = row.note ?? row.ratio.toFixed(2);
@@ -807,7 +807,7 @@ function scoreWhtrComponent(data, { component, event, waistInches, heightInches,
  *
  * Both come straight off the chart for this sex and age band, so the UI can
  * show them without knowing any thresholds of its own. Body composition has no
- * minimum (AFMAN 36-2905 para 3.7.1), so it reports the row that scores zero
+ * minimum (DAFMAN 36-2905 para 3.7.1), so it reports the row that scores zero
  * instead, with `isFloor` false to mark the difference.
  */
 /**
@@ -1112,8 +1112,8 @@ export function createScorer(data) {
       'notacc.events',
       'notacc.hrpu',
       'notacc.whtr',
-      'afman.3.6.1',
-      'afman.3.7.1',
+      'dafman.3.6.1',
+      'dafman.3.7.1',
       ...COMPONENTS.flatMap((c) => components[c].references ?? [])
     ])];
 

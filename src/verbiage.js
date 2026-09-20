@@ -1,5 +1,5 @@
 /**
- * Attachment 2 of AFMAN 36-2905: the words an assessment administrator reads
+ * Attachment 2 of DAFMAN 36-2905: the words an assessment administrator reads
  * out before each event.
  *
  * GENERATED FILE. Do not edit by hand. This is a verbatim quotation of a
@@ -12,11 +12,11 @@
  * introduces it and is NOT read out. Keeping them apart is the whole point of
  * the file, so they are separate fields rather than one run of text.
  *
- * Source: AFMAN 36-2905, 24 March 2026, Attachment 2, pages 62-67.
+ * Source: DAFMAN 36-2905, 24 March 2026, Attachment 2, pages 62-67.
  */
 
 export const VERBIAGE_SOURCE = Object.freeze({
-  publication: 'AFMAN 36-2905',
+  publication: 'DAFMAN 36-2905',
   date: '24 March 2026',
   attachment: 'Attachment 2',
   title: 'Physical Fitness Readiness Assessment Verbal Instructions',
