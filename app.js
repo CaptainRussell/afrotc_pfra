@@ -18,8 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=b91bd017a7';
-import { createAnalyzer } from './src/analysis.js?v=b91bd017a7';
+} from './src/engine.js?v=dee2de0f67';
+import { createAnalyzer } from './src/analysis.js?v=dee2de0f67';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=dee2de0f67';
 
 const $ = (id) => document.getElementById(id);
 
@@ -75,7 +76,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=b91bd017a7').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=dee2de0f67').then((r) => r.json());
   return { data };
 }
 
@@ -117,6 +118,13 @@ async function boot() {
       update();
     });
   }
+  for (const button of document.querySelectorAll('.verbiage-open')) {
+    button.addEventListener('click', () => openVerbiage(button.dataset.verbiage));
+  }
+  // Clicking the backdrop is the other way people expect to dismiss a modal.
+  $('verbiage').addEventListener('click', (e) => {
+    if (e.target === $('verbiage')) $('verbiage').close();
+  });
   for (const button of document.querySelectorAll('.not-done')) {
     button.addEventListener('click', () => cycleStatus(button.dataset.statusFor));
   }
@@ -491,8 +499,6 @@ function readForm() {
  * same set the scoring engine is given, so the cue can never disagree with the
  * chips about what has been filled in.
  */
-const CUE_ORDER = ['muscular_strength', 'core_endurance', 'cardiorespiratory',
-  'body_composition'];
 
 function showCue(ready) {
   let target = null;
@@ -504,7 +510,10 @@ function showCue(ready) {
   } else if (!sex) {
     target = $('field-sex');
   } else {
-    const next = CUE_ORDER.find((component) => !ready.has(component));
+    // The cue follows COMPONENTS, which is the order the assessment is
+    // administered in. One list, so the glow cannot drift out of step with
+    // the order the sections are actually in.
+    const next = COMPONENTS.find((component) => !ready.has(component));
     if (next) target = document.querySelector(`.event[data-component="${next}"]`);
   }
 
@@ -604,6 +613,66 @@ function showHeightInFeet() {
   hint.textContent = rounded === inches
     ? `${shown}, recorded to the nearest ½ inch.`
     : `Recorded as ${rounded} inches, which is ${shown}.`;
+}
+
+/* --- the verbiage dialog -------------------------------------------------
+ *
+ * Attachment 2 of AFMAN 36-2905 is the script an assessment administrator reads
+ * out before each event. It is quoted rather than summarised, because the point
+ * of it is that the same words reach every member.
+ *
+ * The publication sets the spoken text in italics and the administrator's own
+ * directions in roman type, and that distinction is the whole reason a cadre
+ * member opens this: it tells them what to say out loud and what is an
+ * instruction to them. src/verbiage.js keeps the two in separate fields and
+ * this renders them differently, so the difference survives.
+ */
+function openVerbiage(component) {
+  const event = component === 'body_composition' ? 'whtr' : events[component];
+  const section = verbiageFor(event);
+  if (!section) return;
+
+  const dialog = $('verbiage');
+  const body = $('verbiage-body');
+  body.replaceChildren();
+
+  $('verbiage-title').textContent = `${section.ref}. ${section.title}`;
+
+  const direction = $('verbiage-direction');
+  direction.textContent = section.direction ?? '';
+  direction.hidden = !section.direction;
+
+  // A2.1 is read once at the start of the assessment rather than before an
+  // event. Body composition is the first thing measured, so it carries it.
+  if (component === 'body_composition') {
+    const general = el('div', 'verbiage-general');
+    general.append(el('p', 'verbiage-general-head',
+      'Read once, before the assessment begins'));
+    appendParts(general, VERBIAGE.general);
+    body.append(general);
+  }
+
+  appendParts(body, section);
+
+  $('verbiage-source').textContent =
+    `${VERBIAGE_SOURCE.publication}, ${VERBIAGE_SOURCE.date}, ` +
+    `${VERBIAGE_SOURCE.attachment}, pages ${VERBIAGE_SOURCE.pages}. ` +
+    'Quoted in full; spoken text in bold.';
+
+  dialog.showModal();
+}
+
+function appendParts(host, section) {
+  for (const part of section.parts) {
+    const wrap = el('div', 'verbiage-part');
+    const ref = el('p', 'verbiage-ref', part.ref);
+    wrap.append(ref);
+    // The roman-type lead is an instruction to the administrator, not something
+    // to say, so it never gets the spoken styling.
+    if (part.lead) wrap.append(el('p', 'verbiage-lead', part.lead));
+    wrap.append(el('p', 'verbiage-spoken', part.spoken));
+    host.append(wrap);
+  }
 }
 
 /* --- the sliders ---------------------------------------------------------

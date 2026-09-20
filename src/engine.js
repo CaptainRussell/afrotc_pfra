@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=b91bd017a7';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=dee2de0f67';
 
 /** Component result states. Only 'scored' and 'exempt' can pass a component. */
 export const STATUS = Object.freeze({
@@ -31,11 +31,19 @@ export const STATUS = Object.freeze({
 
 const PASSING_STATUSES = Object.freeze([STATUS.SCORED, STATUS.EXEMPT]);
 
+/**
+ * Assessment order, which is also display order.
+ *
+ * Body composition is first because the waist measurement is taken before any
+ * exercise; the three events then run in the order they are administered.
+ * Scoring does not depend on this — the composite is a sum — but every list the
+ * page builds does, so there is one order and this is it.
+ */
 export const COMPONENTS = Object.freeze([
+  'body_composition',
   'muscular_strength',
   'core_endurance',
-  'cardiorespiratory',
-  'body_composition'
+  'cardiorespiratory'
 ]);
 
 export const COMPONENT_LABELS = Object.freeze({

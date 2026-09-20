@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=b91bd017a7">
+<link rel="stylesheet" href="styles.css?v=dee2de0f67">
 </head>
 <body>
 
@@ -53,13 +53,68 @@
       </select>
     </div>
 
-    <!-- Muscular strength ------------------------------------------- -->
+    <!-- Body composition — measured first ----------------------------- -->
+    <section class="event" data-component="body_composition">
+      <div class="event-head">
+        <h2>Waist to height</h2>
+        <div class="event-tools">
+          <button type="button" class="verbiage-open" data-verbiage="body_composition"
+                title="What the assessment administrator reads out">Verbiage</button>
+        </div>
+        <output class="chip" id="chip-body_composition" aria-live="polite">&ndash; / 20</output>
+      </div>
+      <div class="meter" id="meter-body_composition" role="progressbar"
+           aria-valuemin="0" aria-valuemax="20" aria-valuenow="0"
+           aria-label="Body composition points">
+        <div class="meter-fill"></div>
+        <div class="meter-mark" hidden></div>
+      </div>
+      <div class="row measure-row">
+        <div class="field">
+          <label for="height">Height (inches)</label>
+          <input type="number" id="height" inputmode="decimal" min="36" max="90" step="0.5"
+                 placeholder="in" enterkeyhint="next">
+          <!-- 58 to 78 is the height axis of the waist-to-height grid on page 9
+               of the scoring charts. The field itself is left wider: the ratio
+               is arithmetic, not a lookup, so a height off the printed grid
+               still scores. -->
+          <div class="slider-row" id="slider-height">
+            <span class="slider-end low">58</span>
+            <input type="range" class="slider" id="slide-height" data-component="height"
+                   min="58" max="78" step="0.5" value="58" aria-label="Height in inches">
+            <span class="slider-end high">78</span>
+          </div>
+          <p class="hint" id="height-hint">Nearest &frac12; inch, as the 4446 records it.</p>
+        </div>
+        <div class="field">
+          <label for="waist">Waist</label>
+          <input type="number" id="waist" inputmode="decimal" min="16" max="70" step="0.5"
+                 placeholder="in" enterkeyhint="done">
+          <div class="slider-row" id="slider-body_composition" hidden>
+            <span class="slider-end low" id="slider-low-body_composition"></span>
+            <input type="range" class="slider" id="slide-body_composition"
+                   data-component="body_composition" min="0" max="1" step="1" value="0"
+                   aria-label="Waist in inches">
+            <span class="slider-end high" id="slider-high-body_composition"></span>
+          </div>
+          <p class="hint">Rounded <em>down</em> to &frac12; inch.</p>
+        </div>
+      </div>
+      <div class="range" id="range-body_composition" aria-label="Chart range"></div>
+      <p class="chart-row" id="row-body_composition" hidden></p>
+    </section>
+
+    <!-- Muscular strength --------------------------------------------- -->
     <section class="event" data-component="muscular_strength">
       <div class="event-head">
         <h2 id="heading-muscular_strength">Hand release push-ups</h2>
-        <button type="button" class="swap" data-swap="muscular_strength"
-                aria-expanded="false" aria-controls="event-muscular_strength"
-                title="Change exercise">Change Exercise</button>
+        <div class="event-tools">
+          <button type="button" class="swap" data-swap="muscular_strength"
+                  aria-expanded="false" aria-controls="event-muscular_strength"
+                  title="Change exercise">Change Exercise</button>
+          <button type="button" class="verbiage-open" data-verbiage="muscular_strength"
+                title="What the assessment administrator reads out">Verbiage</button>
+        </div>
         <output class="chip" id="chip-muscular_strength" aria-live="polite">&ndash; / 15</output>
       </div>
       <div class="meter" id="meter-muscular_strength" role="progressbar"
@@ -97,13 +152,17 @@
       <p class="status-note" id="status-hrpu" hidden></p>
     </section>
 
-    <!-- Core endurance ---------------------------------------------- -->
+    <!-- Core endurance ------------------------------------------------ -->
     <section class="event" data-component="core_endurance">
       <div class="event-head">
         <h2 id="heading-core_endurance">Sit-ups</h2>
-        <button type="button" class="swap" data-swap="core_endurance"
-                aria-expanded="false" aria-controls="event-core_endurance"
-                title="Change exercise">Change Exercise</button>
+        <div class="event-tools">
+          <button type="button" class="swap" data-swap="core_endurance"
+                  aria-expanded="false" aria-controls="event-core_endurance"
+                  title="Change exercise">Change Exercise</button>
+          <button type="button" class="verbiage-open" data-verbiage="core_endurance"
+                title="What the assessment administrator reads out">Verbiage</button>
+        </div>
         <output class="chip" id="chip-core_endurance" aria-live="polite">&ndash; / 15</output>
       </div>
       <div class="meter" id="meter-core_endurance" role="progressbar"
@@ -149,13 +208,17 @@
       <p class="status-note" id="status-situp" hidden></p>
     </section>
 
-    <!-- Cardiorespiratory ------------------------------------------- -->
+    <!-- Cardiorespiratory --------------------------------------------- -->
     <section class="event" data-component="cardiorespiratory">
       <div class="event-head">
         <h2 id="heading-cardiorespiratory">2 mile run</h2>
-        <button type="button" class="swap" data-swap="cardiorespiratory"
-                aria-expanded="false" aria-controls="event-cardiorespiratory"
-                title="Change exercise">Change Exercise</button>
+        <div class="event-tools">
+          <button type="button" class="swap" data-swap="cardiorespiratory"
+                  aria-expanded="false" aria-controls="event-cardiorespiratory"
+                  title="Change exercise">Change Exercise</button>
+          <button type="button" class="verbiage-open" data-verbiage="cardiorespiratory"
+                title="What the assessment administrator reads out">Verbiage</button>
+        </div>
         <output class="chip" id="chip-cardiorespiratory" aria-live="polite">&ndash; / 50</output>
       </div>
       <div class="meter" id="meter-cardiorespiratory" role="progressbar"
@@ -216,53 +279,6 @@
       <p class="chart-row" id="row-cardiorespiratory" hidden></p>
       <button type="button" class="not-done" data-status-for="run">Did not start or finish</button>
       <p class="status-note" id="status-run" hidden></p>
-    </section>
-
-    <!-- Body composition -------------------------------------------- -->
-    <section class="event" data-component="body_composition">
-      <div class="event-head">
-        <h2>Waist to height</h2>
-        <output class="chip" id="chip-body_composition" aria-live="polite">&ndash; / 20</output>
-      </div>
-      <div class="meter" id="meter-body_composition" role="progressbar"
-           aria-valuemin="0" aria-valuemax="20" aria-valuenow="0"
-           aria-label="Body composition points">
-        <div class="meter-fill"></div>
-        <div class="meter-mark" hidden></div>
-      </div>
-      <div class="row measure-row">
-        <div class="field">
-          <label for="height">Height (inches)</label>
-          <input type="number" id="height" inputmode="decimal" min="36" max="90" step="0.5"
-                 placeholder="in" enterkeyhint="next">
-          <!-- 58 to 78 is the height axis of the waist-to-height grid on page 9
-               of the scoring charts. The field itself is left wider: the ratio
-               is arithmetic, not a lookup, so a height off the printed grid
-               still scores. -->
-          <div class="slider-row" id="slider-height">
-            <span class="slider-end low">58</span>
-            <input type="range" class="slider" id="slide-height" data-component="height"
-                   min="58" max="78" step="0.5" value="58" aria-label="Height in inches">
-            <span class="slider-end high">78</span>
-          </div>
-          <p class="hint" id="height-hint">Nearest &frac12; inch, as the 4446 records it.</p>
-        </div>
-        <div class="field">
-          <label for="waist">Waist</label>
-          <input type="number" id="waist" inputmode="decimal" min="16" max="70" step="0.5"
-                 placeholder="in" enterkeyhint="done">
-          <div class="slider-row" id="slider-body_composition" hidden>
-            <span class="slider-end low" id="slider-low-body_composition"></span>
-            <input type="range" class="slider" id="slide-body_composition"
-                   data-component="body_composition" min="0" max="1" step="1" value="0"
-                   aria-label="Waist in inches">
-            <span class="slider-end high" id="slider-high-body_composition"></span>
-          </div>
-          <p class="hint">Rounded <em>down</em> to &frac12; inch.</p>
-        </div>
-      </div>
-      <div class="range" id="range-body_composition" aria-label="Chart range"></div>
-      <p class="chart-row" id="row-body_composition" hidden></p>
     </section>
 
     <div class="form-footer">
@@ -426,6 +442,19 @@
 
 </main>
 
+<!-- Filled by app.js when a Verbiage button is pressed. A native <dialog> so
+     Escape closes it, focus is trapped, and the page behind it is inert without
+     any of that being written here. -->
+<dialog id="verbiage" class="verbiage" aria-labelledby="verbiage-title">
+  <form method="dialog" class="verbiage-head">
+    <h2 id="verbiage-title"></h2>
+    <button class="secondary small" value="close" autofocus>Close</button>
+  </form>
+  <p class="verbiage-direction" id="verbiage-direction" hidden></p>
+  <div id="verbiage-body"></div>
+  <p class="verbiage-source" id="verbiage-source"></p>
+</dialog>
+
 <!-- Running total, always in reach on a phone -------------------------- -->
 <div class="tally" id="tally" hidden>
   <button type="button" class="tally-inner" id="tally-button">
@@ -448,9 +477,9 @@
     <strong>NOTACC CY26-092</strong>, AY2026-2027 Fitness Guidance.
   </p>
 
-  <p class="created-by">Created by Captain Russell, Operations Flight Commander</p>
+  <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=b91bd017a7"></script>
+<script type="module" src="app.js?v=dee2de0f67"></script>
 </body>
 </html>
