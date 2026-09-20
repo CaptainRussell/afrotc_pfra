@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=dee2de0f67';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=ad6fd29817';
 
 /** Component result states. Only 'scored' and 'exempt' can pass a component. */
 export const STATUS = Object.freeze({
@@ -61,6 +61,7 @@ export const EVENT_LABELS = Object.freeze({
   forearm_plank: 'Forearm plank',
   run_2mile: '2 mile run',
   hamr_20m: '20 meter HAMR',
+  walk_2km: '2 kilometer walk',
   whtr: 'Waist to height ratio'
 });
 
@@ -80,6 +81,7 @@ export const EVENT_PHRASES = Object.freeze({
   forearm_plank: 'the forearm plank',
   run_2mile: 'the 2 mile run',
   hamr_20m: 'the 20 meter HAMR',
+  walk_2km: 'the 2 kilometer walk',
   whtr: 'waist to height ratio'
 });
 
@@ -95,6 +97,7 @@ export const EVENT_KINDS = Object.freeze({
   forearm_plank: 'hold',       // a time, but longer is better
   run_2mile: 'time',           // a time, and faster is better
   hamr_20m: 'shuttles',
+  walk_2km: 'walk',        // a time, but pass or fail
   whtr: 'ratio'
 });
 
@@ -107,6 +110,7 @@ export const TABLES = Object.freeze({
 
 const FAILURE = Object.freeze({
   COMPOSITE_BELOW_MINIMUM: 'composite_below_minimum',
+  WALK_STANDARD_NOT_MET: 'walk_standard_not_met',
   COMPONENT_BELOW_MINIMUM: 'component_below_minimum',
   COMPONENT_NOT_COMPLETED: 'component_not_completed'
 });
@@ -491,6 +495,68 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status 
 }
 
 /**
+ * The 2 kilometer walk: pass or fail, and worth no points at all.
+ *
+ * Para 3.7.3 is explicit — "No points are awarded for successful completion,
+ * nor can this assessment apply to the Excellent PFRA score." A member on the
+ * walk is component exempt for cardiorespiratory (para 3.6.2), so the component
+ * contributes nothing and fails nothing; what it does carry is a maximum time,
+ * and missing that fails the assessment.
+ *
+ * The walk is banded differently from every other chart in the publication
+ * (under 30, then by decade), which is why `walk_age_groups` maps a PFRA band
+ * onto a walk group rather than the two being assumed to line up.
+ */
+function scoreWalkComponent(data, { component, event, sex, band, seconds, status }) {
+  const maxPoints = data.composite.components[component];
+  const minimumPoints = data.component_minimums[component];
+  const references = ['afman.3.7.3', 'afman.3.6.2', 'afman.3.10.1', 'charts.walk'];
+
+  if (status) {
+    return notCompletedResult(component, event, status, maxPoints, minimumPoints, references);
+  }
+
+  const group = data.walk_age_groups[band];
+  const row = data.walk_2km?.[sex]?.[group];
+  if (!row) throw new RangeError(`no 2 kilometer walk standard for ${sex}/${band}`);
+
+  const passed = seconds <= row.max_seconds;
+  const groupLabel = data.walk_age_group_labels[group];
+
+  return baseResult(component, event, {
+    // Exempt either way: the walk never scores points, and the pass or fail is
+    // carried separately so score() can fail the assessment without pretending
+    // the component was worth something.
+    status: STATUS.EXEMPT,
+    points: 0,
+    maxPoints,
+    minimumPoints,
+    meetsMinimum: true,
+    measured: { seconds, time: formatTime(seconds) },
+    chartRow: row,
+    chartRowIndex: -1,
+    chartRowLabel: `${row.max_time} maximum → pass or fail, no points`,
+    nextThreshold: null,
+    walk: Object.freeze({
+      passed,
+      seconds,
+      maxSeconds: row.max_seconds,
+      maxTime: row.max_time,
+      groupLabel,
+      marginSeconds: row.max_seconds - seconds
+    }),
+    explanation: passed
+      ? `${formatTime(seconds)} meets the ${row.max_time} standard for a ` +
+        `${sex === 'M' ? 'male' : 'female'} aged ${groupLabel}. The walk is pass or fail: ` +
+        'it earns no points and the cardiorespiratory component is exempt.'
+      : `${formatTime(seconds)} is slower than the ${row.max_time} standard for a ` +
+        `${sex === 'M' ? 'male' : 'female'} aged ${groupLabel}, so the assessment fails.`,
+    references,
+    warnings: []
+  });
+}
+
+/**
  * Waist to height ratio. Measurements follow AFMAN 36-2905: height to the
  * nearest half inch, waist rounded down to the nearest half inch, and the
  * resulting ratio truncated rather than rounded to two decimals.
@@ -677,6 +743,28 @@ function rangeFor(data, { component, event, sex, band, heightInches }) {
     });
   }
 
+  // The walk has one number rather than a range: a maximum time to beat. There
+  // is no "full marks" end, because there are no marks.
+  if (kind === 'walk') {
+    const row = data.walk_2km?.[sex]?.[data.walk_age_groups[band]];
+    if (!row) return null;
+    return Object.freeze({
+      component,
+      event,
+      unit: 'time',
+      passFail: true,
+      standard: {
+        seconds: row.max_seconds,
+        label: `${row.max_time} or faster`,
+        groupLabel: data.walk_age_group_labels[data.walk_age_groups[band]]
+      },
+      best: null,
+      floor: null,
+      maxPoints,
+      minimumPoints
+    });
+  }
+
   if (kind === 'time') {
     const rows = data[event]?.[sex]?.[band];
     if (!rows) return null;
@@ -767,6 +855,10 @@ export function createScorer(data) {
       const seconds = status ? null : parseTime(entry?.time ?? entry?.seconds);
       return scoreRunComponent(data, { component, event, sex, band, seconds, status });
     }
+    if (kind === 'walk') {
+      const seconds = status ? null : parseTime(entry?.time ?? entry?.seconds);
+      return scoreWalkComponent(data, { component, event, sex, band, seconds, status });
+    }
     if (kind === 'ratio') {
       return scoreWhtrComponent(data, { component, event, ...entry, status });
     }
@@ -788,8 +880,44 @@ export function createScorer(data) {
       components[component] = Object.freeze(scoreComponent(component, input[component], sex, band));
     }
 
-    const composite = sumPoints(COMPONENTS.map((c) => components[c].points));
+    /*
+     * The composite is scored over the components that were actually assessed.
+     *
+     * With nothing exempt that is all four, the divisor is 100, and this is the
+     * plain sum it has always been. Exempt a component and its points leave the
+     * total on both sides.
+     *
+     * The manual does not print this arithmetic, but it forces it. Para 3.7.3
+     * says a member who passes the 2 kilometer walk "will have a composite
+     * score calculated based on the assessed components", and para 3.10.2 says
+     * such a member is eligible for Satisfactory, which is 75 to 89.9. Exempting
+     * cardiorespiratory leaves 50 points on the board, so 75 is unreachable
+     * unless the remaining components are scaled. Scaling is the only reading
+     * on which the two paragraphs can both be true.
+     */
+    const assessed = COMPONENTS.filter((c) => components[c].status !== STATUS.EXEMPT);
+    const earned = sumPoints(assessed.map((c) => components[c].points));
+    const available = sumPoints(assessed.map((c) => data.composite.components[c]));
+    const composite = available === 0 ? 0
+      : available === data.composite.max ? earned
+        : roundTo(earned / available * 100, 1);
+    const exempted = COMPONENTS.filter((c) => components[c].status === STATUS.EXEMPT);
+
     const failures = [];
+
+    // The walk carries a standard even though it carries no points.
+    for (const component of COMPONENTS) {
+      const walk = components[component].walk;
+      if (walk && !walk.passed) {
+        failures.push({
+          code: FAILURE.WALK_STANDARD_NOT_MET,
+          component,
+          message:
+            `2 kilometer walk: ${formatTime(walk.seconds)} is slower than the ` +
+            `${walk.maxTime} maximum, so the assessment fails.`
+        });
+      }
+    }
 
     for (const component of COMPONENTS) {
       const result = components[component];
@@ -825,7 +953,14 @@ export function createScorer(data) {
     }
 
     const pass = failures.length === 0;
-    const rating = !pass ? 'Unsatisfactory' : composite >= 90 ? 'Excellent' : 'Satisfactory';
+
+    // Para 3.10.1: a member who meets the 2 kilometer walk standard is not
+    // eligible for Excellent, whatever the arithmetic says. The cap is on the
+    // rating rather than on the number, because the number is still the
+    // composite that gets recorded.
+    const walked = COMPONENTS.some((c) => components[c].walk);
+    const rating = !pass ? 'Unsatisfactory'
+      : (composite >= 90 && !walked) ? 'Excellent' : 'Satisfactory';
 
     const warnings = COMPONENTS.flatMap((c) => components[c].warnings ?? []);
     const citationIds = [...new Set([
@@ -845,6 +980,8 @@ export function createScorer(data) {
       components: Object.freeze(components),
       composite,
       compositeText: composite.toFixed(1),
+      compositeOutOf: available,
+      exemptComponents: Object.freeze(exempted),
       passingComposite,
       compositeMeetsMinimum,
       pass,

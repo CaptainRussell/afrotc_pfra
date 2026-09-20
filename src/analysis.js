@@ -23,7 +23,7 @@
 import {
   COMPONENTS, COMPONENT_LABELS, STATUS, formatTime, MEASURES, EVENT_KINDS, TABLES,
   EVENT_PHRASES
-} from './engine.js?v=dee2de0f67';
+} from './engine.js?v=ad6fd29817';
 
 const TRAINABLE_SOON = Object.freeze(['muscular_strength', 'core_endurance', 'cardiorespiratory']);
 
@@ -162,8 +162,25 @@ function rungForPoints(ladder, points, currentPoints) {
  */
 export function analyzeGap(data, result) {
   const passingComposite = data.composite.passing_composite;
+
+  /*
+   * Everything below counts in raw component points, but the composite may be
+   * scored over fewer than 100 of them: a member on the 2 kilometer walk has
+   * cardiorespiratory exempt, so 50 points of chart are worth 100 of composite.
+   *
+   * Rather than scale every rung, the passing mark is converted into the same
+   * raw points the ladders are already in, and the numbers that get shown to a
+   * cadet are converted back. With nothing exempt the scale is 1 and this is
+   * the arithmetic it has always been.
+   */
+  const scale = result.compositeOutOf > 0
+    ? data.composite.max / result.compositeOutOf : 1;
+  const assessed = COMPONENTS.filter(
+    (c) => result.components[c].status !== STATUS.EXEMPT);
+  const requiredPoints = roundTo(passingComposite / scale, 1);
+
   const ladders = {};
-  for (const component of COMPONENTS) {
+  for (const component of assessed) {
     ladders[component] = ladderFor(data, result, component);
   }
 
@@ -171,7 +188,7 @@ export function analyzeGap(data, result) {
   const mandatory = [];
   const projectedPoints = {};
 
-  for (const component of COMPONENTS) {
+  for (const component of assessed) {
     const scored = result.components[component];
     projectedPoints[component] = scored.points;
 
@@ -212,12 +229,17 @@ export function analyzeGap(data, result) {
     });
   }
 
-  const projectedComposite = sumPoints(COMPONENTS.map((c) => projectedPoints[c]));
-  const remainingGap = roundTo(Math.max(0, passingComposite - projectedComposite), 1);
+  const projectedPointsTotal = sumPoints(assessed.map((c) => projectedPoints[c]));
+  const projectedComposite = roundTo(projectedPointsTotal * scale, 1);
+
+  // Two views of the same shortfall: `remainingGapPoints` is what the ladders
+  // are measured in, `remainingGap` is what a cadet is told.
+  const remainingGapPoints = roundTo(Math.max(0, requiredPoints - projectedPointsTotal), 1);
+  const remainingGap = roundTo(remainingGapPoints * scale, 1);
 
   // --- ranked ways to close the remaining composite gap -------------------
   const paths = [];
-  for (const component of COMPONENTS) {
+  for (const component of assessed) {
     const scored = result.components[component];
     if (scored.status === STATUS.DNS || scored.status === STATUS.DNF) continue;
 
@@ -228,8 +250,8 @@ export function analyzeGap(data, result) {
 
     const nextStep = rungs[0];  // rungs are cheapest first
     const headroom = roundTo(scored.maxPoints - floorPoints, 1);
-    const closesGap = remainingGap > 0
-      ? rungForPoints(ladder, roundTo(floorPoints + remainingGap, 1), floorPoints)
+    const closesGap = remainingGapPoints > 0
+      ? rungForPoints(ladder, roundTo(floorPoints + remainingGapPoints, 1), floorPoints)
       : null;
 
     paths.push({
@@ -242,7 +264,7 @@ export function analyzeGap(data, result) {
       floorPoints,
       maxPoints: scored.maxPoints,
       headroom,
-      canCloseGapAlone: remainingGap > 0 ? closesGap !== null : null,
+      canCloseGapAlone: remainingGapPoints > 0 ? closesGap !== null : null,
       nextStep,
       closesGap,
       pointsPerUnit: roundTo(nextStep.gain / nextStep.steps, 4),
@@ -267,7 +289,8 @@ export function analyzeGap(data, result) {
     return b.headroom - a.headroom;
   });
 
-  const wouldPass = remainingGap === 0 && mandatory.every((m) => m.requirement !== null);
+  const wouldPass = remainingGapPoints === 0
+    && mandatory.every((m) => m.requirement !== null);
 
   return Object.freeze({
     passing: result.pass,
@@ -275,6 +298,8 @@ export function analyzeGap(data, result) {
     composite: result.composite,
     projectedComposite,
     remainingGap,
+    remainingGapPoints,
+    compositeScale: scale,
     mandatory: Object.freeze(mandatory),
     paths: Object.freeze(paths),
     cheapest: paths.find((p) => p.closesGap) ?? null,
@@ -283,7 +308,7 @@ export function analyzeGap(data, result) {
       'Paths that can close the gap alone first, trainable components before body ' +
       'composition, then by steps in each component’s own unit. Reps, seconds and ' +
       'ratio hundredths are not interchangeable; show the unit with every number.',
-    summary: summarize(result, mandatory, remainingGap, paths, projectedComposite)
+    summary: summarize(result, mandatory, remainingGap, paths, projectedComposite, scale)
   });
 }
 
@@ -300,7 +325,7 @@ function describeDistance(rung) {
   return `${plural(Math.round(rung.distance.ratio * 100), 'hundredth')} off the ratio`;
 }
 
-function summarize(result, mandatory, remainingGap, paths, projectedComposite) {
+function summarize(result, mandatory, remainingGap, paths, projectedComposite, scale) {
   if (result.pass) {
     return `Passing at ${result.composite.toFixed(1)}. Every component meets its minimum.`;
   }
@@ -328,10 +353,13 @@ function summarize(result, mandatory, remainingGap, paths, projectedComposite) {
     : `Every component meets its minimum, but the composite is ${remainingGap.toFixed(1)} ` +
       `short of ${result.passingComposite.toFixed(1)}.`);
   if (cheapest) {
+    // The gain is in chart points; the gap a cadet was just quoted is in
+    // composite points. They are the same number unless a component is exempt,
+    // and telling someone a 15 point gap closes with 7.5 points is no help.
+    const gain = roundTo(cheapest.closesGap.gain * scale, 1);
     parts.push(
       `The cheapest single route is ${EVENT_PHRASES[cheapest.event]}: ` +
-      `${describeDistance(cheapest.closesGap)} is worth ` +
-      `${cheapest.closesGap.gain.toFixed(1)} points.`);
+      `${describeDistance(cheapest.closesGap)} is worth ${gain.toFixed(1)} points.`);
   } else {
     parts.push('No single component can close it; improvement has to come from more than one.');
   }

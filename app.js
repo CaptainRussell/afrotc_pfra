@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=dee2de0f67';
-import { createAnalyzer } from './src/analysis.js?v=dee2de0f67';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=dee2de0f67';
+} from './src/engine.js?v=ad6fd29817';
+import { createAnalyzer } from './src/analysis.js?v=ad6fd29817';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=ad6fd29817';
 
 const $ = (id) => document.getElementById(id);
 
@@ -57,7 +57,12 @@ const CONTROLS = {
   run_2mile: {
     show: ['cardio-time'], hide: ['cardio-shuttles'], field: ['run-min', 'run-sec'], kind: 'time' },
   hamr_20m: {
-    show: ['cardio-shuttles'], hide: ['cardio-time'], field: 'hamr', kind: 'shuttles' }
+    show: ['cardio-shuttles'], hide: ['cardio-time'], field: 'hamr', kind: 'shuttles' },
+  // The same mm:ss control the run uses. What differs is what the number means:
+  // a walk time is measured against a maximum, not looked up for points.
+  walk_2km: {
+    show: ['cardio-time'], hide: ['cardio-shuttles'],
+    field: ['run-min', 'run-sec'], kind: 'walk' }
 };
 
 const MAX_POINTS = {
@@ -76,7 +81,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=dee2de0f67').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=ad6fd29817').then((r) => r.json());
   return { data };
 }
 
@@ -445,7 +450,7 @@ function readForm() {
       continue;
     }
 
-    if (control.kind === 'hold' || control.kind === 'time') {
+    if (control.kind === 'hold' || control.kind === 'time' || control.kind === 'walk') {
       const [minId, secId] = control.field;
       const minutes = wholeNumber(minId);
       const seconds = wholeNumber(secId);
@@ -741,6 +746,14 @@ function renderSliders(band) {
     const kind = sliderKind(component);
     const spec = SLIDER_MEASURES[kind];
     const event = events[component] ?? 'whtr';
+
+    // The 2 kilometer walk is pass or fail, so there is no worst-to-best track
+    // to drag along. Its standard shows in the range strip instead.
+    if (!spec) {
+      row.hidden = true;
+      continue;
+    }
+
     const range = (sex && band)
       ? scorer.rangeFor({ component, event, sex, band, heightInches: decimal('height') || null })
       : null;
@@ -831,7 +844,7 @@ function renderHeightSlider() {
 function currentMeasurement(component) {
   if (component === 'body_composition') return decimal('waist') ?? null;
   const control = CONTROLS[events[component]];
-  if (control.kind === 'hold' || control.kind === 'time') {
+  if (control.kind === 'hold' || control.kind === 'time' || control.kind === 'walk') {
     const [minId, secId] = control.field;
     const minutes = wholeNumber(minId);
     const seconds = wholeNumber(secId);
@@ -859,7 +872,7 @@ function onSliderInput(component) {
     $('waist').value = raw.toFixed(1);
   } else {
     const control = CONTROLS[events[component]];
-    if (control.kind === 'hold' || control.kind === 'time') {
+    if (control.kind === 'hold' || control.kind === 'time' || control.kind === 'walk') {
       const [minId, secId] = control.field;
       $(minId).value = String(Math.floor(raw / 60));
       $(secId).value = String(raw % 60).padStart(2, '0');
@@ -893,6 +906,15 @@ function renderRanges(band) {
 
     if (!range) {
       host.append(el('p', 'range-empty', 'Set your age and sex to see the chart range.'));
+      continue;
+    }
+
+    // Pass or fail: one number, and it is a ceiling rather than a floor.
+    if (range.passFail) {
+      host.append(rangeItem('Maximum time', range.standard.label,
+        `aged ${range.standard.groupLabel}`, false));
+      host.append(rangeItem('Worth', 'No points',
+        'pass or fail · para 3.7.3', true));
       continue;
     }
 
@@ -965,6 +987,26 @@ function resetChip(component) {
 
 function fillChip(component, scored) {
   const chip = $(`chip-${component}`);
+
+  // The 2 kilometer walk has no points to show, so a "0.0 / 50" chip beside it
+  // would read as a catastrophe rather than as a pass. It says what it is.
+  if (scored.walk) {
+    chip.textContent = scored.walk.passed ? 'Pass' : 'Fail';
+    chip.className = `chip filled${scored.walk.passed ? '' : ' chip-fail'}`;
+    // A full bar for a pass, an empty one for a fail: the meter is a reading of
+    // the component, and the component is a yes or a no.
+    setMeter(`meter-${component}`, scored.walk.passed ? scored.maxPoints : 0,
+      scored.maxPoints, scored.walk.passed ? 'is-pass' : 'is-fail', null);
+    const walkRow = $(`row-${component}`);
+    walkRow.textContent = scored.walk.passed
+      ? `${formatTime(scored.walk.seconds)} of ${scored.walk.maxTime} maximum ` +
+        `→ pass, no points (component exempt)`
+      : `${formatTime(scored.walk.seconds)} is over the ${scored.walk.maxTime} maximum ` +
+        `→ the assessment fails`;
+    walkRow.hidden = false;
+    return;
+  }
+
   chip.textContent = `${scored.points.toFixed(1)} / ${scored.maxPoints.toFixed(0)}`;
   const failing = scored.status !== 'scored' || !scored.meetsMinimum;
   chip.className = `chip filled${failing ? ' chip-fail' : ''}`;
@@ -1071,8 +1113,16 @@ function renderScoreboard(result) {
 
   setMeter('meter-composite', result.composite, 100,
     result.pass ? 'is-pass' : 'is-fail', result.passingComposite);
+  // With a component exempt the composite is scored over what was actually
+  // assessed, so saying "of 100" would hide the thing most worth knowing: that
+  // the number came from fewer components than usual.
+  const exempt = result.exemptComponents ?? [];
+  const scale = exempt.length === 0
+    ? 'of 100'
+    : `scored over ${result.compositeOutOf.toFixed(0)} assessed points, ` +
+      `${exempt.map((c) => COMPONENT_LABELS[c].toLowerCase()).join(' and ')} exempt`;
   $('meter-legend').textContent =
-    `${result.composite.toFixed(1)} of 100 · the mark is ` +
+    `${result.composite.toFixed(1)} ${scale} · the mark is ` +
     `${result.passingComposite.toFixed(1)}`;
 
   // One line of targeting, which is the point of building this over the public

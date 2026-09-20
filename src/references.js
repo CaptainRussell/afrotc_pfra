@@ -130,6 +130,32 @@ export const REFERENCES = Object.freeze({
       'to meet the minimum in one or more components, their incomplete PFRA will be ' +
       'recorded as a “Did Not Finish” PFRA.'
   },
+  'afman.3.7.3': {
+    source: PUBLICATION.id,
+    paragraph: '3.7.3',
+    text: 'The 2-kilometer walk is a pass or fail assessment for members that are ' +
+      'medically prohibited from assessing the 2.0mi run or 20m HAMR. No points are ' +
+      'awarded for successful completion, nor can this assessment apply to the ' +
+      'Excellent PFRA score.'
+  },
+  'afman.3.6.2': {
+    source: PUBLICATION.id,
+    paragraph: '3.6.2',
+    text: 'Members assessed on the 2-kilometer walk are considered component exempt ' +
+      'and will fall under frequency standards in accordance with paragraph 3.10.'
+  },
+  'afman.3.10.1': {
+    source: PUBLICATION.id,
+    paragraph: '3.10.1',
+    text: 'Members who meet the 2 kilometer walk standard in Table 3.1 are not ' +
+      'eligible for the Excellent category.'
+  },
+  'charts.walk': {
+    source: CHARTS.id,
+    paragraph: 'Table 3.1, 2.0 Kilometer Walk',
+    text: 'Maximum walk times by sex and age group. The same five rows appear in ' +
+      'AFMAN 36-2905 Table 3.1 and on the scoring charts.'
+  },
   'charts.minimum-asterisk': {
     source: CHARTS.id,
     paragraph: 'component minimum rows',

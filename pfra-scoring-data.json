@@ -51,7 +51,8 @@
     ],
     "cardiorespiratory": [
       "run_2mile",
-      "hamr_20m"
+      "hamr_20m",
+      "walk_2km"
     ],
     "body_composition": [
       "whtr"
@@ -13647,5 +13648,70 @@
         }
       ]
     }
+  },
+  "walk_2km": {
+    "note": "Maximum time to pass. Pass or fail: no points (AFMAN 36-2905 para 3.7.3).",
+    "M": {
+      "under30": {
+        "max_time": "16:16",
+        "max_seconds": 976
+      },
+      "30-39": {
+        "max_time": "16:18",
+        "max_seconds": 978
+      },
+      "40-49": {
+        "max_time": "16:23",
+        "max_seconds": 983
+      },
+      "50-59": {
+        "max_time": "16:40",
+        "max_seconds": 1000
+      },
+      "60plus": {
+        "max_time": "16:58",
+        "max_seconds": 1018
+      }
+    },
+    "F": {
+      "under30": {
+        "max_time": "17:22",
+        "max_seconds": 1042
+      },
+      "30-39": {
+        "max_time": "17:28",
+        "max_seconds": 1048
+      },
+      "40-49": {
+        "max_time": "17:49",
+        "max_seconds": 1069
+      },
+      "50-59": {
+        "max_time": "18:11",
+        "max_seconds": 1091
+      },
+      "60plus": {
+        "max_time": "18:53",
+        "max_seconds": 1133
+      }
+    }
+  },
+  "walk_age_groups": {
+    "under25": "under30",
+    "25-29": "under30",
+    "30-34": "30-39",
+    "35-39": "30-39",
+    "40-44": "40-49",
+    "45-49": "40-49",
+    "50-54": "50-59",
+    "55-59": "50-59",
+    "60plus": "60plus"
+  },
+  "walk_age_group_labels": {
+    "under30": "under 30",
+    "30-39": "30-39",
+    "40-49": "40-49",
+    "50-59": "50-59",
+    "60plus": "60 or older"
   }
 }
