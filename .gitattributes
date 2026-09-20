@@ -1,0 +1,6 @@
+# The site is served as-is from this tree and edited on Windows. Keeping LF in
+# the repository means a diff shows the lines that actually changed rather than
+# every line in the file.
+* text=auto eol=lf
+*.pdf binary
+*.png binary
