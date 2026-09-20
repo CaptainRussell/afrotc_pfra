@@ -1015,6 +1015,10 @@ async function setupDocuments() {
     const viewer = doc.querySelector('.viewer');
     const note = doc.querySelector('.document-note');
 
+    // A row with no View button is download-only by design: see the comment on
+    // the manual in index.html. Nothing below applies to it.
+    if (!toggle) continue;
+
     // The scoring charts have no flattened twin; they render as published.
     if (!flat) {
       toggle.hidden = false;

@@ -12,7 +12,7 @@
 
 export const PUBLICATION = Object.freeze({
   id: 'afman36-2905',
-  title: 'AFMAN 36-2905, Department of the Air Force Physical Fitness Program',
+  title: 'AFMAN 36-2905, Air Force Physical Fitness Readiness Program',
   date: '24 March 2026',
   effective: '1 March 2026',
   url: 'https://static.e-publishing.af.mil/production/1/af_a1/publication/afman36-2905/dafman36-2905.pdf'
