@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=b91bd017a7';
 
 /** Component result states. Only 'scored' and 'exempt' can pass a component. */
 export const STATUS = Object.freeze({
