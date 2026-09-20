@@ -84,6 +84,13 @@
         <button type="button" class="step" data-step="1" data-target="hrpu"
                 aria-label="One more push-up">+</button>
       </div>
+      <div class="slider-row" id="slider-muscular_strength" hidden>
+        <span class="slider-end low" id="slider-low-muscular_strength"></span>
+        <input type="range" class="slider" id="slide-muscular_strength"
+               data-component="muscular_strength" min="0" max="1" step="1" value="0"
+               aria-label="Push-up reps">
+        <span class="slider-end high" id="slider-high-muscular_strength"></span>
+      </div>
       <div class="range" id="range-muscular_strength" aria-label="Chart range"></div>
       <p class="chart-row" id="row-muscular_strength" hidden></p>
       <button type="button" class="not-done" data-status-for="hrpu">Did not start or finish</button>
@@ -129,6 +136,13 @@
         <input type="number" id="plank-sec" inputmode="numeric" min="0" max="59" step="1"
                placeholder="ss" aria-label="Plank seconds" enterkeyhint="next">
       </div>
+      <div class="slider-row" id="slider-core_endurance" hidden>
+        <span class="slider-end low" id="slider-low-core_endurance"></span>
+        <input type="range" class="slider" id="slide-core_endurance"
+               data-component="core_endurance" min="0" max="1" step="1" value="0"
+               aria-label="Core endurance reps">
+        <span class="slider-end high" id="slider-high-core_endurance"></span>
+      </div>
       <div class="range" id="range-core_endurance" aria-label="Chart range"></div>
       <p class="chart-row" id="row-core_endurance" hidden></p>
       <button type="button" class="not-done" data-status-for="situp">Did not start or finish</button>
@@ -172,6 +186,13 @@
                placeholder="shuttles" aria-label="HAMR shuttles" enterkeyhint="next">
         <button type="button" class="step" data-step="1" data-target="hamr"
                 aria-label="One more shuttle">+</button>
+      </div>
+      <div class="slider-row" id="slider-cardiorespiratory" hidden>
+        <span class="slider-end low" id="slider-low-cardiorespiratory"></span>
+        <input type="range" class="slider" id="slide-cardiorespiratory"
+               data-component="cardiorespiratory" min="0" max="1" step="1" value="0"
+               aria-label="Run time">
+        <span class="slider-end high" id="slider-high-cardiorespiratory"></span>
       </div>
       <div class="range" id="range-cardiorespiratory" aria-label="Chart range"></div>
       <div class="document inline-doc" id="doc-hamr" hidden>
@@ -222,6 +243,13 @@
                  placeholder="in" enterkeyhint="done">
           <p class="hint">Rounded <em>down</em> to &frac12; inch.</p>
         </div>
+      </div>
+      <div class="slider-row" id="slider-body_composition" hidden>
+        <span class="slider-end low" id="slider-low-body_composition"></span>
+        <input type="range" class="slider" id="slide-body_composition"
+               data-component="body_composition" min="0" max="1" step="1" value="0"
+               aria-label="Waist in inches">
+        <span class="slider-end high" id="slider-high-body_composition"></span>
       </div>
       <div class="range" id="range-body_composition" aria-label="Chart range"></div>
       <p class="chart-row" id="row-body_composition" hidden></p>

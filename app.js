@@ -16,7 +16,8 @@
  */
 
 import {
-  createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES, DET250_EVENTS
+  createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
+  DET250_EVENTS, formatTime
 } from './src/engine.js';
 import { createAnalyzer } from './src/analysis.js';
 
@@ -102,6 +103,19 @@ async function boot() {
   for (const button of document.querySelectorAll('.step')) {
     button.addEventListener('click', () => nudge(button.dataset.target,
       Number(button.dataset.step)));
+  }
+  for (const slider of document.querySelectorAll('.slider')) {
+    slider.addEventListener('input', () => onSliderInput(slider.dataset.component));
+    // Tracked by pointer rather than by focus, so that arrowing along the track
+    // with a keyboard still re-seats the handle from the fields it writes.
+    slider.addEventListener('pointerdown', () => { dragging = slider.dataset.component; });
+  }
+  for (const event of ['pointerup', 'pointercancel']) {
+    window.addEventListener(event, () => {
+      if (dragging === null) return;
+      dragging = null;
+      update();
+    });
   }
   for (const button of document.querySelectorAll('.not-done')) {
     button.addEventListener('click', () => cycleStatus(button.dataset.statusFor));
@@ -510,6 +524,7 @@ const el = (tag, className, text) => {
 function update() {
   showHeightInFeet();
   renderRanges(ageBand);   // reads the height, so it must run after it changes
+  renderSliders(ageBand); // same bounds, same reason to run here
 
   const { input, ready } = readForm();
   showCue(ready);
@@ -588,6 +603,168 @@ function showHeightInFeet() {
   hint.textContent = rounded === inches
     ? `${shown}, recorded to the nearest ½ inch.`
     : `Recorded as ${rounded} inches, which is ${shown}.`;
+}
+
+/* --- the sliders ---------------------------------------------------------
+ *
+ * A second way to enter the same measurement, for a cadet who wants to feel
+ * what a few more reps is worth rather than type four numbers to find out. It
+ * is not a second source of truth: dragging writes into the number fields, and
+ * everything after that reads those, exactly as it does when a cadet types.
+ *
+ * Both ends come off the chart, so the left of every track is the worst score
+ * and the right is full marks. For a run and for a waist the raw number falls
+ * as the handle moves right; `descending` mirrors the element's own value on
+ * the way in and out, so the DOM keeps an ordinary ascending range.
+ */
+const SLIDER_MEASURES = {
+  // `worst` is where the left end sits: one step short of the minimum, so the
+  // far left of every track is a fail and everything else on it scores. A
+  // track that ran down to nothing would spend half its length in territory
+  // that all scores the same zero, which is length a cadet cannot use.
+  //
+  // Anything below the left end can still be typed. The handle pins to the end
+  // in that case, and the chip beside it shows what the number really scored.
+  reps: { descending: false, step: 1, worst: (r) => r.floor.value - 1, format: (v) => `${v}` },
+  shuttles: {
+    descending: false, step: 1, worst: (r) => r.floor.value - 1, format: (v) => `${v}`
+  },
+  hold: {
+    descending: false, step: 1, worst: (r) => r.floor.value - 1, format: formatTime
+  },
+  time: {
+    descending: true,
+    step: 1,
+    // Slower is worse, so one step short of the minimum is one second past it.
+    worst: (range) => range.floor.value + 1,
+    format: formatTime
+  },
+  ratio: {
+    descending: true,
+    step: 0.5,
+    worst: (range) => range.floor.waistInches,
+    format: (v) => `${v.toFixed(1)} in`
+  }
+};
+
+/** Bounds are kept because an input event carries only the element's value. */
+const sliderBounds = {};
+
+/** Which slider a finger is currently on, if any. */
+let dragging = null;
+
+const sliderKind = (component) =>
+  component === 'body_composition' ? 'ratio' : CONTROLS[events[component]].kind;
+
+/** Undo the mirroring: what the handle's position actually measures. */
+const toRaw = (bounds, position) =>
+  bounds.descending ? bounds.min + bounds.max - position : position;
+
+/** And back again: where on the track a measurement sits. */
+const toPosition = (bounds, raw) =>
+  bounds.descending ? bounds.min + bounds.max - raw : raw;
+
+function renderSliders(band) {
+  for (const component of COMPONENTS) {
+    const row = $(`slider-${component}`);
+    const input = $(`slide-${component}`);
+    const kind = sliderKind(component);
+    const spec = SLIDER_MEASURES[kind];
+    const event = events[component] ?? 'whtr';
+    const range = (sex && band)
+      ? scorer.rangeFor({ component, event, sex, band, heightInches: decimal('height') || null })
+      : null;
+
+    // No chart yet, or — for the waist — no height, so there is no way to turn
+    // a ratio into the inches a slider would have to move through. A declared
+    // DNS or DNF hides it too: there is no measurement left to adjust.
+    const bestValue = kind === 'ratio' ? range?.best.waistInches : range?.best.value;
+    const worstValue = range ? spec.worst(range) : null;
+    if (bestValue == null || worstValue == null || statuses[component]) {
+      row.hidden = true;
+      continue;
+    }
+
+    const bounds = {
+      descending: spec.descending,
+      min: Math.min(bestValue, worstValue),
+      max: Math.max(bestValue, worstValue)
+    };
+    sliderBounds[component] = bounds;
+
+    row.hidden = false;
+    input.min = String(bounds.min);
+    input.max = String(bounds.max);
+    input.step = String(spec.step);
+    input.setAttribute('aria-label',
+      kind === 'ratio' ? 'Waist in inches' : `${EVENT_LABELS[event]} slider`);
+
+    $(`slider-low-${component}`).textContent = spec.format(worstValue);
+    $(`slider-high-${component}`).textContent = spec.format(bestValue);
+
+    // Shade the failing tip of the track. It is one step wide by construction,
+    // which on a run is one second of a six minute range and would render as
+    // nothing, so it is floored at a width that can actually be seen: this is
+    // an affordance marking the failing end, not a plot of anything. Body
+    // composition has no minimum (AFMAN 36-2905 para 3.7.1) and gets no tip.
+    const span = bounds.max - bounds.min;
+    const threshold = range.floor.isFloor ? range.floor.value : null;
+    const cut = (threshold == null || span === 0)
+      ? 0
+      : Math.max(3, (toPosition(bounds, threshold) - bounds.min) / span * 100);
+    input.style.setProperty('--below-minimum', `${Math.min(100, cut)}%`);
+
+    // Leave the handle alone while a finger is on it. The value it just wrote
+    // is what update() has read back, so re-seating it would be a no-op in the
+    // ordinary case and a fight with the pointer in the awkward ones.
+    if (dragging === component) continue;
+
+    // Nothing entered yet parks the handle at the left of the track, which is
+    // the worst end for every component whichever way its numbers run.
+    const current = currentMeasurement(component);
+    const position = current == null ? bounds.min : toPosition(bounds, current);
+    input.value = String(Math.max(bounds.min, Math.min(bounds.max, position)));
+    input.setAttribute('aria-valuetext',
+      current == null ? 'not entered' : spec.format(current));
+  }
+}
+
+/** The measurement now in the form, in the unit its chart is read in. */
+function currentMeasurement(component) {
+  if (component === 'body_composition') return decimal('waist') ?? null;
+  const control = CONTROLS[events[component]];
+  if (control.kind === 'hold' || control.kind === 'time') {
+    const [minId, secId] = control.field;
+    const minutes = wholeNumber(minId);
+    const seconds = wholeNumber(secId);
+    if (minutes == null || seconds == null) return null;
+    return minutes * 60 + seconds;
+  }
+  return wholeNumber(control.field) ?? null;
+}
+
+/** Write a dragged value into the fields the rest of the app reads. */
+function onSliderInput(component) {
+  const bounds = sliderBounds[component];
+  if (!bounds) return;
+  const raw = toRaw(bounds, Number($(`slide-${component}`).value));
+
+  if (component === 'body_composition') {
+    $('waist').value = raw.toFixed(1);
+  } else {
+    const control = CONTROLS[events[component]];
+    if (control.kind === 'hold' || control.kind === 'time') {
+      const [minId, secId] = control.field;
+      $(minId).value = String(Math.floor(raw / 60));
+      $(secId).value = String(raw % 60).padStart(2, '0');
+    } else {
+      $(control.field).value = String(raw);
+    }
+  }
+
+  $(`slide-${component}`).setAttribute('aria-valuetext',
+    SLIDER_MEASURES[sliderKind(component)].format(raw));
+  update();
 }
 
 /**

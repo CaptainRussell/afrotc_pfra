@@ -678,8 +678,16 @@ function rangeFor(data, { component, event, sex, band, heightInches }) {
       component,
       event,
       unit: 'time',
-      best: { points: fastest.points, label: `${fastest.max_time} or faster` },
-      floor: { points: slowest.points, label: slowest.max_time, isFloor: true },
+      // `value` is the same bound as `label`, in the unit the UI collects: the
+      // slider needs a number, and inventing one from the label would be a
+      // second place that knows how a chart is read.
+      best: {
+        points: fastest.points,
+        label: `${fastest.max_time} or faster`,
+        value: fastest.max_seconds
+      },
+      floor: { points: slowest.points, label: slowest.max_time, isFloor: true,
+        value: slowest.max_seconds },
       maxPoints,
       minimumPoints
     });
@@ -698,8 +706,17 @@ function rangeFor(data, { component, event, sex, band, heightInches }) {
     component,
     event,
     unit: measure.key === 'seconds' ? 'time' : measure.key,
-    best: { points: top.points, label: measure.atLeast(top[measure.field]) },
-    floor: { points: bottom.points, label: measure.show(bottom[measure.field]), isFloor: true },
+    best: {
+      points: top.points,
+      label: measure.atLeast(top[measure.field]),
+      value: top[measure.field]
+    },
+    floor: {
+      points: bottom.points,
+      label: measure.show(bottom[measure.field]),
+      isFloor: true,
+      value: bottom[measure.field]
+    },
     maxPoints,
     minimumPoints
   });

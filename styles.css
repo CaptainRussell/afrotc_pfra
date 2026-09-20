@@ -25,6 +25,8 @@
   --fail: #b3261e;
   --fail-bg: #fdecea;
   --warn-bg: #fff6e0;
+  --track-fail: #f2cdc9;
+  --track-pass: #c9dfd2;
 
   --radius: 12px;
   --gutter: 16px;
@@ -58,6 +60,8 @@
     --fail: #ff8a80;
     --fail-bg: #3a1b1880;
     --warn-bg: #3a2f1580;
+  --track-fail: #4a2624;
+  --track-pass: #23422f;
     --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 14px rgba(0, 0, 0, .3);
   }
 }
@@ -77,6 +81,8 @@
   --fail: #ff8a80;
   --fail-bg: #3a1b1880;
   --warn-bg: #3a2f1580;
+  --track-fail: #4a2624;
+  --track-pass: #23422f;
 }
 
 * { box-sizing: border-box; }
@@ -523,6 +529,84 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 .measure-row { gap: 12px; }
 
 /* Chart bounds, always on show: what the minimum takes and what maxes it. */
+/* --- the slider ----------------------------------------------------------
+ *
+ * An alternative to typing, not a replacement for it: the two stay in step
+ * because dragging writes into the number field above. The left of the track
+ * is always the worst score and the right is always full marks, whichever
+ * direction the underlying number runs.
+ *
+ * --below-minimum is set per slider by renderSliders: the share of the track
+ * that scores nothing on this cadet's chart.
+ */
+.slider-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 0 2px;
+}
+
+.slider-end {
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 30px;            /* the touch target, not the track */
+  background: transparent;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* The track is painted twice, once per engine, because the two pseudo-elements
+ * cannot be selected together: a rule listing both is dropped whole by both. */
+.slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(to right,
+      var(--track-fail) 0 var(--below-minimum, 0%),
+      var(--track-pass) var(--below-minimum, 0%) 100%);
+}
+.slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background:
+    linear-gradient(to right,
+      var(--track-fail) 0 var(--below-minimum, 0%),
+      var(--track-pass) var(--below-minimum, 0%) 100%);
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -8px;        /* centres a 24px thumb on an 8px track */
+  border-radius: 50%;
+  background: var(--cardinal);
+  border: 3px solid var(--surface);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+}
+.slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--cardinal);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .3);
+}
+
+.slider:focus-visible { outline: none; }
+.slider:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--gold); }
+.slider:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--gold); }
+
 .range {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -969,6 +1053,7 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
 
   /* The cue is guidance for filling the form in, not part of the record. */
   .cue { animation: none; box-shadow: none; padding: 0; margin: 0; }
+  .slider-row { display: none; }
 
   .masthead {
     background: none;
