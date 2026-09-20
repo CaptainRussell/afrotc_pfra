@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Det 250 PFRA Score Calculator</title>
+<meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="assets/det250-storm.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="mark patch" role="img" aria-label="AFROTC Detachment 250 patch"></div>
+    <h1>PFRA Score Calculator</h1>
+  </div>
+</header>
+
+<main>
+
+  <!-- ---------------------------------------------------------------- -->
+  <form id="assessment" class="card" novalidate autocomplete="off">
+
+    <div class="row about-row">
+      <div class="field">
+        <span class="label-text" id="age-label">Age</span>
+        <div class="segmented" role="radiogroup" aria-labelledby="age-label">
+          <button type="button" class="segment" role="radio" aria-checked="false"
+                  data-band="under25">Under 25</button>
+          <button type="button" class="segment" role="radio" aria-checked="false"
+                  data-band="older">25 or older</button>
+        </div>
+        <p class="hint">Charts differ by age band.</p>
+      </div>
+      <div class="field">
+        <span class="label-text" id="sex-label">Sex</span>
+        <div class="segmented" role="radiogroup" aria-labelledby="sex-label">
+          <button type="button" class="segment" role="radio" aria-checked="false"
+                  data-sex="M">Male</button>
+          <button type="button" class="segment" role="radio" aria-checked="false"
+                  data-sex="F">Female</button>
+        </div>
+        <p class="hint">Charts differ by sex.</p>
+      </div>
+    </div>
+
+    <div class="field band-picker" id="band-picker" hidden>
+      <label for="age-band">Which band?</label>
+      <select id="age-band">
+        <option value="">Choose your age band</option>
+      </select>
+    </div>
+
+    <!-- Muscular strength ------------------------------------------- -->
+    <section class="event" data-component="muscular_strength">
+      <div class="event-head">
+        <h2 id="heading-muscular_strength">Hand release push-ups</h2>
+        <button type="button" class="swap" data-swap="muscular_strength"
+                aria-expanded="false" aria-controls="event-muscular_strength"
+                title="Change exercise">Change Exercise</button>
+        <output class="chip" id="chip-muscular_strength" aria-live="polite">&ndash; / 15</output>
+      </div>
+      <div class="meter" id="meter-muscular_strength" role="progressbar"
+           aria-valuemin="0" aria-valuemax="15" aria-valuenow="0"
+           aria-label="Muscular strength points">
+        <div class="meter-fill"></div>
+        <div class="meter-mark" hidden></div>
+      </div>
+      <p class="alt-note" id="alt-muscular_strength" hidden></p>
+      <div class="event-picker" id="event-muscular_strength" hidden>
+        <label for="event-select-muscular_strength">Event</label>
+        <select id="event-select-muscular_strength" data-component="muscular_strength">
+            <option value="hand_release_pushup">Hand release push-ups</option>
+            <option value="pushup">Push-ups</option>
+        </select>
+      </div>
+      <div class="stepper">
+        <button type="button" class="step" data-step="-1" data-target="hrpu"
+                aria-label="One fewer push-up">&minus;</button>
+        <input type="number" id="hrpu" inputmode="numeric" min="0" max="200" step="1"
+               placeholder="reps" aria-label="Hand release push-up reps" enterkeyhint="next">
+        <button type="button" class="step" data-step="1" data-target="hrpu"
+                aria-label="One more push-up">+</button>
+      </div>
+      <div class="range" id="range-muscular_strength" aria-label="Chart range"></div>
+      <p class="chart-row" id="row-muscular_strength" hidden></p>
+      <button type="button" class="not-done" data-status-for="hrpu">Did not start or finish</button>
+      <p class="status-note" id="status-hrpu" hidden></p>
+    </section>
+
+    <!-- Core endurance ---------------------------------------------- -->
+    <section class="event" data-component="core_endurance">
+      <div class="event-head">
+        <h2 id="heading-core_endurance">Sit-ups</h2>
+        <button type="button" class="swap" data-swap="core_endurance"
+                aria-expanded="false" aria-controls="event-core_endurance"
+                title="Change exercise">Change Exercise</button>
+        <output class="chip" id="chip-core_endurance" aria-live="polite">&ndash; / 15</output>
+      </div>
+      <div class="meter" id="meter-core_endurance" role="progressbar"
+           aria-valuemin="0" aria-valuemax="15" aria-valuenow="0"
+           aria-label="Core endurance points">
+        <div class="meter-fill"></div>
+        <div class="meter-mark" hidden></div>
+      </div>
+      <p class="alt-note" id="alt-core_endurance" hidden></p>
+      <div class="event-picker" id="event-core_endurance" hidden>
+        <label for="event-select-core_endurance">Event</label>
+        <select id="event-select-core_endurance" data-component="core_endurance">
+            <option value="situp">Sit-ups</option>
+            <option value="cross_leg_reverse_crunch">Cross-leg reverse crunch</option>
+            <option value="forearm_plank">Forearm plank</option>
+        </select>
+      </div>
+      <div class="stepper" id="core-reps">
+        <button type="button" class="step" data-step="-1" data-target="situp"
+                aria-label="One fewer rep">&minus;</button>
+        <input type="number" id="situp" inputmode="numeric" min="0" max="200" step="1"
+               placeholder="reps" aria-label="Core endurance reps" enterkeyhint="next">
+        <button type="button" class="step" data-step="1" data-target="situp"
+                aria-label="One more rep">+</button>
+      </div>
+      <div class="time-inputs" id="core-hold" hidden>
+        <input type="number" id="plank-min" inputmode="numeric" min="0" max="59" step="1"
+               placeholder="mm" aria-label="Plank minutes" enterkeyhint="next">
+        <span class="time-colon" aria-hidden="true">:</span>
+        <input type="number" id="plank-sec" inputmode="numeric" min="0" max="59" step="1"
+               placeholder="ss" aria-label="Plank seconds" enterkeyhint="next">
+      </div>
+      <div class="range" id="range-core_endurance" aria-label="Chart range"></div>
+      <p class="chart-row" id="row-core_endurance" hidden></p>
+      <button type="button" class="not-done" data-status-for="situp">Did not start or finish</button>
+      <p class="status-note" id="status-situp" hidden></p>
+    </section>
+
+    <!-- Cardiorespiratory ------------------------------------------- -->
+    <section class="event" data-component="cardiorespiratory">
+      <div class="event-head">
+        <h2 id="heading-cardiorespiratory">2 mile run</h2>
+        <button type="button" class="swap" data-swap="cardiorespiratory"
+                aria-expanded="false" aria-controls="event-cardiorespiratory"
+                title="Change exercise">Change Exercise</button>
+        <output class="chip" id="chip-cardiorespiratory" aria-live="polite">&ndash; / 50</output>
+      </div>
+      <div class="meter" id="meter-cardiorespiratory" role="progressbar"
+           aria-valuemin="0" aria-valuemax="50" aria-valuenow="0"
+           aria-label="Cardiorespiratory points">
+        <div class="meter-fill"></div>
+        <div class="meter-mark" hidden></div>
+      </div>
+      <p class="alt-note" id="alt-cardiorespiratory" hidden></p>
+      <div class="event-picker" id="event-cardiorespiratory" hidden>
+        <label for="event-select-cardiorespiratory">Event</label>
+        <select id="event-select-cardiorespiratory" data-component="cardiorespiratory">
+            <option value="run_2mile">2 mile run</option>
+            <option value="hamr_20m">20 meter HAMR</option>
+        </select>
+      </div>
+      <div class="time-inputs" id="cardio-time">
+        <input type="number" id="run-min" inputmode="numeric" min="0" max="59" step="1"
+               placeholder="mm" aria-label="Run minutes" enterkeyhint="next">
+        <span class="time-colon" aria-hidden="true">:</span>
+        <input type="number" id="run-sec" inputmode="numeric" min="0" max="59" step="1"
+               placeholder="ss" aria-label="Run seconds" enterkeyhint="next">
+      </div>
+      <div class="stepper" id="cardio-shuttles" hidden>
+        <button type="button" class="step" data-step="-1" data-target="hamr"
+                aria-label="One fewer shuttle">&minus;</button>
+        <input type="number" id="hamr" inputmode="numeric" min="0" max="300" step="1"
+               placeholder="shuttles" aria-label="HAMR shuttles" enterkeyhint="next">
+        <button type="button" class="step" data-step="1" data-target="hamr"
+                aria-label="One more shuttle">+</button>
+      </div>
+      <div class="range" id="range-cardiorespiratory" aria-label="Chart range"></div>
+      <div class="document inline-doc" id="doc-hamr" hidden>
+        <div class="document-head">
+          <div>
+            <p class="document-name">HAMR shuttle tally sheet</p>
+            <p class="document-note">
+              Mark an O for each shuttle completed, an X for each missed. Three
+              consecutive misses ends the test.
+            </p>
+          </div>
+          <div class="document-actions">
+            <button type="button" class="secondary small view-toggle"
+                    aria-expanded="false">View</button>
+            <a class="secondary small doc-link" href="references/hamr-shuttle-tally.pdf"
+               download>Save</a>
+          </div>
+        </div>
+        <div class="viewer" hidden></div>
+      </div>
+      <p class="chart-row" id="row-cardiorespiratory" hidden></p>
+      <button type="button" class="not-done" data-status-for="run">Did not start or finish</button>
+      <p class="status-note" id="status-run" hidden></p>
+    </section>
+
+    <!-- Body composition -------------------------------------------- -->
+    <section class="event" data-component="body_composition">
+      <div class="event-head">
+        <h2>Waist to height</h2>
+        <output class="chip" id="chip-body_composition" aria-live="polite">&ndash; / 20</output>
+      </div>
+      <div class="meter" id="meter-body_composition" role="progressbar"
+           aria-valuemin="0" aria-valuemax="20" aria-valuenow="0"
+           aria-label="Body composition points">
+        <div class="meter-fill"></div>
+        <div class="meter-mark" hidden></div>
+      </div>
+      <div class="row measure-row">
+        <div class="field">
+          <label for="height">Height (inches)</label>
+          <input type="number" id="height" inputmode="decimal" min="36" max="90" step="0.5"
+                 placeholder="in" enterkeyhint="next">
+          <p class="hint" id="height-hint">Nearest &frac12; inch, as the 4446 records it.</p>
+        </div>
+        <div class="field">
+          <label for="waist">Waist</label>
+          <input type="number" id="waist" inputmode="decimal" min="16" max="70" step="0.5"
+                 placeholder="in" enterkeyhint="done">
+          <p class="hint">Rounded <em>down</em> to &frac12; inch.</p>
+        </div>
+      </div>
+      <div class="range" id="range-body_composition" aria-label="Chart range"></div>
+      <p class="chart-row" id="row-body_composition" hidden></p>
+    </section>
+
+    <div class="form-footer">
+      <button type="button" class="secondary small" id="clear-scores"
+              title="Clears the measurements. Age and sex stay.">Clear scores</button>
+      <p class="privacy">
+        Everything is worked out on your phone. Nothing you type is sent anywhere,
+        saved, or seen by the detachment.
+      </p>
+    </div>
+  </form>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section id="results" class="results" hidden>
+
+    <p class="print-only print-caveat">
+      Unofficial planning tool. Official scores come from the Fitness Assessment Cell
+      and the UFPM or MFL who administers the assessment.
+    </p>
+
+    <div class="card scoreboard" id="scoreboard">
+      <p class="scoreboard-label">Composite</p>
+      <p class="composite" id="composite">&mdash;</p>
+      <p class="verdict" id="verdict"></p>
+      <p class="band" id="band"></p>
+      <div class="meter meter-composite" id="meter-composite" role="progressbar"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
+           aria-label="Composite score">
+        <div class="meter-fill"></div>
+        <div class="meter-mark" hidden></div>
+      </div>
+      <p class="meter-legend" id="meter-legend"></p>
+      <p class="gap-line" id="gap-line" hidden></p>
+    </div>
+
+    <div class="card failures" id="failures" hidden>
+      <h2>Why this is unsatisfactory</h2>
+      <ul id="failure-list"></ul>
+    </div>
+
+    <div class="card" id="warnings-card" hidden>
+      <h2>Worth knowing</h2>
+      <ul id="warning-list"></ul>
+    </div>
+
+    <details class="card foldable">
+      <summary>
+        <h2>Component by component</h2>
+        <span class="summary-hint">the chart line each number scored against</span>
+      </summary>
+      <div id="components"></div>
+    </details>
+
+    <div class="card">
+      <h2>Aim for a score</h2>
+      <p class="card-intro">Enter a composite you want and see what reaches it.</p>
+      <div class="row target-row">
+        <div class="field">
+          <label for="target">Target composite</label>
+          <input type="number" id="target" inputmode="decimal" min="0" max="100" step="0.5"
+                 value="75">
+        </div>
+        <button type="button" class="secondary" id="plan-button">Show me how</button>
+      </div>
+      <p class="error" id="target-error" hidden></p>
+      <div id="target-plans"></div>
+    </div>
+
+    <details class="card foldable">
+      <summary>
+        <h2>The rules behind these numbers</h2>
+        <span class="summary-hint">AFMAN 36-2905 and NOTACC CY26-092</span>
+      </summary>
+      <div id="reference-list"></div>
+    </details>
+
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <section class="card documents">
+    <h2>Reference documents</h2>
+    <p class="card-intro">The official paperwork behind the assessment.</p>
+
+    <div class="document">
+      <div class="document-head">
+        <div>
+          <p class="document-name">PFRA Scoring Charts</p>
+          <p class="document-note">
+            Effective 1 March 2026, current as of 17 March 2026. Every point value
+            this tool uses.
+          </p>
+        </div>
+        <div class="document-actions">
+          <button type="button" class="secondary small view-toggle"
+                  aria-expanded="false">View</button>
+          <a class="secondary small doc-link" href="references/pfra-scoring-charts.pdf"
+             download>Save</a>
+        </div>
+      </div>
+      <div class="viewer" hidden></div>
+    </div>
+
+    <div class="document">
+      <div class="document-head">
+        <div>
+          <p class="document-name">AF Form 4446</p>
+          <p class="document-note">The scorecard you sign.</p>
+        </div>
+        <div class="document-actions">
+          <button type="button" class="secondary small view-toggle" aria-expanded="false"
+                  hidden>View</button>
+          <a class="secondary small doc-flat" href="references/af-form-4446-flat.pdf"
+             download hidden>Flat</a>
+          <a class="secondary small doc-link" href="references/af-form-4446.pdf"
+             download>Fillable</a>
+        </div>
+      </div>
+      <div class="viewer" hidden></div>
+    </div>
+
+    <div class="document">
+      <div class="document-head">
+        <div>
+          <p class="document-name">AF Form 4446A</p>
+          <p class="document-note">Fitness Screening Questionnaire.</p>
+        </div>
+        <div class="document-actions">
+          <button type="button" class="secondary small view-toggle" aria-expanded="false"
+                  hidden>View</button>
+          <a class="secondary small doc-flat" href="references/af-form-4446a-fsq-flat.pdf"
+             download hidden>Flat</a>
+          <a class="secondary small doc-link" href="references/af-form-4446a-fsq.pdf"
+             download>Fillable</a>
+        </div>
+      </div>
+      <div class="viewer" hidden></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Running total, always in reach on a phone -------------------------- -->
+<div class="tally" id="tally" hidden>
+  <button type="button" class="tally-inner" id="tally-button">
+    <span class="tally-score" id="tally-score">&mdash;</span>
+    <span class="tally-text" id="tally-text">Fill in your numbers</span>
+    <span class="tally-go" aria-hidden="true">&#8595;</span>
+  </button>
+</div>
+
+<footer>
+  <div class="footer-patch patch" aria-hidden="true"></div>
+  <p class="motto">Optimi In Medio Patrae</p>
+  <p class="tagline">We Are The Storm</p>
+  <p class="footer-note">AFROTC Detachment 250 &middot; Iowa State University</p>
+
+  <p class="source-line">
+    Scored against <strong>AFMAN 36-2905</strong> (24 March 2026) and the Final USAF PFRA
+    Scoring charts, <strong>effective 1 March 2026</strong>, as published by AFPC
+    current as of 17 March 2026. AFROTC events are set by
+    <strong>NOTACC CY26-092</strong>, AY2026-2027 Fitness Guidance.
+  </p>
+
+  <p class="created-by">Created by Captain Russell, Operations Flight Commander</p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

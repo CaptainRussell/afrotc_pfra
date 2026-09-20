@@ -1,0 +1,844 @@
+/**
+ * PFRA scoring engine.
+ *
+ * Pure scoring logic for the Det 250 PFRA calculator. No DOM, no fetch, no
+ * globals: the caller supplies the scoring tables and raw inputs, and gets back
+ * a structured result it can render or test.
+ *
+ * Two invariants shape this file, both from PFRA-Calculator-CONTEXT.md:
+ *
+ *   1. Show the work. Every component result carries the chart row it scored
+ *      against, so a scorer can check the lookup by eye.
+ *   2. A zero is never just a zero. DNS, DNF and below-minimum results carry a
+ *      status that fails the component. There is no code path that produces
+ *      0 points with a passing status, so a caller cannot sum its way past a
+ *      failure the way the Mock 1 results sheet did.
+ *
+ * Scoring tables come from pfra-scoring-data.json, verified cell for cell
+ * against the published charts by tests/verify_charts.py.
+ */
+
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js';
+
+/** Component result states. Only 'scored' and 'exempt' can pass a component. */
+export const STATUS = Object.freeze({
+  SCORED: 'scored',
+  BELOW_MINIMUM: 'below_minimum',
+  DNS: 'dns',
+  DNF: 'dnf',
+  EXEMPT: 'exempt'
+});
+
+const PASSING_STATUSES = Object.freeze([STATUS.SCORED, STATUS.EXEMPT]);
+
+export const COMPONENTS = Object.freeze([
+  'muscular_strength',
+  'core_endurance',
+  'cardiorespiratory',
+  'body_composition'
+]);
+
+export const COMPONENT_LABELS = Object.freeze({
+  muscular_strength: 'Muscular strength',
+  core_endurance: 'Core endurance',
+  cardiorespiratory: 'Cardiorespiratory',
+  body_composition: 'Body composition'
+});
+
+export const EVENT_LABELS = Object.freeze({
+  hand_release_pushup: 'Hand release push-ups',
+  pushup: 'Push-ups',
+  situp: 'Sit-ups',
+  cross_leg_reverse_crunch: 'Cross-leg reverse crunches',
+  forearm_plank: 'Forearm plank',
+  run_2mile: '2 mile run',
+  hamr_20m: '20 meter HAMR',
+  whtr: 'Waist to height ratio'
+});
+
+/**
+ * How to name each event mid-sentence.
+ *
+ * EVENT_LABELS are headings, so they are capitalised and some are plural. These
+ * are the forms that read correctly inside a sentence: "not tested on push-ups",
+ * "not tested on the forearm plank". HAMR keeps its capitals because it is an
+ * acronym, which is why these are written out rather than lowercased on the fly.
+ */
+export const EVENT_PHRASES = Object.freeze({
+  hand_release_pushup: 'hand release push-ups',
+  pushup: 'push-ups',
+  situp: 'sit-ups',
+  cross_leg_reverse_crunch: 'cross-leg reverse crunches',
+  forearm_plank: 'the forearm plank',
+  run_2mile: 'the 2 mile run',
+  hamr_20m: 'the 20 meter HAMR',
+  whtr: 'waist to height ratio'
+});
+
+/** Det 250 administers these three. Everything else is cadre reference only. */
+export const DET250_EVENTS = Object.freeze(['hand_release_pushup', 'situp', 'run_2mile']);
+
+/** Which lookup each event uses. Adding an alternate event means adding a row. */
+export const EVENT_KINDS = Object.freeze({
+  hand_release_pushup: 'reps',
+  pushup: 'reps',
+  situp: 'reps',
+  cross_leg_reverse_crunch: 'reps',
+  forearm_plank: 'hold',       // a time, but longer is better
+  run_2mile: 'time',           // a time, and faster is better
+  hamr_20m: 'shuttles',
+  whtr: 'ratio'
+});
+
+/** Where each non-repetition event's table lives, and what its rows measure. */
+export const TABLES = Object.freeze({
+  forearm_plank: { path: 'forearm_plank', field: 'min_seconds' },
+  run_2mile: { path: 'run_2mile', field: 'max_seconds' },
+  hamr_20m: { path: 'hamr_20m', field: 'min_shuttles' }
+});
+
+const FAILURE = Object.freeze({
+  COMPOSITE_BELOW_MINIMUM: 'composite_below_minimum',
+  COMPONENT_BELOW_MINIMUM: 'component_below_minimum',
+  COMPONENT_NOT_COMPLETED: 'component_not_completed'
+});
+
+// --- small numeric helpers -------------------------------------------------
+
+/** Points are always multiples of 0.5; sum in tenths so floats cannot drift. */
+function sumPoints(values) {
+  const tenths = values.reduce((acc, v) => acc + Math.round(v * 10), 0);
+  return tenths / 10;
+}
+
+function roundTo(value, decimals) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+/** Integer hundredths, truncated toward zero, guarded against float noise. */
+function truncateToHundredths(value) {
+  return Math.floor(value * 100 + 1e-9) / 100;
+}
+
+export function formatTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+export function parseTime(value) {
+  if (typeof value === 'number') {
+    if (!Number.isInteger(value) || value < 0) {
+      throw new RangeError(`run time in seconds must be a non-negative integer, got ${value}`);
+    }
+    return value;
+  }
+  const match = /^(\d{1,3}):([0-5]\d)$/.exec(String(value).trim());
+  if (!match) {
+    throw new RangeError(`run time must look like "14:19" or be whole seconds, got "${value}"`);
+  }
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+// --- age bands -------------------------------------------------------------
+
+const BAND_BOUNDS = Object.freeze([
+  ['under25', 0, 24],
+  ['25-29', 25, 29],
+  ['30-34', 30, 34],
+  ['35-39', 35, 39],
+  ['40-44', 40, 44],
+  ['45-49', 45, 49],
+  ['50-54', 50, 54],
+  ['55-59', 55, 59],
+  ['60plus', 60, Infinity]
+]);
+
+export function ageBandFor(age) {
+  if (!Number.isInteger(age) || age < 0) {
+    throw new RangeError(`age must be a non-negative whole number, got ${age}`);
+  }
+  const found = BAND_BOUNDS.find(([, low, high]) => age >= low && age <= high);
+  return found[0];
+}
+
+// --- input normalisation ---------------------------------------------------
+
+function normalizeSex(sex) {
+  const value = String(sex ?? '').trim().toUpperCase();
+  if (value !== 'M' && value !== 'F') {
+    throw new RangeError(`sex must be "M" or "F", got ${JSON.stringify(sex)}`);
+  }
+  return value;
+}
+
+/**
+ * Resolve the age band. Never defaults: an assessment with no age stated is a
+ * data problem, not an under-25 assessment.
+ */
+function normalizeBand(data, input) {
+  if (input.ageBand != null) {
+    if (!data.age_bands.includes(input.ageBand)) {
+      throw new RangeError(`unknown age band ${JSON.stringify(input.ageBand)}`);
+    }
+    return input.ageBand;
+  }
+  if (input.age == null) {
+    throw new RangeError('age or ageBand is required; the engine will not assume an age band');
+  }
+  return ageBandFor(input.age);
+}
+
+/** A component entry may declare a non-completion instead of a measurement. */
+function declaredStatus(entry) {
+  const raw = entry?.status;
+  if (raw == null) return null;
+  const value = String(raw).trim().toLowerCase();
+  if (value === STATUS.DNS || value === STATUS.DNF || value === STATUS.EXEMPT) {
+    return value;
+  }
+  throw new RangeError(`status must be "dns", "dnf" or "exempt", got ${JSON.stringify(raw)}`);
+}
+
+// --- chart lookups ---------------------------------------------------------
+
+/**
+ * Every "more is better" chart works the same way: rows are ordered highest
+ * points first, and a member takes the highest row whose threshold they meet.
+ * Reps, HAMR shuttles and plank seconds all read this way; only the column name
+ * and the units differ, which is what MEASURES describes.
+ */
+export const MEASURES = Object.freeze({
+  reps: {
+    field: 'min_reps',
+    threshold: (v) => `${v} rep`,
+    key: 'reps',
+    noun: 'rep',
+    show: (v) => `${v} reps`,
+    atLeast: (v) => `${v}+ reps`
+  },
+  shuttles: {
+    field: 'min_shuttles',
+    threshold: (v) => `${v} shuttle`,
+    key: 'shuttles',
+    noun: 'shuttle',
+    show: (v) => `${v} shuttles`,
+    atLeast: (v) => `${v}+ shuttles`
+  },
+  hold: {
+    field: 'min_seconds',
+    threshold: (v) => formatTime(v),
+    key: 'seconds',
+    noun: 'second',
+    show: (v) => formatTime(v),
+    atLeast: (v) => `${formatTime(v)} or longer`
+  }
+});
+
+function lookupAtLeast(rows, value, field) {
+  for (let i = 0; i < rows.length; i += 1) {
+    if (value >= rows[i][field]) return { row: rows[i], index: i };
+  }
+  return { row: null, index: -1 };
+}
+
+/**
+ * Run tables are ordered fastest first. Award the highest point value whose
+ * max_seconds is greater than or equal to the member's time, so 13:26 earns
+ * 49.5 rather than the 50.0 that requires 13:25 or faster.
+ */
+function lookupTime(rows, seconds) {
+  for (let i = 0; i < rows.length; i += 1) {
+    if (seconds <= rows[i].max_seconds) return { row: rows[i], index: i };
+  }
+  return { row: null, index: -1 };
+}
+
+/** Ratio rows come in three shapes: a capped top row, exact middles, a floored bottom row. */
+function rowMatchesRatio(row, hundredths) {
+  if (row.max_ratio != null) return hundredths <= Math.round(row.max_ratio * 100);
+  if (row.min_ratio != null) return hundredths >= Math.round(row.min_ratio * 100);
+  return hundredths === Math.round(row.ratio * 100);
+}
+
+function lookupRatio(rows, ratio) {
+  const hundredths = Math.round(ratio * 100);
+  for (let i = 0; i < rows.length; i += 1) {
+    if (rowMatchesRatio(rows[i], hundredths)) return { row: rows[i], index: i };
+  }
+  return { row: null, index: -1 };
+}
+
+function ratioOf(row) {
+  return row.ratio ?? row.max_ratio ?? row.min_ratio;
+}
+
+// --- next threshold --------------------------------------------------------
+
+/**
+ * What it takes to reach the next half point on this component. For a member
+ * scoring zero this points at the floor row, which is the number that matters
+ * most to them.
+ */
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+function ascendingThreshold(rows, index, value, measure) {
+  const target = index === -1 ? rows[rows.length - 1] : rows[index - 1];
+  if (!target) return null;
+  const current = index === -1 ? 0 : rows[index].points;
+  const more = target[measure.field] - value;
+  const label = measure.key === 'seconds'
+    ? `${plural(more, 'second')} longer reaches ${target.points.toFixed(1)} points`
+    : `${plural(more, `more ${measure.noun}`)} reaches ${target.points.toFixed(1)} points`;
+  return {
+    points: target.points,
+    gain: roundTo(target.points - current, 1),
+    needs: { [measure.key]: more },
+    label
+  };
+}
+
+function timeThreshold(rows, index, seconds) {
+  const target = index === -1 ? rows[rows.length - 1] : rows[index - 1];
+  if (!target) return null;
+  const current = index === -1 ? 0 : rows[index].points;
+  const cut = seconds - target.max_seconds;
+  return {
+    points: target.points,
+    gain: roundTo(target.points - current, 1),
+    needs: { seconds: cut },
+    label: `${plural(cut, 'second')} faster reaches ${target.points.toFixed(1)} points`
+  };
+}
+
+function ratioThreshold(rows, index, ratio, heightInches) {
+  const target = index === -1 ? null : rows[index - 1];
+  if (!target) return null;
+  const targetRatio = ratioOf(target);
+  const needs = { ratio: roundTo(ratio - targetRatio, 2) };
+  let label = `a ratio of ${targetRatio.toFixed(2)} reaches ${target.points.toFixed(1)} points`;
+  if (heightInches) {
+    // The next band starts at the target ratio, so the largest qualifying waist
+    // is the one whose truncated ratio still lands on that row.
+    const maxWaist = Math.floor((targetRatio + 0.0099) * heightInches * 2) / 2;
+    needs.waistInches = roundTo(maxWaist, 1);
+    label = `a waist of ${maxWaist.toFixed(1)} inches at this height reaches ` +
+      `${target.points.toFixed(1)} points`;
+  }
+  return { points: target.points, gain: roundTo(target.points - rows[index].points, 1), needs, label };
+}
+
+// --- component scoring -----------------------------------------------------
+
+function baseResult(component, event, extra) {
+  return {
+    component,
+    componentLabel: COMPONENT_LABELS[component],
+    event,
+    eventLabel: EVENT_LABELS[event] ?? event,
+    ...extra
+  };
+}
+
+function notCompletedResult(component, event, status, maxPoints, minimumPoints, references) {
+  const word = status === STATUS.DNS ? 'did not start' : 'did not finish';
+  return baseResult(component, event, {
+    status,
+    points: 0,
+    maxPoints,
+    minimumPoints,
+    meetsMinimum: false,
+    measured: null,
+    chartRow: null,
+    chartRowIndex: -1,
+    chartRowLabel: null,
+    nextThreshold: null,
+    explanation:
+      `Recorded as ${status.toUpperCase()} (${word}). The component scores 0 points and ` +
+      'fails regardless of the composite.',
+    references
+  });
+}
+
+function scoreAscendingComponent(data, { component, event, kind, sex, band, value, status }) {
+  const maxPoints = data.composite.components[component];
+  const minimumPoints = data.component_minimums[component];
+  const references = ['afman.3.7.4', 'charts.minimum-asterisk'];
+  const measure = MEASURES[kind];
+
+  if (status) {
+    return notCompletedResult(component, event, status, maxPoints, minimumPoints,
+      [...references, 'afman.3.15.13']);
+  }
+  if (!Number.isInteger(value) || value < 0) {
+    throw new RangeError(
+      `${event} ${measure.key} must be a non-negative whole number, got ${value}`);
+  }
+
+  const rows = kind === 'reps'
+    ? data.rep_events[event]?.[sex]?.[band]
+    : data[TABLES[event].path]?.[sex]?.[band];
+  if (!rows) throw new RangeError(`no ${event} table for ${sex}/${band}`);
+
+  const { row, index } = lookupAtLeast(rows, value, measure.field);
+  const floor = rows[rows.length - 1];
+  const who = sex === 'M' ? 'male' : 'female';
+  const measured = measure.key === 'seconds'
+    ? { seconds: value, time: formatTime(value) }
+    : { [measure.key]: value };
+
+  if (!row) {
+    return baseResult(component, event, {
+      status: STATUS.BELOW_MINIMUM,
+      points: 0,
+      maxPoints,
+      minimumPoints,
+      meetsMinimum: false,
+      measured,
+      chartRow: null,
+      chartRowIndex: -1,
+      chartRowLabel: null,
+      nextThreshold: ascendingThreshold(rows, -1, value, measure),
+      explanation:
+        `${measure.show(value)} is below the ${measure.threshold(floor[measure.field])} ` +
+        `minimum for a ${who} in the ${data.age_band_ranges[band]} band. Below the ` +
+        'minimum the component scores 0 and fails.',
+      references
+    });
+  }
+
+  return baseResult(component, event, {
+    status: STATUS.SCORED,
+    points: row.points,
+    maxPoints,
+    minimumPoints,
+    meetsMinimum: row.points >= minimumPoints,
+    measured,
+    chartRow: row,
+    chartRowIndex: index,
+    chartRowLabel: `${measure.atLeast(row[measure.field])} → ${row.points.toFixed(1)} points`,
+    nextThreshold: ascendingThreshold(rows, index, value, measure),
+    explanation:
+      `${measure.show(value)} meets the ${measure.threshold(row[measure.field])} row on the ` +
+      `${EVENT_LABELS[event]} chart (${who}, ${data.age_band_ranges[band]}), ` +
+      `worth ${row.points.toFixed(1)} points.`,
+    references
+  });
+}
+
+function scoreRunComponent(data, { component, event, sex, band, seconds, status }) {
+  const maxPoints = data.composite.components[component];
+  const minimumPoints = data.component_minimums[component];
+  const references = ['afman.3.7.4', 'afman.3.15.12.1', 'charts.minimum-asterisk'];
+
+  if (status) {
+    return notCompletedResult(component, event, status, maxPoints, minimumPoints,
+      [...references, 'afman.3.15.13']);
+  }
+
+  const rows = data[event]?.[sex]?.[band];
+  if (!rows) throw new RangeError(`no ${event} table for ${sex}/${band}`);
+
+  const { row, index } = lookupTime(rows, seconds);
+  const floor = rows[rows.length - 1];
+  const measured = { seconds, time: formatTime(seconds) };
+
+  if (!row) {
+    return baseResult(component, event, {
+      status: STATUS.BELOW_MINIMUM,
+      points: 0,
+      maxPoints,
+      minimumPoints,
+      meetsMinimum: false,
+      measured,
+      chartRow: null,
+      chartRowIndex: -1,
+      chartRowLabel: null,
+      nextThreshold: timeThreshold(rows, -1, seconds),
+      explanation:
+        `${formatTime(seconds)} is slower than the ${floor.max_time} minimum for a ` +
+        `${sex === 'M' ? 'male' : 'female'} in the ${data.age_band_ranges[band]} band. ` +
+        'Slower than the minimum the component scores 0 and fails.',
+      references
+    });
+  }
+
+  return baseResult(component, event, {
+    status: STATUS.SCORED,
+    points: row.points,
+    maxPoints,
+    minimumPoints,
+    meetsMinimum: row.points >= minimumPoints,
+    measured,
+    chartRow: row,
+    chartRowIndex: index,
+    chartRowLabel: `${row.max_time} or faster → ${row.points.toFixed(1)} points`,
+    nextThreshold: timeThreshold(rows, index, seconds),
+    explanation:
+      `${formatTime(seconds)} falls in the ${row.max_time} row on the 2 mile run chart ` +
+      `(${sex === 'M' ? 'male' : 'female'}, ${data.age_band_ranges[band]}), worth ${row.points.toFixed(1)} points.`,
+    references
+  });
+}
+
+/**
+ * Waist to height ratio. Measurements follow AFMAN 36-2905: height to the
+ * nearest half inch, waist rounded down to the nearest half inch, and the
+ * resulting ratio truncated rather than rounded to two decimals.
+ */
+function scoreWhtrComponent(data, { component, event, waistInches, heightInches, ratio, points, status }) {
+  const maxPoints = data.composite.components[component];
+  const minimumPoints = data.component_minimums[component];
+  const references = ['afman.3.15.4.2', 'afman.3.15.4.5', 'afman.3.7.1', 'charts.whtr'];
+  const warnings = [];
+
+  if (status) {
+    if (status === STATUS.EXEMPT) {
+      return baseResult(component, event, {
+        status: STATUS.EXEMPT,
+        points: 0,
+        maxPoints,
+        minimumPoints,
+        meetsMinimum: true,
+        measured: null,
+        chartRow: null,
+        chartRowIndex: -1,
+        chartRowLabel: null,
+        nextThreshold: null,
+        explanation: 'Body composition recorded as exempt; it contributes no points and does not fail the assessment.',
+        references,
+        warnings
+      });
+    }
+    return notCompletedResult(component, event, status, maxPoints, minimumPoints, references);
+  }
+
+  let measured;
+  let effectiveRatio;
+
+  if (waistInches != null && heightInches != null) {
+    if (!(waistInches > 0) || !(heightInches > 0)) {
+      throw new RangeError('waistInches and heightInches must both be positive');
+    }
+    const waist = Math.floor(waistInches * 2) / 2;      // para 3.15.4.5, rounded down
+    const height = Math.round(heightInches * 2) / 2;     // para 3.15.2.3, nearest half
+    effectiveRatio = truncateToHundredths(waist / height); // para 3.15.4.2, truncated
+    measured = {
+      waistInches: waist,
+      heightInches: height,
+      waistAsEntered: waistInches,
+      heightAsEntered: heightInches,
+      ratio: effectiveRatio,
+      exactRatio: roundTo(waist / height, 4)
+    };
+  } else if (ratio != null) {
+    effectiveRatio = truncateToHundredths(ratio);
+    measured = { ratio: effectiveRatio, exactRatio: roundTo(ratio, 4) };
+  } else if (points != null) {
+    // Escape hatch for historic records that stored points without measurements.
+    // Flagged, because a points-only record is the exact gap the Mock 1 audit hit.
+    const known = data.whtr.find((r) => r.points === points);
+    if (!known) throw new RangeError(`${points} is not a waist to height ratio point value`);
+    return baseResult(component, event, {
+      status: STATUS.SCORED,
+      points,
+      maxPoints,
+      minimumPoints,
+      meetsMinimum: true,
+      measured: null,
+      chartRow: known,
+      chartRowIndex: data.whtr.indexOf(known),
+      chartRowLabel: `${points.toFixed(1)} points (entered directly)`,
+      nextThreshold: null,
+      explanation: `${points.toFixed(1)} points entered directly without height and waist measurements.`,
+      references,
+      warnings: ['Points entered without measurements; this lookup cannot be verified.']
+    });
+  } else {
+    throw new RangeError('body composition needs waistInches and heightInches, a ratio, or points');
+  }
+
+  const { row, index } = lookupRatio(data.whtr, effectiveRatio);
+  if (!row) throw new RangeError(`no waist to height ratio row matches ${effectiveRatio}`);
+
+  if (effectiveRatio >= 0.55) {
+    warnings.push(
+      'A waist to height ratio of 0.55 or higher requires a secondary body fat assessment ' +
+      'if the member does not meet PFRA standards (AFMAN 36-2905 para 3.15.4.7).'
+    );
+    references.push('afman.3.15.4.7');
+  }
+
+  const label = row.note ?? row.ratio.toFixed(2);
+  return baseResult(component, event, {
+    status: STATUS.SCORED,
+    points: row.points,
+    maxPoints,
+    minimumPoints,
+    meetsMinimum: true, // para 3.7.1: body composition carries no minimum
+    measured,
+    chartRow: row,
+    chartRowIndex: index,
+    chartRowLabel: `${label} → ${row.points.toFixed(1)} points`,
+    nextThreshold: ratioThreshold(data.whtr, index, effectiveRatio, measured.heightInches),
+    explanation:
+      (measured.waistInches != null
+        ? `${measured.waistInches} inch waist ÷ ${measured.heightInches} inch height = ` +
+          `${measured.exactRatio}, truncated to ${effectiveRatio.toFixed(2)}. `
+        : `Ratio ${effectiveRatio.toFixed(2)}. `) +
+      `That is the ${label} row, worth ${row.points.toFixed(1)} points. ` +
+      'Body composition has no minimum, so 0 points here does not by itself fail the assessment.',
+    references,
+    warnings
+  });
+}
+
+// --- component ranges ------------------------------------------------------
+
+/**
+ * The two numbers that bound a component: what the minimum takes, and what full
+ * marks takes.
+ *
+ * Both come straight off the chart for this sex and age band, so the UI can
+ * show them without knowing any thresholds of its own. Body composition has no
+ * minimum (AFMAN 36-2905 para 3.7.1), so it reports the row that scores zero
+ * instead, with `isFloor` false to mark the difference.
+ */
+/**
+ * The recorded waist that sits on a ratio boundary, for one height.
+ *
+ * Searched rather than solved, because two roundings sit between a waist and
+ * its ratio: the waist rounds down to the half inch (para 3.15.4.5) and the
+ * ratio truncates to two decimals (para 3.15.4.2). Stepping through the half
+ * inches a member can actually be recorded at gets the boundary exactly right
+ * where a closed form would be off by one in the corners.
+ */
+function waistBoundary(heightInches, hundredths, direction) {
+  let answer = null;
+  for (let halves = 24; halves <= 180; halves += 1) {   // 12.0 to 90.0 inches
+    const waist = halves / 2;
+    const ratio = Math.floor((waist / heightInches) * 100 + 1e-9);
+    if (direction === 'atMost') {
+      if (ratio <= hundredths) answer = waist;          // keep the largest
+    } else if (ratio >= hundredths) {
+      return waist;                                     // take the smallest
+    }
+  }
+  return answer;
+}
+
+function rangeFor(data, { component, event, sex, band, heightInches }) {
+  const maxPoints = data.composite.components[component];
+  const minimumPoints = data.component_minimums[component];
+  const kind = EVENT_KINDS[event];
+
+  if (kind === 'ratio') {
+    const rows = data.whtr;
+    const best = rows[0];
+    const worst = rows[rows.length - 1];
+
+    // A cadet can act on inches, not on a ratio, so give both when the height
+    // is known. Height itself is recorded to the nearest half inch.
+    const height = heightInches ? Math.round(heightInches * 2) / 2 : null;
+    const bestWaist = height
+      ? waistBoundary(height, Math.round(best.max_ratio * 100), 'atMost') : null;
+    const worstWaist = height
+      ? waistBoundary(height, Math.round(worst.min_ratio * 100), 'atLeast') : null;
+
+    return Object.freeze({
+      component,
+      event,
+      unit: 'ratio',
+      heightInches: height,
+      best: {
+        points: best.points,
+        label: best.note ?? best.ratio.toFixed(2),
+        waistInches: bestWaist,
+        waistLabel: bestWaist == null ? null : `${bestWaist.toFixed(1)} inches or less`
+      },
+      floor: {
+        points: worst.points,
+        label: worst.note ?? worst.ratio.toFixed(2),
+        waistInches: worstWaist,
+        waistLabel: worstWaist == null ? null : `${worstWaist.toFixed(1)} inches or more`,
+        isFloor: false // scoring zero here does not fail the assessment
+      },
+      maxPoints,
+      minimumPoints
+    });
+  }
+
+  if (kind === 'time') {
+    const rows = data[event]?.[sex]?.[band];
+    if (!rows) return null;
+    const fastest = rows[0];
+    const slowest = rows[rows.length - 1];
+    return Object.freeze({
+      component,
+      event,
+      unit: 'time',
+      best: { points: fastest.points, label: `${fastest.max_time} or faster` },
+      floor: { points: slowest.points, label: slowest.max_time, isFloor: true },
+      maxPoints,
+      minimumPoints
+    });
+  }
+
+  // reps, shuttles and plank seconds all read the same way off their charts.
+  const measure = MEASURES[kind];
+  const rows = kind === 'reps'
+    ? data.rep_events[event]?.[sex]?.[band]
+    : data[TABLES[event].path]?.[sex]?.[band];
+  if (!rows) return null;
+
+  const top = rows[0];
+  const bottom = rows[rows.length - 1];
+  return Object.freeze({
+    component,
+    event,
+    unit: measure.key === 'seconds' ? 'time' : measure.key,
+    best: { points: top.points, label: measure.atLeast(top[measure.field]) },
+    floor: { points: bottom.points, label: measure.show(bottom[measure.field]), isFloor: true },
+    maxPoints,
+    minimumPoints
+  });
+}
+
+// --- public API ------------------------------------------------------------
+
+/**
+ * Build a scorer bound to a set of scoring tables.
+ *
+ * @param {object} data parsed pfra-scoring-data.json
+ */
+export function createScorer(data) {
+  if (!data || !data.composite || !data.rep_events) {
+    throw new TypeError('createScorer needs the parsed pfra-scoring-data.json');
+  }
+
+  function eventsFor(component) {
+    return data.events[component] ?? [];
+  }
+
+  function scoreComponent(component, entry, sex, band) {
+    const allowed = eventsFor(component);
+    const event = entry?.event ?? allowed[0];
+    if (!allowed.includes(event)) {
+      throw new RangeError(
+        `${event} is not a ${COMPONENT_LABELS[component]} event; expected one of ${allowed.join(', ')}`);
+    }
+    const kind = EVENT_KINDS[event];
+    const status = declaredStatus(entry);
+
+    if (kind === 'reps' || kind === 'shuttles' || kind === 'hold') {
+      const value = status ? null : kind === 'hold'
+        ? parseTime(entry?.time ?? entry?.seconds)
+        : entry?.[MEASURES[kind].key];
+      return scoreAscendingComponent(data,
+        { component, event, kind, sex, band, value, status });
+    }
+    if (kind === 'time') {
+      const seconds = status ? null : parseTime(entry?.time ?? entry?.seconds);
+      return scoreRunComponent(data, { component, event, sex, band, seconds, status });
+    }
+    if (kind === 'ratio') {
+      return scoreWhtrComponent(data, { component, event, ...entry, status });
+    }
+    throw new RangeError(`no lookup implemented for event ${event}`);
+  }
+
+  /**
+   * Score a full assessment.
+   *
+   * @param {object} input age or ageBand, sex, and one entry per component.
+   * @returns {object} frozen result with per-component detail, composite and pass state.
+   */
+  function score(input) {
+    const sex = normalizeSex(input.sex);
+    const band = normalizeBand(data, input);
+
+    const components = {};
+    for (const component of COMPONENTS) {
+      components[component] = Object.freeze(scoreComponent(component, input[component], sex, band));
+    }
+
+    const composite = sumPoints(COMPONENTS.map((c) => components[c].points));
+    const failures = [];
+
+    for (const component of COMPONENTS) {
+      const result = components[component];
+      if (!PASSING_STATUSES.includes(result.status)) {
+        failures.push({
+          code: result.status === STATUS.BELOW_MINIMUM
+            ? FAILURE.COMPONENT_BELOW_MINIMUM
+            : FAILURE.COMPONENT_NOT_COMPLETED,
+          component,
+          message: `${COMPONENT_LABELS[component]} (${result.eventLabel}): ${result.explanation}`
+        });
+      } else if (!result.meetsMinimum) {
+        failures.push({
+          code: FAILURE.COMPONENT_BELOW_MINIMUM,
+          component,
+          message:
+            `${COMPONENT_LABELS[component]} scored ${result.points.toFixed(1)} points, below the ` +
+            `${result.minimumPoints.toFixed(1)} point minimum.`
+        });
+      }
+    }
+
+    const passingComposite = data.composite.passing_composite;
+    const compositeMeetsMinimum = composite >= passingComposite;
+    if (!compositeMeetsMinimum) {
+      failures.push({
+        code: FAILURE.COMPOSITE_BELOW_MINIMUM,
+        component: null,
+        message:
+          `Composite ${composite.toFixed(1)} is below the ${passingComposite.toFixed(1)} ` +
+          `required to pass, short by ${roundTo(passingComposite - composite, 1).toFixed(1)} points.`
+      });
+    }
+
+    const pass = failures.length === 0;
+    const rating = !pass ? 'Unsatisfactory' : composite >= 90 ? 'Excellent' : 'Satisfactory';
+
+    const warnings = COMPONENTS.flatMap((c) => components[c].warnings ?? []);
+    const citationIds = [...new Set([
+      'notacc.events',
+      'notacc.hrpu',
+      'notacc.whtr',
+      'afman.3.6.1',
+      'afman.3.7.1',
+      ...COMPONENTS.flatMap((c) => components[c].references ?? [])
+    ])];
+
+    return Object.freeze({
+      sex,
+      ageBand: band,
+      ageBandLabel: data.age_band_ranges[band],
+      age: input.age ?? null,
+      components: Object.freeze(components),
+      composite,
+      compositeText: composite.toFixed(1),
+      passingComposite,
+      compositeMeetsMinimum,
+      pass,
+      rating,
+      failures: Object.freeze(failures),
+      warnings: Object.freeze(warnings),
+      references: Object.freeze(resolveReferences(citationIds)),
+      publication: PUBLICATION,
+      charts: CHARTS,
+      notacc: NOTACC
+    });
+  }
+
+  return Object.freeze({
+    score,
+    ageBandFor,
+    eventsFor,
+    /** Chart bounds for one component, for a given sex and age band. */
+    rangeFor: (query) => rangeFor(data, query),
+    data
+  });
+}
