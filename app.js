@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=20481b2c55';
-import { createAnalyzer } from './src/analysis.js?v=20481b2c55';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=20481b2c55';
+} from './src/engine.js?v=0ffde57773';
+import { createAnalyzer } from './src/analysis.js?v=0ffde57773';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=0ffde57773';
 
 const $ = (id) => document.getElementById(id);
 
@@ -81,7 +81,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=20481b2c55').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=0ffde57773').then((r) => r.json());
   return { data };
 }
 
@@ -96,6 +96,7 @@ async function boot() {
   }
 
   fillBandOptions();
+  fillAltitudeOptions();
   for (const button of document.querySelectorAll('.segment[data-sex]')) {
     button.addEventListener('click', () => selectSex(button.dataset.sex));
   }
@@ -127,9 +128,9 @@ async function boot() {
     const panel = $('altitude-panel');
     panel.hidden = !panel.hidden;
     $('altitude-toggle').setAttribute('aria-expanded', String(!panel.hidden));
-    if (!panel.hidden) $('altitude-feet').focus();
+    if (!panel.hidden) $('altitude-group').focus();
   });
-  $('altitude-feet').addEventListener('input', update);
+  $('altitude-group').addEventListener('change', update);
 
   for (const button of document.querySelectorAll('.verbiage-open')) {
     button.addEventListener('click', () => openVerbiage(button.dataset.verbiage));
@@ -160,7 +161,11 @@ async function boot() {
       else closePicker(component);
     });
   }
-  for (const select of document.querySelectorAll('.event-picker select')) {
+  // Scoped to [data-component] for the same reason the swap buttons are scoped
+  // to [data-swap]: the Altitude panel reuses .event-picker for its looks, and
+  // its change event would otherwise be handled as an event swap for a
+  // component named "undefined".
+  for (const select of document.querySelectorAll('.event-picker select[data-component]')) {
     select.addEventListener('change', () => selectEvent(select.dataset.component,
       select.value));
   }
@@ -184,6 +189,22 @@ function advanceOnFull(fromId, toId, digits) {
 }
 
 // --- input handling --------------------------------------------------------
+
+/**
+ * The four altitude blocks, straight from the data file.
+ *
+ * Built rather than written into the markup so that the list a cadre member
+ * picks from and the table the engine reads cannot drift apart.
+ */
+function fillAltitudeOptions() {
+  const select = $('altitude-group');
+  for (const group of scorer.data.altitude_correction.groups) {
+    const option = document.createElement('option');
+    option.value = group.id;
+    option.textContent = `${group.label} · ${group.range_label}`;
+    select.append(option);
+  }
+}
 
 /** Every band except under 25, straight from the data file. */
 function fillBandOptions() {
@@ -451,8 +472,8 @@ function readForm() {
 
   // One altitude for the whole assessment: it is a property of where the test
   // was administered, not of any one event.
-  const feet = wholeNumber('altitude-feet');
-  if (feet != null) input.altitudeFeet = feet;
+  const group = $('altitude-group').value;
+  if (group) input.altitudeGroup = group;
 
   // Each of the three timed or counted components reads whichever control its
   // currently selected event uses.
@@ -645,24 +666,28 @@ function showHeightInFeet() {
  */
 function showAltitudeGroup() {
   const note = $('altitude-note');
-  const feet = wholeNumber('altitude-feet');
-  const base = 'AFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet. ' +
-    'Det 250 assesses at Ames, about 955 feet.';
+  const toggle = $('altitude-toggle');
+  const chosen = $('altitude-group').value;
+  const group = chosen
+    ? scorer.data.altitude_correction.groups.find((g) => g.id === chosen) : null;
 
-  if (feet == null) {
-    note.textContent = base;
-    note.classList.remove('altitude-on');
-    return;
-  }
-  const group = lastResult?.altitudeGroup ?? null;
   if (!group) {
-    note.textContent = `${feet.toLocaleString()} ft is below 5,250 ft, so no correction applies.`;
+    note.textContent =
+      'AFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet. ' +
+      'Det 250 assesses at Ames, about 955 feet.';
     note.classList.remove('altitude-on');
+    toggle.textContent = 'Altitude';
+    toggle.classList.remove('on');
     return;
   }
-  note.textContent = `${feet.toLocaleString()} ft falls in ${group.label}, ` +
-    'so Attachment 3 applies to the cardiorespiratory component.';
+
+  note.textContent = `${group.label}, ${group.range_label}. Attachment 3 applies ` +
+    'to the cardiorespiratory component.';
   note.classList.add('altitude-on');
+  // The button says so too, because the panel folds away and a correction left
+  // switched on is the kind of thing that quietly changes every later score.
+  toggle.textContent = `Altitude · ${group.label}`;
+  toggle.classList.add('on');
 }
 
 /* --- the verbiage dialog -------------------------------------------------
@@ -802,7 +827,7 @@ function renderSliders(band) {
     const range = (sex && band)
       ? scorer.rangeFor({ component, event, sex, band,
         heightInches: decimal('height') || null,
-        altitudeFeet: wholeNumber('altitude-feet') })
+        altitudeGroup: $('altitude-group').value || null })
       : null;
 
     // No chart yet, or — for the waist — no height, so there is no way to turn
@@ -949,7 +974,7 @@ function renderRanges(band) {
     const heightInches = decimal('height') || null;
     const range = (sex && band)
       ? scorer.rangeFor({ component, event, sex, band, heightInches,
-        altitudeFeet: wholeNumber('altitude-feet') })
+        altitudeGroup: $('altitude-group').value || null })
       : null;
 
     if (!range) {

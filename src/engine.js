@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=20481b2c55';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=0ffde57773';
 
 /* --- altitude time correction (AFMAN 36-2905 Attachment 3) ---------------
  *
@@ -41,6 +41,34 @@ export function altitudeGroupFor(data, feet) {
     }
   }
   return null;
+}
+
+/**
+ * The group an assessment was run at, however it was given.
+ *
+ * `altitudeGroup` names one of the four blocks outright, which is what the page
+ * asks for: a cadre member reads a group off the table rather than looking up
+ * a field elevation. `altitudeFeet` still works, because an elevation is the
+ * other way someone might have the number, and because it is what the tests
+ * drive the boundaries with.
+ *
+ * The printed ranges overlap at their ends -- Table A3.2 puts 5500 in both
+ * Group 1 and Group 2 -- so picking the group is the unambiguous form and this
+ * takes it in preference.
+ */
+export function resolveAltitude(data, { altitudeGroup, altitudeFeet }) {
+  const table = data.altitude_correction;
+  if (!table) return null;
+  if (altitudeGroup) {
+    const found = table.groups.find((g) => g.id === altitudeGroup);
+    if (!found) {
+      throw new RangeError(
+        `unknown altitude group ${JSON.stringify(altitudeGroup)}; expected one of ` +
+        table.groups.map((g) => g.id).join(', '));
+    }
+    return found;
+  }
+  return altitudeGroupFor(data, altitudeFeet ?? null);
 }
 
 /**
@@ -445,8 +473,8 @@ function scoreAscendingComponent(data, { component, event, kind, sex, band, valu
     addedShuttles: addShuttles,
     recorded: value,
     effective,
-    text: `${value} shuttles at ${altitude.label} score as ${effective}: ` +
-      `Attachment 3 Table A3.4 adds ${addShuttles}.`
+    text: `${value} shuttles at ${altitude.label} (${altitude.range_label}) score as ` +
+      `${effective}: Attachment 3 Table A3.4 adds ${addShuttles}.`
   }) : null;
 
   const { row, index } = lookupAtLeast(rows, effective, measure.field);
@@ -521,8 +549,8 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status,
     correctionSeconds: takeOff,
     recordedSeconds: seconds,
     effectiveSeconds: effective,
-    text: `${formatTime(seconds)} at ${altitude.label} scores as ` +
-      `${formatTime(effective)}: Attachment 3 Table A3.1 allows ` +
+    text: `${formatTime(seconds)} at ${altitude.label} (${altitude.range_label}) ` +
+      `scores as ${formatTime(effective)}: Attachment 3 Table A3.1 allows ` +
       `${formatTime(takeOff)}.`
   }) : null;
 
@@ -609,8 +637,9 @@ function scoreWalkComponent(data, { component, event, sex, band, seconds, status
     groupLabel: altitude.label,
     seaLevelTime: sea.max_time,
     maxTime: higher.max_time,
-    text: `At ${altitude.label} the maximum is ${higher.max_time} rather than ` +
-      `${sea.max_time}: Attachment 3 Table ${sex === 'M' ? 'A3.2' : 'A3.3'}.`
+    text: `At ${altitude.label} (${altitude.range_label}) the maximum is ` +
+      `${higher.max_time} rather than ${sea.max_time}: Attachment 3 Table ` +
+      `${sex === 'M' ? 'A3.2' : 'A3.3'}.`
   }) : null;
 
   return baseResult(component, event, {
@@ -793,7 +822,7 @@ function waistBoundary(heightInches, hundredths, direction) {
   return answer;
 }
 
-function rangeFor(data, { component, event, sex, band, heightInches, altitudeFeet }) {
+function rangeFor(data, { component, event, sex, band, heightInches, altitudeFeet, altitudeGroup }) {
   const maxPoints = data.composite.components[component];
   const minimumPoints = data.component_minimums[component];
   const kind = EVENT_KINDS[event];
@@ -842,7 +871,7 @@ function rangeFor(data, { component, event, sex, band, heightInches, altitudeFee
     if (!sea) return null;
     // At altitude the standard itself moves, so the strip has to move with it
     // or it will quote 16:16 next to a row that just said the maximum is 16:31.
-    const altitude = altitudeGroupFor(data, altitudeFeet ?? null);
+    const altitude = resolveAltitude(data, { altitudeGroup, altitudeFeet });
     const row = altitude
       ? data.altitude_correction.walk_2km.max[sex][group][altitude.id] : sea;
     return Object.freeze({
@@ -850,7 +879,7 @@ function rangeFor(data, { component, event, sex, band, heightInches, altitudeFee
       event,
       unit: 'time',
       passFail: true,
-      altitudeGroupLabel: altitude ? altitude.label : null,
+      altitudeGroupLabel: altitude ? `${altitude.label}, ${altitude.range_label}` : null,
       standard: {
         seconds: row.max_seconds,
         label: `${row.max_time} or faster`,
@@ -977,7 +1006,7 @@ export function createScorer(data) {
 
     // One lookup for the whole assessment: the test altitude is a property of
     // where it was administered, not of any one event.
-    const altitude = altitudeGroupFor(data, input.altitudeFeet ?? null);
+    const altitude = resolveAltitude(data, input);
 
     const components = {};
     for (const component of COMPONENTS) {
@@ -1085,6 +1114,7 @@ export function createScorer(data) {
       components: Object.freeze(components),
       altitudeFeet: input.altitudeFeet ?? null,
       altitudeGroup: altitude,
+      altitudeLabel: altitude ? `${altitude.label} (${altitude.range_label})` : null,
       composite,
       compositeText: composite.toFixed(1),
       compositeOutOf: available,

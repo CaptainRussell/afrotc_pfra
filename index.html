@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=20481b2c55">
+<link rel="stylesheet" href="styles.css?v=0ffde57773">
 </head>
 <body>
 
@@ -231,10 +231,16 @@
         <div class="meter-mark" hidden></div>
       </div>
       <p class="alt-note" id="alt-cardiorespiratory" hidden></p>
+      <!-- A group rather than an elevation: the four blocks are what Attachment 3
+           is printed as, so a cadre member picks the row they are reading. It
+           also sidesteps the printed ranges overlapping at their ends. The
+           options are filled from the data file so the table and this list
+           cannot drift apart. -->
       <div class="event-picker" id="altitude-panel" hidden>
-        <label for="altitude-feet">Test altitude (feet)</label>
-        <input type="number" id="altitude-feet" inputmode="numeric" min="0" max="20000"
-               step="10" placeholder="feet above sea level">
+        <label for="altitude-group">Test altitude</label>
+        <select id="altitude-group">
+          <option value="">Below 5,250 ft &mdash; no correction</option>
+        </select>
         <p class="hint" id="altitude-note">
           AFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet.
           Det 250 assesses at Ames, about 955 feet.
@@ -493,6 +499,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=20481b2c55"></script>
+<script type="module" src="app.js?v=0ffde57773"></script>
 </body>
 </html>

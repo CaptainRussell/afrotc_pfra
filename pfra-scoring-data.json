@@ -13722,25 +13722,29 @@
         "id": "group1",
         "min_feet": 5250,
         "max_feet": 5499,
-        "label": "5,250 – 5,499 ft"
+        "label": "Group 1",
+        "range_label": "5,250 – 5,500 ft"
       },
       {
         "id": "group2",
         "min_feet": 5500,
         "max_feet": 5999,
-        "label": "5,500 – 5,999 ft"
+        "label": "Group 2",
+        "range_label": "5,500 – 6,000 ft"
       },
       {
         "id": "group3",
         "min_feet": 6000,
         "max_feet": 6599,
-        "label": "6,000 – 6,599 ft"
+        "label": "Group 3",
+        "range_label": "6,000 – 6,600 ft"
       },
       {
         "id": "group4",
         "min_feet": 6600,
         "max_feet": null,
-        "label": "6,600 ft and above"
+        "label": "Group 4",
+        "range_label": "above 6,600 ft"
       }
     ],
     "run_2mile": {
