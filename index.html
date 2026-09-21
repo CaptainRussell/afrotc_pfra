@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=9a5424c9d4">
+<link rel="stylesheet" href="styles.css?v=b3b8a6bc3a">
 </head>
 <body>
 
@@ -22,6 +22,22 @@
 
   <!-- ---------------------------------------------------------------- -->
   <form id="assessment" class="card" novalidate autocomplete="off">
+
+    <!-- Above age and sex because it frames them: the same charts, but a
+         different set of things a member is allowed to do. -->
+    <div class="field" id="field-role">
+      <span class="label-text" id="role-label">Assessing</span>
+      <div class="segmented" role="radiogroup" aria-labelledby="role-label">
+        <button type="button" class="segment on" role="radio" aria-checked="true"
+                data-role="cadet">AFROTC cadet</button>
+        <button type="button" class="segment" role="radio" aria-checked="false"
+                data-role="cadre">Active duty / cadre</button>
+      </div>
+      <p class="hint" id="role-hint">
+        The charts are the same. Cadets test on the three AFROTC events and are
+        not authorised exemptions.
+      </p>
+    </div>
 
     <div class="row about-row">
       <div class="field" id="field-age">
@@ -60,6 +76,9 @@
         <div class="event-tools">
           <button type="button" class="verbiage-open" data-verbiage="body_composition"
                 title="What the assessment administrator reads out">Verbiage</button>
+          <button type="button" class="exempt-toggle" data-exempt="body_composition"
+                  title="Cadre and staff on profile. Not authorised for cadets."
+                  hidden>Exempt</button>
         </div>
         <output class="chip" id="chip-body_composition" aria-live="polite">&ndash; / 20</output>
       </div>
@@ -100,6 +119,7 @@
           <p class="hint">Rounded <em>down</em> to &frac12; inch.</p>
         </div>
       </div>
+      <p class="status-note" id="exempt-note-body_composition" hidden></p>
       <div class="range" id="range-body_composition" aria-label="Chart range"></div>
       <p class="chart-row" id="row-body_composition" hidden></p>
     </section>
@@ -114,6 +134,9 @@
                   title="Change exercise">Change Exercise</button>
           <button type="button" class="verbiage-open" data-verbiage="muscular_strength"
                 title="What the assessment administrator reads out">Verbiage</button>
+          <button type="button" class="exempt-toggle" data-exempt="muscular_strength"
+                  title="Cadre and staff on profile. Not authorised for cadets."
+                  hidden>Exempt</button>
         </div>
         <output class="chip" id="chip-muscular_strength" aria-live="polite">&ndash; / 15</output>
       </div>
@@ -146,9 +169,9 @@
                aria-label="Push-up reps">
         <span class="slider-end high" id="slider-high-muscular_strength"></span>
       </div>
+      <p class="status-note" id="exempt-note-muscular_strength" hidden></p>
       <div class="range" id="range-muscular_strength" aria-label="Chart range"></div>
       <p class="chart-row" id="row-muscular_strength" hidden></p>
-      <button type="button" class="not-done" data-status-for="hrpu">Did not start or finish</button>
       <p class="status-note" id="status-hrpu" hidden></p>
     </section>
 
@@ -162,6 +185,9 @@
                   title="Change exercise">Change Exercise</button>
           <button type="button" class="verbiage-open" data-verbiage="core_endurance"
                 title="What the assessment administrator reads out">Verbiage</button>
+          <button type="button" class="exempt-toggle" data-exempt="core_endurance"
+                  title="Cadre and staff on profile. Not authorised for cadets."
+                  hidden>Exempt</button>
         </div>
         <output class="chip" id="chip-core_endurance" aria-live="polite">&ndash; / 15</output>
       </div>
@@ -202,9 +228,9 @@
                aria-label="Core endurance reps">
         <span class="slider-end high" id="slider-high-core_endurance"></span>
       </div>
+      <p class="status-note" id="exempt-note-core_endurance" hidden></p>
       <div class="range" id="range-core_endurance" aria-label="Chart range"></div>
       <p class="chart-row" id="row-core_endurance" hidden></p>
-      <button type="button" class="not-done" data-status-for="situp">Did not start or finish</button>
       <p class="status-note" id="status-situp" hidden></p>
     </section>
 
@@ -218,6 +244,9 @@
                   title="Change exercise">Change Exercise</button>
           <button type="button" class="verbiage-open" data-verbiage="cardiorespiratory"
                 title="What the assessment administrator reads out">Verbiage</button>
+          <button type="button" class="exempt-toggle" data-exempt="cardiorespiratory"
+                  title="Cadre and staff on profile. Not authorised for cadets."
+                  hidden>Exempt</button>
           <button type="button" class="swap" id="altitude-toggle"
                   aria-expanded="false" aria-controls="altitude-panel"
                   title="Altitude time correction">Altitude</button>
@@ -285,6 +314,7 @@
         </p>
         <p class="altitude-applied-detail" id="altitude-applied-detail"></p>
       </div>
+      <p class="status-note" id="exempt-note-cardiorespiratory" hidden></p>
       <div class="range" id="range-cardiorespiratory" aria-label="Chart range"></div>
       <div class="document inline-doc" id="doc-hamr" hidden>
         <div class="document-head">
@@ -324,7 +354,11 @@
         <div class="viewer" hidden></div>
       </div>
       <p class="chart-row" id="row-cardiorespiratory" hidden></p>
-      <button type="button" class="not-done" data-status-for="run">Did not start or finish</button>
+      <!-- Only the run and the walk: those are the events a member can leave
+           part-way through. Stopping early on push-ups or sit-ups is just a
+           lower count, which is what the verbiage says happens. -->
+      <button type="button" class="not-done" id="dnf-run"
+              data-status-for="run" hidden>Did not finish</button>
       <p class="status-note" id="status-run" hidden></p>
     </section>
 
@@ -546,6 +580,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=9a5424c9d4"></script>
+<script type="module" src="app.js?v=b3b8a6bc3a"></script>
 </body>
 </html>

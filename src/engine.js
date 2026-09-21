@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=9a5424c9d4';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=b3b8a6bc3a';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
@@ -421,6 +421,39 @@ function baseResult(component, event, extra) {
   };
 }
 
+/**
+ * A component nobody was assessed on.
+ *
+ * Exempt is not a bad score, it is an absent one: it contributes no points and
+ * fails nothing, and score() leaves it out of both sides of the composite so
+ * the remaining components are scored over what was actually done.
+ *
+ * Cadets are not authorised exemptions on any PFRA component -- AFROTCI 36-2011
+ * V3 requires the most recent PFA "with no exemptions" before contracting,
+ * field training and commissioning -- which is why the control that produces
+ * this is cadre-only. The engine still accepts it from anywhere, because the
+ * rule about who may claim one is not the engine's to enforce.
+ */
+function exemptResult(component, event, maxPoints, minimumPoints, references) {
+  return baseResult(component, event, {
+    status: STATUS.EXEMPT,
+    points: 0,
+    maxPoints,
+    minimumPoints,
+    meetsMinimum: true,
+    measured: null,
+    chartRow: null,
+    chartRowIndex: -1,
+    chartRowLabel: null,
+    nextThreshold: null,
+    explanation:
+      `${COMPONENT_LABELS[component]} recorded as exempt. It scores no points, ` +
+      'fails nothing, and the composite is scored over the components that were assessed.',
+    references,
+    warnings: []
+  });
+}
+
 function notCompletedResult(component, event, status, maxPoints, minimumPoints, references) {
   const word = status === STATUS.DNS ? 'did not start' : 'did not finish';
   return baseResult(component, event, {
@@ -447,6 +480,9 @@ function scoreAscendingComponent(data, { component, event, kind, sex, band, valu
   const references = ['dafman.3.7.4', 'charts.minimum-asterisk'];
   const measure = MEASURES[kind];
 
+  if (status === STATUS.EXEMPT) {
+    return exemptResult(component, event, maxPoints, minimumPoints, references);
+  }
   if (status) {
     return notCompletedResult(component, event, status, maxPoints, minimumPoints,
       [...references, 'dafman.3.15.13']);
@@ -535,6 +571,9 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status,
   const minimumPoints = data.component_minimums[component];
   const references = ['dafman.3.7.4', 'dafman.3.15.12.1', 'charts.minimum-asterisk'];
 
+  if (status === STATUS.EXEMPT) {
+    return exemptResult(component, event, maxPoints, minimumPoints, references);
+  }
   if (status) {
     return notCompletedResult(component, event, status, maxPoints, minimumPoints,
       [...references, 'dafman.3.15.13']);
@@ -623,6 +662,9 @@ function scoreWalkComponent(data, { component, event, sex, band, seconds, status
   const minimumPoints = data.component_minimums[component];
   const references = ['dafman.3.7.3', 'dafman.3.6.2', 'dafman.3.10.1', 'charts.walk'];
 
+  if (status === STATUS.EXEMPT) {
+    return exemptResult(component, event, maxPoints, minimumPoints, references);
+  }
   if (status) {
     return notCompletedResult(component, event, status, maxPoints, minimumPoints, references);
   }

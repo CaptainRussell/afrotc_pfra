@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=9a5424c9d4';
-import { createAnalyzer } from './src/analysis.js?v=9a5424c9d4';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=9a5424c9d4';
+} from './src/engine.js?v=b3b8a6bc3a';
+import { createAnalyzer } from './src/analysis.js?v=b3b8a6bc3a';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=b3b8a6bc3a';
 
 const $ = (id) => document.getElementById(id);
 
@@ -30,8 +30,26 @@ let lastResult = null;
 let sex = null;
 let ageBand = null;
 
+/**
+ * Who is being assessed.
+ *
+ * The charts do not change; what changes is what the member is allowed to do.
+ * Cadets test on the three AFROTC events and are not authorised exemptions on
+ * any component (AFROTCI 36-2011 V3: the most recent PFA "with no exemptions"
+ * is required before contracting, field training and commissioning). Cadre and
+ * staff may be on a profile, may be assessed on an alternate event, and may
+ * have a component exempted.
+ *
+ * Altitude is not gated by this. Attachment 3 is a property of where the
+ * assessment was run, not of who ran it.
+ */
+let role = 'cadet';
+
 /** Per component: a measurement, a declared non-completion, or nothing yet. */
-const statuses = { muscular_strength: null, core_endurance: null, cardiorespiratory: null };
+const statuses = {
+  body_composition: null, muscular_strength: null, core_endurance: null,
+  cardiorespiratory: null
+};
 
 /**
  * Which event each component is being scored on.
@@ -81,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=9a5424c9d4').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=b3b8a6bc3a').then((r) => r.json());
   return { data };
 }
 
@@ -97,6 +115,17 @@ async function boot() {
 
   fillBandOptions();
   fillAltitudeOptions();
+  showRoleControls();
+  for (const button of document.querySelectorAll('.segment[data-role]')) {
+    button.addEventListener('click', () => selectRole(button.dataset.role));
+  }
+  for (const button of document.querySelectorAll('.exempt-toggle')) {
+    button.addEventListener('click', () => {
+      const component = button.dataset.exempt;
+      setExempt(component, statuses[component] !== 'exempt');
+      update();
+    });
+  }
   for (const button of document.querySelectorAll('.segment[data-sex]')) {
     button.addEventListener('click', () => selectSex(button.dataset.sex));
   }
@@ -147,7 +176,7 @@ async function boot() {
     if (e.target === $('verbiage')) $('verbiage').close();
   });
   for (const button of document.querySelectorAll('.not-done')) {
-    button.addEventListener('click', () => cycleStatus(button.dataset.statusFor));
+    button.addEventListener('click', () => toggleNotFinished(button.dataset.statusFor));
   }
 
   // Typing two digits into minutes should land you in seconds without a tap.
@@ -182,6 +211,7 @@ async function boot() {
 
   setupDocuments();
   showEventDocs();
+  showNotFinished();
 
   update();
 }
@@ -303,6 +333,7 @@ function selectEvent(component, event) {
   $(`heading-${component}`).textContent = EVENT_LABELS[event];
   showAltNotes();
   showEventDocs();
+  showNotFinished();
   update();
 }
 
@@ -322,11 +353,14 @@ function showAltNotes() {
       continue;
     }
     // "cadets are not tested on X" keeps the verb agreeing with the cadets, so
-    // the sentence stays correct whether X is singular or plural.
-    note.textContent =
-      `AFROTC cadets are not tested on ${EVENT_PHRASES[event]}. NOTACC CY26-092 ` +
-      'sets the assessment as hand-release push-ups, sit-ups and the 2 mile run ' +
-      'beginning with Academic Year 2026-2027. Cadre/Staff reference only.';
+    // the sentence stays correct whether X is singular or plural. For cadre the
+    // alternate is simply an authorised event, so the warning becomes a note.
+    note.textContent = role === 'cadet'
+      ? `AFROTC cadets are not tested on ${EVENT_PHRASES[event]}. NOTACC CY26-092 ` +
+        'sets the assessment as hand-release push-ups, sit-ups and the 2 mile run ' +
+        'beginning with Academic Year 2026-2027. Cadre/Staff reference only.'
+      : `Scored on ${EVENT_PHRASES[event]}, authorised by DAFMAN 36-2905. Cadets ` +
+        'test on hand-release push-ups, sit-ups and the 2 mile run.';
     note.hidden = false;
   }
 }
@@ -337,6 +371,22 @@ function showAltNotes() {
  * The HAMR tally sheet is how an administrator records shuttles, so it appears
  * with the component the moment HAMR is chosen and goes away again otherwise.
  */
+/**
+ * Did-not-finish is offered only where finishing is a thing you can fail to do.
+ *
+ * A member can leave a 2 mile run or a 2 kilometre walk part-way through. There
+ * is no equivalent for push-ups, sit-ups or a waist measurement: stopping early
+ * is simply a lower count, which is what the verbiage says gets recorded.
+ */
+function showNotFinished() {
+  const event = events.cardiorespiratory;
+  const wanted = event === 'run_2mile' || event === 'walk_2km';
+  const button = $('dnf-run');
+  // Switching to the HAMR while a DNF is set would strand it out of reach.
+  if (!wanted && statuses.cardiorespiratory === 'dnf') setStatus('run', null);
+  button.hidden = !wanted;
+}
+
 function showEventDocs() {
   const wanted = events.cardiorespiratory === 'hamr_20m';
   // The tally sheet and the pacing audio both belong to the HAMR and nothing
@@ -382,10 +432,17 @@ const componentOf = (field) => ({
 }[field]);
 
 /** Cycle nothing -> did not start -> did not finish -> nothing. */
-function cycleStatus(field) {
-  const order = [null, 'dns', 'dnf'];
-  const next = order[(order.indexOf(statuses[componentOf(field)]) + 1) % order.length];
-  setStatus(field, next);
+/**
+ * Did not finish, on or off.
+ *
+ * It used to cycle through "did not start" as well. That is not a result anyone
+ * records: a member who never started an event has no score to enter, and one
+ * who stopped part-way through push-ups simply has fewer push-ups -- which is
+ * what the verbiage says is recorded. The engine can still represent DNS, so
+ * a score arriving from elsewhere does not break, but nothing here produces it.
+ */
+function toggleNotFinished(field) {
+  setStatus(field, statuses[componentOf(field)] === 'dnf' ? null : 'dnf');
   update();
 }
 
@@ -398,11 +455,9 @@ function setStatus(field, value) {
   const inputs = field === 'run' ? ['run-min', 'run-sec'] : [field];
 
   if (value) {
-    note.textContent = value === 'dns'
-      ? 'Recorded as did not start. Scores 0 and fails the component.'
-      : 'Recorded as did not finish. Scores 0 and fails the component.';
+    note.textContent =
+      'Recorded as did not finish. Scores 0 and fails the component.';
     note.hidden = false;
-    button.textContent = value === 'dns' ? 'Did not start' : 'Did not finish';
     button.classList.add('on');
     for (const id of inputs) {
       $(id).value = '';
@@ -410,7 +465,6 @@ function setStatus(field, value) {
     }
   } else {
     note.hidden = true;
-    button.textContent = 'Did not start or finish';
     button.classList.remove('on');
     for (const id of inputs) $(id).disabled = false;
   }
@@ -433,6 +487,12 @@ function clearScores() {
   for (const id of ['hrpu', 'situp', 'run-min', 'run-sec', 'plank-min', 'plank-sec',
     'hamr', 'height', 'waist']) {
     $(id).value = '';
+  }
+
+  // Role is left alone, like age and sex: a cadre member scoring a flight is
+  // still cadre for the next one. Exemptions are per member, so they go.
+  for (const component of COMPONENTS) {
+    if (statuses[component] === 'exempt') setExempt(component, false);
   }
 
   for (const [component, fallback] of [
@@ -536,7 +596,10 @@ function readForm() {
   const waist = decimal('waist');
   const height = heightValue === null || heightValue === undefined ? null : heightValue;
 
-  if (height && waist) {
+  if (statuses.body_composition) {
+    input.body_composition = { event: 'whtr', status: statuses.body_composition };
+    ready.add('body_composition');
+  } else if (height && waist) {
     input.body_composition = { event: 'whtr', waistInches: waist, heightInches: height };
     ready.add('body_composition');
   } else {
@@ -743,6 +806,82 @@ function showAltitudeGroup() {
   // switched on is the kind of thing that quietly changes every later score.
   toggle.textContent = `Altitude · ${group.label}`;
   toggle.classList.add('on');
+}
+
+/* --- who is being assessed ------------------------------------------------ */
+
+function selectRole(value) {
+  role = value;
+  for (const button of document.querySelectorAll('.segment[data-role]')) {
+    const on = button.dataset.role === value;
+    button.classList.toggle('on', on);
+    button.setAttribute('aria-checked', String(on));
+  }
+
+  // An exemption claimed as cadre must not survive a switch back to cadet: it
+  // would sit there scoring nothing and failing nothing, for a member who is
+  // not authorised one.
+  if (role === 'cadet') {
+    for (const component of COMPONENTS) {
+      if (statuses[component] === 'exempt') setExempt(component, false);
+    }
+  }
+
+  $('role-hint').textContent = role === 'cadet'
+    ? 'The charts are the same. Cadets test on the three AFROTC events and are ' +
+      'not authorised exemptions.'
+    : 'Alternate events and component exemptions are available. The charts are ' +
+      'the same ones cadets are scored on.';
+
+  showRoleControls();
+  update();
+}
+
+/** Exempt is cadre-only; everything else stays where it is. */
+function showRoleControls() {
+  for (const button of document.querySelectorAll('.exempt-toggle')) {
+    button.hidden = role !== 'cadre';
+  }
+}
+
+/**
+ * Mark a component exempt, or take the exemption off again.
+ *
+ * Exempt is not a score of zero: it leaves the component out of both sides of
+ * the composite, so the rest is scored over what was actually assessed. The
+ * measurement fields are cleared and disabled, the way a DNF does, because
+ * there is no number left to keep.
+ */
+function setExempt(component, on) {
+  // A DNF and an exemption are different claims about the same component, so
+  // one clears the other rather than both being held at once.
+  const field = fieldOf(component);
+  if (on && field && statuses[component] === 'dnf') setStatus(field, null);
+
+  statuses[component] = on ? 'exempt' : null;
+
+  const button = document.querySelector(`.exempt-toggle[data-exempt="${component}"]`);
+  button.classList.toggle('on', on);
+  button.setAttribute('aria-pressed', String(on));
+
+  const note = $(`exempt-note-${component}`);
+  note.textContent = on
+    ? 'Exempt. Scores no points, fails nothing, and the composite is worked out ' +
+      'over the components that were assessed.'
+    : '';
+  note.hidden = !on;
+
+  for (const id of fieldsOf(component)) {
+    if (on) $(id).value = '';
+    $(id).disabled = on;
+  }
+}
+
+/** Every input a component collects, whichever event it is set to. */
+function fieldsOf(component) {
+  if (component === 'body_composition') return ['height', 'waist'];
+  const control = CONTROLS[events[component]];
+  return Array.isArray(control.field) ? control.field : [control.field];
 }
 
 /* --- the verbiage dialog -------------------------------------------------

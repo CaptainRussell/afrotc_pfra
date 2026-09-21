@@ -538,9 +538,20 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 }
 .event-head .swap { margin-left: 0; }
 
+/* Exempt is a claim about the member, not a score, so it reads as a state that
+ * is on or off rather than as another quiet tool. Off it looks like its
+ * neighbours; on it takes the gold the tool uses for a setting that is set. */
+.exempt-toggle.on {
+  background: var(--gold);
+  border-color: var(--gold-deep);
+  color: #2a2205;
+  font-weight: 700;
+}
+
 /* Changing the event is a cadre job, so the control is quiet by design. */
 .swap,
-.verbiage-open {
+.verbiage-open,
+.exempt-toggle {
   min-height: 0;
   padding: 4px 10px;
   font-size: .72rem;
@@ -552,7 +563,8 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   margin-left: auto;
 }
 .swap:hover,
-.verbiage-open:hover { border-color: var(--cardinal); color: var(--cardinal); }
+.verbiage-open:hover,
+.exempt-toggle:not(.on):hover { border-color: var(--cardinal); color: var(--cardinal); }
 
 .event-picker {
   display: grid;
