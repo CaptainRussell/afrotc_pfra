@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=5234ff8144';
-import { createAnalyzer } from './src/analysis.js?v=5234ff8144';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=5234ff8144';
+} from './src/engine.js?v=d9f3ab9555';
+import { createAnalyzer } from './src/analysis.js?v=d9f3ab9555';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=d9f3ab9555';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=5234ff8144').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=d9f3ab9555').then((r) => r.json());
   return { data };
 }
 
@@ -367,8 +367,8 @@ function showAltNotes() {
       ? `AFROTC cadets are not tested on ${EVENT_PHRASES[event]}. NOTACC CY26-092 ` +
         'sets the cadet assessment as hand-release push-ups, sit-ups and the 2 mile ' +
         'run, exclusively, from Academic Year 2026-2027. Cadre/Staff reference only.'
-      : `Scored on ${EVENT_PHRASES[event]}, authorised by DAFMAN 36-2905. Cadets ` +
-        'test on hand-release push-ups, sit-ups and the 2 mile run.';
+      : `Scored on ${EVENT_PHRASES[event]}, authorised by DAFMAN 36-2905 for ` +
+        'active duty members. (For cadre/staff selection)';
     note.hidden = false;
   }
 }
@@ -1597,13 +1597,10 @@ function fillChip(component, scored) {
     // the component, and the component is a yes or a no.
     setMeter(`meter-${component}`, scored.walk.passed ? scored.maxPoints : 0,
       scored.maxPoints, scored.walk.passed ? 'is-pass' : 'is-fail', null);
-    const walkRow = $(`row-${component}`);
-    walkRow.textContent = scored.walk.passed
-      ? `${formatTime(scored.walk.seconds)} of ${scored.walk.maxTime} maximum ` +
-        `→ pass, no points (component exempt)`
-      : `${formatTime(scored.walk.seconds)} is over the ${scored.walk.maxTime} maximum ` +
-        `→ the assessment fails`;
-    walkRow.hidden = false;
+    // Nothing to add underneath: the chip says Pass or Fail, the range strip
+    // says what the maximum is and that it is worth no points, and the altitude
+    // strip says when that maximum moved.
+    $(`row-${component}`).hidden = true;
     return;
   }
 
@@ -1614,16 +1611,23 @@ function fillChip(component, scored) {
   setMeter(`meter-${component}`, scored.points, scored.maxPoints,
     failing ? 'is-fail' : 'is-pass', scored.minimumPoints);
 
+  /*
+   * This line used to restate the chart row, "40+ reps -> 9.0 points". Every
+   * part of that is now on screen in larger type: the reps in the field, the
+   * points in the chip, the thresholds in the range strip, and the row itself
+   * highlighted in the in-line chart. So it only speaks when it has something
+   * of its own to say, which is the one case with no other words attached.
+   *
+   * Below the chart minimum the chip and the meter both turn red, and that is
+   * all. A red number is not an explanation, and the failures card that would
+   * explain it does not appear until every component is in.
+   */
   const row = $(`row-${component}`);
-  if (scored.chartRowLabel) {
-    row.textContent = scored.chartRowLabel;
-    row.hidden = false;
-  } else {
-    row.textContent = scored.status === 'below_minimum'
-      ? 'Below the chart minimum: scores 0 and fails this component.'
-      : '';
-    row.hidden = !row.textContent;
-  }
+  const failsMinimum = scored.status === 'below_minimum';
+  row.textContent = failsMinimum
+    ? 'Below the chart minimum: scores 0 and fails this component.'
+    : '';
+  row.hidden = !failsMinimum;
 }
 
 /** The running total pinned to the bottom of the screen. */

@@ -1082,6 +1082,8 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   padding: 7px 10px;
 }
 
+/* Still the lookup line, but only in the results breakdown now, where it is
+ * the audit trail rather than a restatement of what is already on screen. */
 .chart-row {
   font-size: .82rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -1089,6 +1091,20 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   border-radius: 7px;
   padding: 7px 10px;
   color: var(--ink-soft);
+}
+
+/* The one thing the component card has to say in words: below the chart
+ * minimum, where the red chip and red meter are the only other signal and
+ * neither of them is an explanation. Reads as the warning it is. */
+.below-minimum-note {
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--fail);
+  background: var(--fail-bg);
+  border-left: 4px solid var(--fail);
+  border-radius: 7px;
+  padding: 8px 12px;
+  margin: 0;
 }
 
 .not-done {
