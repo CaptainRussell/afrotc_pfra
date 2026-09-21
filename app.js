@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=d929cc4c3d';
-import { createAnalyzer } from './src/analysis.js?v=d929cc4c3d';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=d929cc4c3d';
+} from './src/engine.js?v=5234ff8144';
+import { createAnalyzer } from './src/analysis.js?v=5234ff8144';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=5234ff8144';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=d929cc4c3d').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=5234ff8144').then((r) => r.json());
   return { data };
 }
 
@@ -683,6 +683,32 @@ function readForm() {
  * chips about what has been filled in.
  */
 
+/**
+ * What to glow for a component that still needs a number.
+ *
+ * The slider, not the whole block. Dragging is the quickest way to put a score
+ * in, and a ring around an entire card does not say which of the three controls
+ * inside it to reach for.
+ *
+ * Body composition has two sliders and they are not interchangeable: the waist
+ * one cannot be bounded until a height is known, because the inches that earn
+ * full marks depend on it. So height leads, and the waist follows once height
+ * is in.
+ *
+ * Falls back to the whole block when there is no slider to point at. The 2
+ * kilometre walk is pass or fail and has none, and a component marked exempt
+ * or did-not-finish has its slider hidden; a ring around nothing would be
+ * worse than a ring around the card.
+ */
+function cueTargetFor(component) {
+  const row = component === 'body_composition'
+    ? (decimal('height') == null ? $('slider-height') : $('slider-body_composition'))
+    : $(`slider-${component}`);
+  return row && !row.hidden
+    ? row
+    : document.querySelector(`.event[data-component="${component}"]`);
+}
+
 function showCue(ready) {
   let target = null;
 
@@ -701,7 +727,7 @@ function showCue(ready) {
     // administered in. One list, so the glow cannot drift out of step with
     // the order the sections are actually in.
     const next = COMPONENTS.find((component) => !ready.has(component));
-    if (next) target = document.querySelector(`.event[data-component="${next}"]`);
+    if (next) target = cueTargetFor(next);
   }
 
   for (const node of document.querySelectorAll('.cue')) {

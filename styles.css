@@ -693,6 +693,21 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   animation: rise .22s ease both, cue-glow 2.4s ease-in-out infinite;
 }
 
+/* The cue usually lands on a slider now, so the ring hugs the track rather
+ * than the card around it. The padding is cancelled by an equal negative
+ * margin, as it is on the fields, so a cue arriving does not shift the page. */
+.slider-row.cue {
+  padding: 6px 8px;
+  margin: -6px -8px;
+  border-radius: 10px;
+}
+
+/* Height and waist sliders sit inside a .field, which already gives them a
+ * 2px top margin; -6 would move them 8px, so this puts it back. */
+.field > .slider-row.cue { margin-top: -4px; }
+
+/* Only reached when a component has no slider to point at: the walk, or one
+ * marked exempt or did-not-finish. */
 .event.cue { border-color: var(--gold-deep); }
 
 @keyframes cue-glow {
