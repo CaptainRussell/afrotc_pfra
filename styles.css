@@ -328,13 +328,13 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 .pretest-title { font-weight: 700; font-size: 1rem; }
 .pretest-sub { color: var(--ink-soft); font-size: .86rem; }
 .pretest > summary::after {
-  content: "be";
+  content: "▾";
   position: absolute;
   right: var(--gutter);
   margin-top: 2px;
   color: var(--ink-faint);
 }
-.pretest[open] > summary::after { content: "b4"; }
+.pretest[open] > summary::after { content: "▴"; }
 .pretest { position: relative; }
 
 .pretest-item { margin-top: 18px; }
@@ -435,7 +435,7 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   box-shadow: inset 0 -2px 0 var(--line-strong);
 }
 .chart-table .chart-minimum .chart-measure::after {
-  content: "  b7 minimum";
+  content: " · minimum";
   font-size: .68rem;
   letter-spacing: .04em;
   text-transform: uppercase;
@@ -516,7 +516,7 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 
 /* The walk moves the bar rather than the member's time, so the emphasis moves
  * with it: the new maximum is the thing that changed. */
-.altitude-applied.is-standard .altitude-applied-tag::after { content: "  b7 standard raised"; }
+.altitude-applied.is-standard .altitude-applied-tag::after { content: " · standard raised"; }
 
 /* An altitude that actually changes a score says so in the tool's own
  * attention colour, because a quiet hint is easy to leave switched on. */

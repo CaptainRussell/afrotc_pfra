@@ -46,25 +46,28 @@ export const SUPPLEMENT = Object.freeze({
   id: 'dafman36-2905-afrotcsup',
   title: 'DAFMAN 36-2905_AFROTCSUP, AFROTC Supplement',
   date: '28 April 2023',
-  // Written against the 2022 DAFMAN, so its event list (1.5 mile run, push-ups,
-  // sit-ups) and its BMI/body-fat body composition are superseded by the 2026
-  // DAFMAN and NOTACC CY26-092. Its AFROTC-specific administration is not:
-  // AFROTCI 36-2011 V3, June 2026, still cites it as the authority for how a
-  // cadet PFA is run. See docs/REGULATION-NOTES.md.
-  supersededOn: 'events and body composition method'
+  // Written against the 2022 DAFMAN, and awaiting rewrite: NOTACC CY26-092
+  // states HQ AFROTC will revise it for the new assessment. Treat it as stale
+  // by default. Anything it says that NOTACC CY26-092, AFROTCI 36-2011 V3 or
+  // the 2026 DAFMAN also covers is superseded; what survives is AFROTC
+  // administration none of those three address. See docs/REGULATION-NOTES.md.
+  pendingRevision: true,
+  supersededOn: 'events, body composition method, and assessment administration'
 });
 
 export const REFERENCES = Object.freeze({
+  // Kept because nothing newer says it as plainly, but it sits behind
+  // NOTACC CY26-092 and AFROTCI 36-2011 V3, which is where the page cites from.
   'afrotcsup.3.1.3': {
     source: SUPPLEMENT.id,
-    paragraph: '3.1.3',
+    paragraph: '3.1.3 (2023, awaiting revision)',
     text: 'Alternate components or fitness exemptions are not authorized for ' +
       'cadet PFAs. If a cadet is medically unable to accomplish a component, ' +
       'they cannot test.'
   },
   'afrotcsup.5.5.7': {
     source: SUPPLEMENT.id,
-    paragraph: '5.5.7',
+    paragraph: '5.5.7 (2023, awaiting revision)',
     text: 'Detachments that conduct the PFA/QFR 5,250 feet or more above MSL will ' +
       'manually adjust the cadet’s run times IAW DAFMAN 36-2905, Attachment 3. ' +
       'Altitude corrections do not apply to fitness tests given at Field Training.'

@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=b3ca05b3f2">
+<link rel="stylesheet" href="styles.css?v=890c765ad2">
 </head>
 <body>
 
@@ -36,9 +36,9 @@
       <!-- Kept in step with selectRole(): this is the cadet wording, which is
            the default, and the button click rewrites it for cadre. -->
       <p class="hint" id="role-hint">
-        The charts are the same. AFROTC Supplement para 3.1.3: alternate
-        components and fitness exemptions are not authorised for cadet
-        assessments.
+        The charts are the same. NOTACC CY26-092 sets the cadet assessment as
+        three events exclusively, and AFROTCI 36-2011 V3 requires a most recent
+        PFA with no exemptions.
       </p>
     </div>
 
@@ -291,8 +291,9 @@
         </select>
         <p class="hint" id="altitude-note">
           DAFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet,
-          and none applies at Field Training whatever the elevation (AFROTC
-          Supplement para 5.5.7). Det 250 assesses at Ames, about 955 feet.
+          and none applies at Field Training whatever the elevation (2023 AFROTC
+          Supplement para 5.5.7, awaiting revision). Det 250 assesses at Ames,
+          about 955 feet.
         </p>
       </div>
       <div class="event-picker" id="event-cardiorespiratory" hidden>
@@ -502,14 +503,14 @@
           or the walk.
         </p>
         <p>
-          Body composition may be measured separately from the rest. The two
-          publications set different limits, and the tighter one is the cadet
-          one: <strong>up to 3 duty days before</strong> for a cadet, where the
-          DAFMAN allows 5 either side.
+          Body composition may be measured separately from the rest, by
+          <strong>no more than 5 duty days</strong>. Outside that window the
+          assessment counts as a did-not-finish and has to be done again.
         </p>
         <p class="pretest-cite">
-          DAFMAN 36-2905 paras 3.15.9, 3.4.3 and Attachment 2 &middot;
-          AFROTC Supplement paras 3.1.3.2 and 5.5.5
+          DAFMAN 36-2905 paras 3.15.9, 3.4.3 and Attachment 2. The 2023 AFROTC
+          Supplement says 3 days, but it predates this assessment and HQ AFROTC
+          has said it will be revised.
         </p>
       </div>
 
@@ -527,6 +528,17 @@
       </div>
 
       <div class="pretest-item">
+        <h3>Before the assessment can be official</h3>
+        <p>
+          The 2 mile run course has to be measured and certified with a
+          measuring wheel first, or in coordination with the university. A
+          sports physical is valid for <strong>one calendar year</strong> from
+          the date of examination.
+        </p>
+        <p class="pretest-cite">NOTACC CY26-092, AY2026-2027 Fitness Guidance</p>
+      </div>
+
+      <div class="pretest-item">
         <h3>After an Unsatisfactory</h3>
         <p>
           A cadet has <strong>42 days</strong> before being required to test
@@ -534,12 +546,16 @@
           counsel you first that it counts as an official assessment and that
           you are giving up the 42 days.
         </p>
-        <p class="pretest-cite">AFROTC Supplement, para 5.5.1.4</p>
+        <p class="pretest-cite">
+          AFROTC Supplement para 5.5.1.4 &mdash; from the 2023 supplement, which is
+          awaiting revision. Nothing newer replaces it.
+        </p>
       </div>
 
       <p class="pretest-footer">
-        A summary, not a substitute. DAFMAN 36-2905, its AFROTC Supplement and
-        AFROTCI 36-2011 V3 govern, and all three are below.
+        A summary, not a substitute. In order: NOTACC CY26-092, then AFROTCI
+        36-2011 V3, then DAFMAN 36-2905. The 2023 AFROTC Supplement is awaiting
+        revision and is last, not first. All of them are below.
       </p>
     </details>
   </section>
@@ -609,9 +625,10 @@
         <div>
           <p class="document-name">DAFMAN 36-2905 &ndash; AFROTC Supplement</p>
           <p class="document-note">
-            28 April 2023. The AFROTC-specific rules: no alternates and no
-            exemptions for cadets, the 3 hour window, altitude, retesting. Its
-            event list predates the 2026 assessment &mdash; see the note below.
+            28 April 2023, and <strong>awaiting revision</strong> &mdash; NOTACC
+            CY26-092 states HQ AFROTC will rewrite it for the new assessment. It
+            still describes a 1.5 mile run and BMI. Read it for AFROTC
+            administration nothing newer covers, not for what is tested.
           </p>
         </div>
         <div class="document-actions">
@@ -706,6 +723,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=b3ca05b3f2"></script>
+<script type="module" src="app.js?v=890c765ad2"></script>
 </body>
 </html>

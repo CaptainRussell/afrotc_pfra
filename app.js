@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=b3ca05b3f2';
-import { createAnalyzer } from './src/analysis.js?v=b3ca05b3f2';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=b3ca05b3f2';
+} from './src/engine.js?v=890c765ad2';
+import { createAnalyzer } from './src/analysis.js?v=890c765ad2';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=890c765ad2';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=b3ca05b3f2').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=890c765ad2').then((r) => r.json());
   return { data };
 }
 
@@ -365,11 +365,9 @@ function showAltNotes() {
     // the sentence stays correct whether X is singular or plural. For cadre the
     // alternate is simply an authorised event, so the warning becomes a note.
     note.textContent = role === 'cadet'
-      ? `AFROTC cadets are not tested on ${EVENT_PHRASES[event]}. The AFROTC ` +
-        'Supplement (para 3.1.3) does not authorise alternate components for cadet ' +
-        'assessments, and NOTACC CY26-092 sets the events as hand-release push-ups, ' +
-        'sit-ups and the 2 mile run from Academic Year 2026-2027. Cadre/Staff ' +
-        'reference only.'
+      ? `AFROTC cadets are not tested on ${EVENT_PHRASES[event]}. NOTACC CY26-092 ` +
+        'sets the cadet assessment as hand-release push-ups, sit-ups and the 2 mile ' +
+        'run, exclusively, from Academic Year 2026-2027. Cadre/Staff reference only.'
       : `Scored on ${EVENT_PHRASES[event]}, authorised by DAFMAN 36-2905. Cadets ` +
         'test on hand-release push-ups, sit-ups and the 2 mile run.';
     note.hidden = false;
@@ -983,8 +981,9 @@ function showAltitudeGroup() {
   if (!group) {
     note.textContent =
       'DAFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet, ' +
-      'and none applies at Field Training whatever the elevation (AFROTC ' +
-      'Supplement para 5.5.7). Det 250 assesses at Ames, about 955 feet.';
+      'and none applies at Field Training whatever the elevation (2023 AFROTC ' +
+      'Supplement para 5.5.7, awaiting revision). Det 250 assesses at Ames, ' +
+      'about 955 feet.';
     note.classList.remove('altitude-on');
     toggle.textContent = 'Altitude';
     toggle.classList.remove('on');
@@ -1020,8 +1019,9 @@ function selectRole(value) {
   }
 
   $('role-hint').textContent = role === 'cadet'
-    ? 'The charts are the same. AFROTC Supplement para 3.1.3: alternate ' +
-      'components and fitness exemptions are not authorised for cadet assessments.'
+    ? 'The charts are the same. NOTACC CY26-092 sets the cadet assessment as ' +
+      'three events exclusively, and AFROTCI 36-2011 V3 requires a most recent ' +
+      'PFA with no exemptions.'
     : 'Alternate events and component exemptions are available. The charts are ' +
       'the same ones cadets are scored on.';
 
