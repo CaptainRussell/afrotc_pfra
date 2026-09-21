@@ -354,7 +354,6 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 }
 .pretest > summary::-webkit-details-marker { display: none; }
 .pretest-title { font-weight: 700; font-size: 1rem; }
-.pretest-sub { color: var(--ink-soft); font-size: .86rem; }
 .pretest > summary::after {
   content: "▾";
   position: absolute;

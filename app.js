@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=56df476f42';
-import { createAnalyzer } from './src/analysis.js?v=56df476f42';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=56df476f42';
+} from './src/engine.js?v=17644a63a3';
+import { createAnalyzer } from './src/analysis.js?v=17644a63a3';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=17644a63a3';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=56df476f42').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=17644a63a3').then((r) => r.json());
   return { data };
 }
 
@@ -1150,9 +1150,8 @@ function selectRole(value) {
 
   $('role-hint').textContent = role === 'cadet'
     ? 'Four components, in this order: waist to height, hand-release push-ups, ' +
-      'sit-ups and the 2 mile run. NOTACC CY26-092 sets those three events ' +
-      'exclusively, and AFROTCI 36-2011 V3 requires a most recent PFRA with no ' +
-      'exemptions.'
+      'sit-ups and the 2 mile run. NOTACC CY26-092 sets all four exclusively, and ' +
+      'AFROTCI 36-2011 V3 requires a most recent PFRA with no exemptions.'
     : role === 'cadre'
       ? 'Alternate events and component exemptions are available for active ' +
         'duty members.'
