@@ -249,11 +249,27 @@ button.secondary:hover { border-color: var(--cardinal); color: var(--cardinal); 
   justify-items: center;
 }
 
-.privacy {
-  font-size: .82rem;
-  color: var(--ink-soft);
-  text-align: center;
+/* Reset throws away everything that has been typed, so it does not pretend to
+ * be a quiet secondary control. Cardinal and full width: easy to find on
+ * purpose, and unmistakable enough that nobody hits it by accident thinking it
+ * clears one field. */
+.reset-button {
+  width: 100%;
+  max-width: 22rem;
+  min-height: 52px;
+  padding: 12px 24px;
+  border: 1px solid var(--cardinal-dark);
+  border-radius: 10px;
+  background: var(--cardinal);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: .01em;
+  box-shadow: var(--shadow);
+  transition: background .15s ease;
 }
+.reset-button:hover { background: var(--cardinal-dark); }
+.reset-button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
 /* --- form --------------------------------------------------------------- */
 
@@ -1460,6 +1476,7 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   .cue { animation: none; box-shadow: none; padding: 0; margin: 0; }
   .slider-row { display: none; }
   .event-tools { display: none; }
+  .reset-button { display: none; }
   /* The correction changed the score, so it belongs on the printout. */
   .altitude-applied { border-left-color: #8a6d1f; background: #fff; }
 

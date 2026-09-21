@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=525a665938';
-import { createAnalyzer } from './src/analysis.js?v=525a665938';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=525a665938';
+} from './src/engine.js?v=d929cc4c3d';
+import { createAnalyzer } from './src/analysis.js?v=d929cc4c3d';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=d929cc4c3d';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=525a665938').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=d929cc4c3d').then((r) => r.json());
   return { data };
 }
 
