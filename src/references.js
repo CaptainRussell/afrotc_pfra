@@ -55,6 +55,9 @@ export const SUPPLEMENT = Object.freeze({
   supersededOn: 'events, body composition method, and assessment administration'
 });
 
+// Quoted text keeps the publication's own wording, including PFA where the
+// publication says PFA. The tool's own prose says PFRA; misquoting a
+// regulation to match house style would be the worse error.
 export const REFERENCES = Object.freeze({
   // Kept because nothing newer says it as plainly, but it sits behind
   // NOTACC CY26-092 and AFROTCI 36-2011 V3, which is where the page cites from.

@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=3b6f79adf8">
+<link rel="stylesheet" href="styles.css?v=39f790d82f">
 </head>
 <body>
 
@@ -28,17 +28,18 @@
     <div class="field" id="field-role">
       <span class="label-text" id="role-label">Assessing</span>
       <div class="segmented" role="radiogroup" aria-labelledby="role-label">
-        <button type="button" class="segment on" role="radio" aria-checked="true"
+        <button type="button" class="segment" role="radio" aria-checked="false"
                 data-role="cadet">AFROTC cadet</button>
         <button type="button" class="segment" role="radio" aria-checked="false"
                 data-role="cadre">Active duty / cadre</button>
       </div>
       <!-- Kept in step with selectRole(): this is the cadet wording, which is
            the default, and the button click rewrites it for cadre. -->
+      <!-- Kept in step with ROLE_PROMPT in app.js: this is the unanswered
+           wording, and selecting a role rewrites it. -->
       <p class="hint" id="role-hint">
-        The charts are the same. NOTACC CY26-092 sets the cadet assessment as
-        three events exclusively, and AFROTCI 36-2011 V3 requires a most recent
-        PFA with no exemptions.
+        Start here. The charts are the same either way; this decides what the
+        rest of the form offers.
       </p>
     </div>
 
@@ -393,8 +394,8 @@
     </section>
 
     <div class="form-footer">
-      <button type="button" class="secondary small" id="clear-scores"
-              title="Clears the measurements. Age and sex stay.">Clear scores</button>
+      <button type="button" class="secondary small" id="reset-all"
+              title="Puts the whole page back to how it loads.">Reset</button>
       <p class="privacy">
         Everything is worked out on your phone. Nothing you type is sent anywhere,
         saved, or seen by the detachment.
@@ -646,7 +647,7 @@
         <div>
           <p class="document-name">AFROTCI 36-2011 Volume 3 - Cadet Operations</p>
           <p class="document-note">
-            24 June 2026. The AFROTC side of the assessment: what a PFA is worth,
+            24 June 2026. The AFROTC side of the assessment: what a PFRA is worth,
             what failing one costs, and the Fitness Award in Table 15.1.
           </p>
         </div>
@@ -723,6 +724,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=3b6f79adf8"></script>
+<script type="module" src="app.js?v=39f790d82f"></script>
 </body>
 </html>

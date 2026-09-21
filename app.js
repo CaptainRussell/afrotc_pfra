@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=3b6f79adf8';
-import { createAnalyzer } from './src/analysis.js?v=3b6f79adf8';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=3b6f79adf8';
+} from './src/engine.js?v=39f790d82f';
+import { createAnalyzer } from './src/analysis.js?v=39f790d82f';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=39f790d82f';
 
 const $ = (id) => document.getElementById(id);
 
@@ -35,7 +35,7 @@ let ageBand = null;
  *
  * The charts do not change; what changes is what the member is allowed to do.
  * Cadets test on the three AFROTC events and are not authorised exemptions on
- * any component (AFROTCI 36-2011 V3: the most recent PFA "with no exemptions"
+ * any component (AFROTCI 36-2011 V3: the most recent PFRA "with no exemptions"
  * is required before contracting, field training and commissioning). Cadre and
  * staff may be on a profile, may be assessed on an alternate event, and may
  * have a component exempted.
@@ -43,7 +43,7 @@ let ageBand = null;
  * Altitude is not gated by this. Attachment 3 is a property of where the
  * assessment was run, not of who ran it.
  */
-let role = 'cadet';
+let role = null;
 
 /** Per component: a measurement, a declared non-completion, or nothing yet. */
 const statuses = {
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=3b6f79adf8').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=39f790d82f').then((r) => r.json());
   return { data };
 }
 
@@ -214,7 +214,7 @@ async function boot() {
       select.value));
   }
 
-  $('clear-scores').addEventListener('click', clearScores);
+  $('reset-all').addEventListener('click', resetAll);
   setupPrinting();
 
   setupDocuments();
@@ -364,7 +364,7 @@ function showAltNotes() {
     // "cadets are not tested on X" keeps the verb agreeing with the cadets, so
     // the sentence stays correct whether X is singular or plural. For cadre the
     // alternate is simply an authorised event, so the warning becomes a note.
-    note.textContent = role === 'cadet'
+    note.textContent = role !== 'cadre'
       ? `AFROTC cadets are not tested on ${EVENT_PHRASES[event]}. NOTACC CY26-092 ` +
         'sets the cadet assessment as hand-release push-ups, sit-ups and the 2 mile ' +
         'run, exclusively, from Academic Year 2026-2027. Cadre/Staff reference only.'
@@ -498,16 +498,40 @@ function onAnyInput() {
  * three Det 250 events, so a cadre session cannot leak an alternate chart into
  * the next cadet's score.
  */
-function clearScores() {
-  for (const id of ['hrpu', 'situp', 'run-min', 'run-sec', 'plank-min', 'plank-sec',
-    'hamr', 'height', 'waist']) {
-    $(id).value = '';
+/**
+ * Put the page back to how it loads.
+ *
+ * Not a reload: nothing here is persisted, so a reload would only cost a flash
+ * and a round trip to prove it. This restores each piece of state instead.
+ *
+ * "Back to default" is the kind of claim that quietly stops being true as soon
+ * as somebody adds a control and forgets this function exists, so it was
+ * checked by snapshotting twenty-odd pieces of page state on a fresh load,
+ * dirtying every one of them, resetting, and diffing. That found exactly one
+ * leak, which is fixed in update(): the Altitude button kept its label.
+ * Re-run that check when adding a control here.
+ */
+function resetAll() {
+  // Who and what: the three answers that gate everything else.
+  role = null;
+  sex = null;
+  ageBand = null;
+  for (const button of document.querySelectorAll('.segment[data-role], ' +
+    '.segment[data-sex], .segment[data-band]')) {
+    button.classList.remove('on');
+    button.setAttribute('aria-checked', 'false');
   }
+  $('band-picker').hidden = true;
+  $('age-band').value = '';
+  $('role-hint').textContent = ROLE_PROMPT;
 
-  // Role is left alone, like age and sex: a cadre member scoring a flight is
-  // still cadre for the next one. Exemptions are per member, so they go.
+  // Statuses before fields: clearing an exemption re-enables the inputs it
+  // disabled, and doing it the other way round leaves them disabled.
   for (const component of COMPONENTS) {
     if (statuses[component] === 'exempt') setExempt(component, false);
+    const field = fieldOf(component);
+    if (field) setStatus(field, null);
+    statuses[component] = null;
   }
 
   for (const [component, fallback] of [
@@ -515,12 +539,26 @@ function clearScores() {
     ['core_endurance', 'situp'],
     ['cardiorespiratory', 'run_2mile']
   ]) {
-    setStatus(fieldOf(component), null);
     if (events[component] !== fallback) {
       $(`event-select-${component}`).value = fallback;
       selectEvent(component, fallback);
     }
     closePicker(component);
+  }
+
+  for (const id of ['hrpu', 'situp', 'run-min', 'run-sec', 'plank-min', 'plank-sec',
+    'hamr', 'height', 'waist']) {
+    $(id).value = '';
+    $(id).disabled = false;
+  }
+
+  $('altitude-group').value = '';
+  closeAltitudePanel();
+
+  for (const component of COMPONENTS) chartOpen.delete(component);
+  $('verbiage').close();
+  for (const details of document.querySelectorAll('.pretest, .foldable')) {
+    details.open = false;
   }
 
   lastResult = null;
@@ -529,9 +567,11 @@ function clearScores() {
   $('target-plans').replaceChildren();
   $('target-error').hidden = true;
 
+  showRoleControls();
   update();
-  $('assessment').scrollIntoView({ behavior: motion(), block: 'start' });
+  window.scrollTo({ top: 0, behavior: motion() });
 }
+
 
 // --- reading the form ------------------------------------------------------
 
@@ -560,7 +600,10 @@ function decimal(id) {
 function readForm() {
   const ready = new Set();
 
-  if (!ageBand || !sex) {
+  // Role gates scoring the way age and sex do. It changes no number, but it
+  // decides what the page may offer, and a cue that points at a question the
+  // form will happily skip past is not a guide.
+  if (!role || !ageBand || !sex) {
     return { input: null, ready };
   }
 
@@ -644,7 +687,11 @@ function readForm() {
 function showCue(ready) {
   let target = null;
 
-  if (!ageBand) {
+  if (!role) {
+    // Who is being assessed comes first: it decides what the rest of the form
+    // is allowed to offer.
+    target = $('field-role');
+  } else if (!ageBand) {
     // Tapping "25 or older" answers the age question but does not settle the
     // band, so the cue moves to the dropdown that still has to be answered.
     target = $('band-picker').hidden ? $('field-age') : $('band-picker');
@@ -680,10 +727,19 @@ function update() {
   const { input, ready } = readForm();
   showCue(ready);
 
+  // These three describe the form rather than the score, so they run whether or
+  // not there is one. Leaving them below the early return meant the Altitude
+  // button kept reading "Altitude - Group 3" after a Reset had cleared the
+  // group, because clearing the role made the assessment unscoreable and this
+  // function returned before reaching them.
+  showAltitudeGroup();
+  showHamrLevel();
+
   if (!input) {
     for (const component of COMPONENTS) resetChip(component);
     lastResult = null;
     renderCharts(ageBand);
+    showAltitudeApplied(null);
     $('results').hidden = true;
     showTally(null, ready);
     return;
@@ -714,8 +770,6 @@ function update() {
   }
 
   showTally(result, ready);
-  showAltitudeGroup();
-  showHamrLevel();
   showAltitudeApplied(lastResult);
 
   if (!complete) {
@@ -897,7 +951,7 @@ function buildChartTable(chart, currentIndex, component) {
  * Whether this score would earn the AFROTC Fitness Award.
  *
  * A cadet award, so it is shown only in cadet mode. It is written as a
- * condition rather than an announcement -- "if this is your official PFA for
+ * condition rather than an announcement -- "if this is your official PFRA for
  * the term" -- because the tool cannot know whether a given assessment is the
  * official one, nor whether the cadet has already had the award this term or
  * the device at this detachment. Those are detachment records.
@@ -928,11 +982,11 @@ function showAward(result) {
   }
 
   line.textContent = award.tier === 'silver_star'
-    ? `A perfect ${result.compositeText}. If this is your official PFA for the term ` +
+    ? `A perfect ${result.compositeText}. If this is your official PFRA for the term ` +
       'it earns the Fitness Award, and the Silver Star device the first time you ' +
       'score 100 at the detachment (AFROTCI 36-2011 V3, Table 15.1).'
     : `${result.compositeText} is ${award.threshold} or above. If this is your ` +
-      'official PFA for the term it earns the Fitness Award, which may be received ' +
+      'official PFRA for the term it earns the Fitness Award, which may be received ' +
       'once per term (AFROTCI 36-2011 V3, Table 15.1).';
   line.className = `award-line award-earned${award.tier === 'silver_star' ? ' award-star' : ''}`;
   line.hidden = false;
@@ -1001,6 +1055,11 @@ function showAltitudeGroup() {
 
 /* --- who is being assessed ------------------------------------------------ */
 
+/** Shown until the question is answered. Kept beside index.html's copy. */
+const ROLE_PROMPT =
+  'Start here. The charts are the same either way; this decides what the rest ' +
+  'of the form offers.';
+
 function selectRole(value) {
   role = value;
   for (const button of document.querySelectorAll('.segment[data-role]')) {
@@ -1021,9 +1080,11 @@ function selectRole(value) {
   $('role-hint').textContent = role === 'cadet'
     ? 'The charts are the same. NOTACC CY26-092 sets the cadet assessment as ' +
       'three events exclusively, and AFROTCI 36-2011 V3 requires a most recent ' +
-      'PFA with no exemptions.'
-    : 'Alternate events and component exemptions are available. The charts are ' +
-      'the same ones cadets are scored on.';
+      'PFRA with no exemptions.'
+    : role === 'cadre'
+      ? 'Alternate events and component exemptions are available. The charts are ' +
+        'the same ones cadets are scored on.'
+      : ROLE_PROMPT;
 
   showRoleControls();
   update();
@@ -1496,7 +1557,9 @@ function showTally(result, ready) {
   if (!result) {
     tally.hidden = ready.size === 0;
     score.textContent = '–';
-    text.textContent = 'Add your age and sex to start scoring';
+    text.textContent = !role
+      ? 'Choose cadet or cadre to start'
+      : 'Add your age and sex to start scoring';
     tally.className = 'tally';
     return;
   }

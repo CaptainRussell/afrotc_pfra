@@ -298,10 +298,15 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 /* Mars and Venus sit slightly large next to the word, and a touch lighter so
  * the label still leads. Decorative: the word is what is read out. */
 .sex-glyph {
-  font-size: 1.05em;
-  line-height: 1;
-  opacity: .75;
-  margin-right: 2px;
+  /* Big enough to read as a symbol rather than as punctuation, but capped so
+   * the button keeps the same height as the age one beside it: line-height 0
+   * lets the glyph grow without pushing the row taller. */
+  font-size: 1.75em;
+  line-height: 0;
+  position: relative;
+  top: .12em;
+  opacity: .8;
+  margin-right: 5px;
 }
 .segment.on .sex-glyph { opacity: 1; }
 

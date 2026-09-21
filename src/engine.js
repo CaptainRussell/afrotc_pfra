@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=3b6f79adf8';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=39f790d82f';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
@@ -452,7 +452,7 @@ function baseResult(component, event, extra) {
  * the remaining components are scored over what was actually done.
  *
  * Cadets are not authorised exemptions on any PFRA component -- AFROTCI 36-2011
- * V3 requires the most recent PFA "with no exemptions" before contracting,
+ * V3 requires the most recent PFRA "with no exemptions" before contracting,
  * field training and commissioning -- which is why the control that produces
  * this is cadre-only. The engine still accepts it from anywhere, because the
  * rule about who may claim one is not the engine's to enforce.
@@ -1154,13 +1154,13 @@ function componentOfEvent(data, event) {
  * Whether a score would earn the AFROTC Fitness Award.
  *
  * AFROTCI 36-2011 Volume 3, 24 June 2026, Table 15.1:
- *   Fitness Award              95 or above on the PFA, once per term.
- *   Fitness Award Silver Star  100 on the PFA, first time at the detachment.
+ *   Fitness Award              95 or above on the PFRA, once per term.
+ *   Fitness Award Silver Star  100 on the PFRA, first time at the detachment.
  *
  * This reports eligibility on the numbers only. Whether a given assessment is
- * the member's official PFA for the term, and whether they have already had the
+ * the member's official PFRA for the term, and whether they have already had the
  * award this term or the device at this detachment, are detachment records --
- * so the page says "if this is your official PFA" rather than announcing a
+ * so the page says "if this is your official PFRA" rather than announcing a
  * ribbon.
  *
  * The award is a cadet award, which the caller decides; this stays a pure
