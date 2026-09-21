@@ -42,7 +42,33 @@ export const INSTRUCTION = Object.freeze({
   note: 'No releasability restrictions.'
 });
 
+export const SUPPLEMENT = Object.freeze({
+  id: 'dafman36-2905-afrotcsup',
+  title: 'DAFMAN 36-2905_AFROTCSUP, AFROTC Supplement',
+  date: '28 April 2023',
+  // Written against the 2022 DAFMAN, so its event list (1.5 mile run, push-ups,
+  // sit-ups) and its BMI/body-fat body composition are superseded by the 2026
+  // DAFMAN and NOTACC CY26-092. Its AFROTC-specific administration is not:
+  // AFROTCI 36-2011 V3, June 2026, still cites it as the authority for how a
+  // cadet PFA is run. See docs/REGULATION-NOTES.md.
+  supersededOn: 'events and body composition method'
+});
+
 export const REFERENCES = Object.freeze({
+  'afrotcsup.3.1.3': {
+    source: SUPPLEMENT.id,
+    paragraph: '3.1.3',
+    text: 'Alternate components or fitness exemptions are not authorized for ' +
+      'cadet PFAs. If a cadet is medically unable to accomplish a component, ' +
+      'they cannot test.'
+  },
+  'afrotcsup.5.5.7': {
+    source: SUPPLEMENT.id,
+    paragraph: '5.5.7',
+    text: 'Detachments that conduct the PFA/QFR 5,250 feet or more above MSL will ' +
+      'manually adjust the cadet’s run times IAW DAFMAN 36-2905, Attachment 3. ' +
+      'Altitude corrections do not apply to fitness tests given at Field Training.'
+  },
   'afrotci.15.1': {
     source: INSTRUCTION.id,
     paragraph: 'Table 15.1, Detachment-Level Cadet Awards',

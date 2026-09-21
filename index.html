@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=42e277e33f">
+<link rel="stylesheet" href="styles.css?v=b3ca05b3f2">
 </head>
 <body>
 
@@ -33,9 +33,12 @@
         <button type="button" class="segment" role="radio" aria-checked="false"
                 data-role="cadre">Active duty / cadre</button>
       </div>
+      <!-- Kept in step with selectRole(): this is the cadet wording, which is
+           the default, and the button click rewrites it for cadre. -->
       <p class="hint" id="role-hint">
-        The charts are the same. Cadets test on the three AFROTC events and are
-        not authorised exemptions.
+        The charts are the same. AFROTC Supplement para 3.1.3: alternate
+        components and fitness exemptions are not authorised for cadet
+        assessments.
       </p>
     </div>
 
@@ -287,8 +290,9 @@
           <option value="">Below 5,250 ft &mdash; no correction</option>
         </select>
         <p class="hint" id="altitude-note">
-          DAFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet.
-          Det 250 assesses at Ames, about 955 feet.
+          DAFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet,
+          and none applies at Field Training whatever the elevation (AFROTC
+          Supplement para 5.5.7). Det 250 assesses at Ames, about 955 feet.
         </p>
       </div>
       <div class="event-picker" id="event-cardiorespiratory" hidden>
@@ -490,15 +494,22 @@
         <h3>How the day runs</h3>
         <p>
           The Fitness Screening Questionnaire is completed before anything else,
-          and may be re-accomplished if something has changed since. All three
-          physical components are done inside a <strong>3 hour window</strong>
-          from the start of the first to the end of the last. Up to a
+          and may be re-accomplished if something has changed since. On a cadet's
+          FSQ, questions 2 and 3 do not apply: cadets are not sickle cell tested
+          until their first duty station. All three physical components are done
+          inside a <strong>3 hour window</strong> on the same day. Up to a
           <strong>3 minute warm-up</strong> is allowed before the run, the HAMR
-          or the walk. Body composition may be measured separately, by no more
-          than 5 duty days either side.
+          or the walk.
+        </p>
+        <p>
+          Body composition may be measured separately from the rest. The two
+          publications set different limits, and the tighter one is the cadet
+          one: <strong>up to 3 duty days before</strong> for a cadet, where the
+          DAFMAN allows 5 either side.
         </p>
         <p class="pretest-cite">
-          DAFMAN 36-2905, paras 3.15.9 and 3.4.3, and Attachment 2
+          DAFMAN 36-2905 paras 3.15.9, 3.4.3 and Attachment 2 &middot;
+          AFROTC Supplement paras 3.1.3.2 and 5.5.5
         </p>
       </div>
 
@@ -515,9 +526,20 @@
         <p class="pretest-cite">AFROTCI 36-2011 V3, paras 8.7.2 and 8.7.2.1</p>
       </div>
 
+      <div class="pretest-item">
+        <h3>After an Unsatisfactory</h3>
+        <p>
+          A cadet has <strong>42 days</strong> before being required to test
+          again. You may choose to retest inside that window, but cadre must
+          counsel you first that it counts as an official assessment and that
+          you are giving up the 42 days.
+        </p>
+        <p class="pretest-cite">AFROTC Supplement, para 5.5.1.4</p>
+      </div>
+
       <p class="pretest-footer">
-        A summary, not a substitute. DAFMAN 36-2905 and AFROTCI 36-2011 V3 govern,
-        and both are below.
+        A summary, not a substitute. DAFMAN 36-2905, its AFROTC Supplement and
+        AFROTCI 36-2011 V3 govern, and all three are below.
       </p>
     </details>
   </section>
@@ -577,6 +599,26 @@
              download hidden>Save Flat</a>
           <a class="secondary small doc-link" href="references/af-form-4446a-fsq.pdf"
              download>Save Fillable</a>
+        </div>
+      </div>
+      <div class="viewer" hidden></div>
+    </div>
+
+    <div class="document">
+      <div class="document-head">
+        <div>
+          <p class="document-name">DAFMAN 36-2905 &ndash; AFROTC Supplement</p>
+          <p class="document-note">
+            28 April 2023. The AFROTC-specific rules: no alternates and no
+            exemptions for cadets, the 3 hour window, altitude, retesting. Its
+            event list predates the 2026 assessment &mdash; see the note below.
+          </p>
+        </div>
+        <div class="document-actions">
+          <button type="button" class="secondary small view-toggle"
+                  aria-expanded="false">View</button>
+          <a class="secondary small doc-link" href="references/dafman-36-2905-afrotcsup.pdf"
+             download>Save</a>
         </div>
       </div>
       <div class="viewer" hidden></div>
@@ -664,6 +706,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=42e277e33f"></script>
+<script type="module" src="app.js?v=b3ca05b3f2"></script>
 </body>
 </html>
