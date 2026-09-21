@@ -5,12 +5,59 @@
  * and nothing depends on hover.
  */
 
+/* Dark is the default, not a preference the browser is asked about.
+ *
+ * This used to follow prefers-color-scheme, which meant the same URL opened
+ * dark in one window and light in a private one on the same machine, because
+ * the browser reports its own setting there. The dark palette is the one the
+ * detachment wanted, so it is simply the palette. Light is still here, under
+ * an explicit data-theme="light", if a toggle is ever wanted; nothing sets it
+ * today. Printing is unaffected: the print block forces its own light-on-white
+ * palette and outranks both of these.
+ */
 :root {
-  /* Iowa State University brand */
-  --cardinal: #c8102e;
-  --cardinal-dark: #9c0c24;
+  /* Iowa State University brand, lifted for a dark background */
+  --cardinal: #ef4054;
+  --cardinal-dark: #c8102e;
   --gold: #f1be48;
   --gold-deep: #caa042;
+
+  --ink: #ececee;
+  --ink-soft: #b2b3b8;
+  --ink-faint: #8b8c92;
+  --page: #16161a;
+  --surface: #1f1f25;
+  --line: #34343c;
+  --line-strong: #46464f;
+
+  --pass: #5cc98d;
+  --pass-bg: #16302280;
+  --fail: #ff8a80;
+  --fail-bg: #3a1b1880;
+  --warn-bg: #3a2f1580;
+  --track-fail: #4a2624;
+  --track-pass: #23422f;
+
+  --radius: 12px;
+  --gutter: 16px;
+  --measure: 46rem;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 14px rgba(0, 0, 0, .3);
+
+  /* The patch appears twice, masthead and footer. Holding it in one custom
+   * property means the offline build inlines the image once instead of twice. */
+  --patch: url("assets/det250-patch.png");
+}
+
+.patch {
+  background: center / contain no-repeat var(--patch);
+}
+
+/* The light palette, kept whole and unused. Set data-theme="light" on <html>
+ * to get it back. */
+:root[data-theme="light"] {
+  --cardinal: #c8102e;
+  --cardinal-dark: #9c0c24;
 
   --ink: #1b1b1d;
   --ink-soft: #55565a;
@@ -28,61 +75,7 @@
   --track-fail: #f2cdc9;
   --track-pass: #c9dfd2;
 
-  --radius: 12px;
-  --gutter: 16px;
-  --measure: 46rem;
-
   --shadow: 0 1px 2px rgba(0, 0, 0, .06), 0 4px 14px rgba(0, 0, 0, .05);
-
-  /* The patch appears twice, masthead and footer. Holding it in one custom
-   * property means the offline build inlines the image once instead of twice. */
-  --patch: url("assets/det250-patch.png");
-}
-
-.patch {
-  background: center / contain no-repeat var(--patch);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --ink: #ececee;
-    --ink-soft: #b2b3b8;
-    --ink-faint: #8b8c92;
-    --page: #16161a;
-    --surface: #1f1f25;
-    --line: #34343c;
-    --line-strong: #46464f;
-
-    --cardinal: #ef4054;
-    --cardinal-dark: #c8102e;
-    --pass: #5cc98d;
-    --pass-bg: #16302280;
-    --fail: #ff8a80;
-    --fail-bg: #3a1b1880;
-    --warn-bg: #3a2f1580;
-  --track-fail: #4a2624;
-  --track-pass: #23422f;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 14px rgba(0, 0, 0, .3);
-  }
-}
-
-:root[data-theme="dark"] {
-  --ink: #ececee;
-  --ink-soft: #b2b3b8;
-  --ink-faint: #8b8c92;
-  --page: #16161a;
-  --surface: #1f1f25;
-  --line: #34343c;
-  --line-strong: #46464f;
-  --cardinal: #ef4054;
-  --cardinal-dark: #c8102e;
-  --pass: #5cc98d;
-  --pass-bg: #16302280;
-  --fail: #ff8a80;
-  --fail-bg: #3a1b1880;
-  --warn-bg: #3a2f1580;
-  --track-fail: #4a2624;
-  --track-pass: #23422f;
 }
 
 * { box-sizing: border-box; }
@@ -1393,12 +1386,14 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
 .print-only { display: none; }
 
 @media print {
-  /* The dark-mode blocks use :root:not([data-theme="light"]), which outranks a
-   * plain :root. Matching their specificity here is what stops a phone in dark
-   * mode printing pale grey text onto white paper. */
+  /* Dark is now the plain :root, and the light palette sits on
+   * :root[data-theme="light"] at specificity (0,2,0). Listing all three here,
+   * with the highest of them last, is what stops a page printing pale grey
+   * text onto white paper whichever palette is on screen. */
   :root,
   :root:not([data-theme="light"]),
-  :root[data-theme="dark"] {
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
     --ink: #000;
     --ink-soft: #222;
     --ink-faint: #444;

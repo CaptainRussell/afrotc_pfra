@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=39f790d82f';
-import { createAnalyzer } from './src/analysis.js?v=39f790d82f';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=39f790d82f';
+} from './src/engine.js?v=ebea330c47';
+import { createAnalyzer } from './src/analysis.js?v=ebea330c47';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=ebea330c47';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=39f790d82f').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=ebea330c47').then((r) => r.json());
   return { data };
 }
 
@@ -340,7 +340,6 @@ function selectEvent(component, event) {
   for (const id of [control.field].flat()) $(id).value = '';
 
   $(`heading-${component}`).textContent = EVENT_LABELS[event];
-  showAltNotes();
   showEventDocs();
   showNotFinished();
   update();
@@ -734,6 +733,11 @@ function update() {
   // function returned before reaching them.
   showAltitudeGroup();
   showHamrLevel();
+  // The alternate-exercise warning is worded differently for a cadet and for
+  // cadre, so it depends on the role as much as on the event. It used to be
+  // refreshed only when the event changed, which left a cadre member reading
+  // "AFROTC cadets are not tested on push-ups" after switching across.
+  showAltNotes();
 
   if (!input) {
     for (const component of COMPONENTS) resetChip(component);
