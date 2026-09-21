@@ -312,6 +312,28 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 }
 
 
+/* The Fitness Award: earned reads as a reward, blocked as a caveat. Neither is
+ * a pass or a fail, so neither borrows the green and red that mean those. */
+.award-line {
+  margin: 10px 0 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: .9rem;
+  line-height: 1.45;
+  text-align: left;
+}
+.award-earned {
+  border-left: 4px solid var(--gold-deep);
+  background: var(--warn-bg);
+  font-weight: 600;
+}
+.award-star { border-left-width: 6px; }
+.award-blocked {
+  border-left: 4px solid var(--line-strong);
+  background: var(--page);
+  color: var(--ink-soft);
+}
+
 /* --- an applied altitude correction -------------------------------------
  *
  * A number that silently changes the score has to be readable at a glance, so

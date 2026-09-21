@@ -14303,5 +14303,86 @@
         }
       }
     }
+  },
+  "hamr_levels": {
+    "note": "20M HAMR tally sheet: which level each cumulative shuttle falls in. A raw count is what the chart scores, but the level and shuttle within it is what an administrator marks on the sheet.",
+    "source": "references/hamr-shuttle-tally.pdf",
+    "levels": [
+      {
+        "level": 1,
+        "first_shuttle": 1,
+        "last_shuttle": 7
+      },
+      {
+        "level": 2,
+        "first_shuttle": 8,
+        "last_shuttle": 15
+      },
+      {
+        "level": 3,
+        "first_shuttle": 16,
+        "last_shuttle": 23
+      },
+      {
+        "level": 4,
+        "first_shuttle": 24,
+        "last_shuttle": 32
+      },
+      {
+        "level": 5,
+        "first_shuttle": 33,
+        "last_shuttle": 41
+      },
+      {
+        "level": 6,
+        "first_shuttle": 42,
+        "last_shuttle": 50
+      },
+      {
+        "level": 7,
+        "first_shuttle": 51,
+        "last_shuttle": 60
+      },
+      {
+        "level": 8,
+        "first_shuttle": 61,
+        "last_shuttle": 70
+      },
+      {
+        "level": 9,
+        "first_shuttle": 71,
+        "last_shuttle": 81
+      },
+      {
+        "level": 10,
+        "first_shuttle": 82,
+        "last_shuttle": 92
+      },
+      {
+        "level": 11,
+        "first_shuttle": 93,
+        "last_shuttle": 104
+      },
+      {
+        "level": 12,
+        "first_shuttle": 105,
+        "last_shuttle": 116
+      },
+      {
+        "level": 13,
+        "first_shuttle": 117,
+        "last_shuttle": 129
+      },
+      {
+        "level": 14,
+        "first_shuttle": 130,
+        "last_shuttle": 142
+      },
+      {
+        "level": 15,
+        "first_shuttle": 143,
+        "last_shuttle": 155
+      }
+    ]
   }
 }

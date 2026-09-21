@@ -35,7 +35,22 @@ export const NOTACC = Object.freeze({
   owner: 'HQ AFROTC/DO'
 });
 
+export const INSTRUCTION = Object.freeze({
+  id: 'afrotci36-2011v3',
+  title: 'AFROTCI 36-2011 Volume 3, Cadet Operations',
+  date: '24 June 2026',
+  note: 'No releasability restrictions.'
+});
+
 export const REFERENCES = Object.freeze({
+  'afrotci.15.1': {
+    source: INSTRUCTION.id,
+    paragraph: 'Table 15.1, Detachment-Level Cadet Awards',
+    text: 'Fitness Award: cadets who score a 95 or above in the Physical Fitness ' +
+      'Assessment; may be received only once per term. Fitness Award Silver Star ' +
+      'Device: cadets who score a 100 on the Physical Fitness Assessment for the ' +
+      'first time at the detachment.'
+  },
   'notacc.events': {
     source: NOTACC.id,
     paragraph: 'Commander’s Intent',

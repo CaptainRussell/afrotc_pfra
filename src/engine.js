@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=b3b8a6bc3a';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=849c82f324';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
@@ -69,6 +69,29 @@ export function resolveAltitude(data, { altitudeGroup, altitudeFeet }) {
     return found;
   }
   return altitudeGroupFor(data, altitudeFeet ?? null);
+}
+
+/**
+ * Where a cumulative shuttle count sits on the HAMR tally sheet.
+ *
+ * The chart scores a raw count, but nobody records one: an administrator marks
+ * a grid of levels, and the beep track announces levels. "43 shuttles" and
+ * "level 6, shuttle 2" are the same performance said in the two different
+ * languages the test is actually run in, so the tool says both.
+ */
+export function hamrLevelFor(data, shuttles) {
+  const table = data.hamr_levels;
+  if (!table || !Number.isInteger(shuttles) || shuttles < 1) return null;
+  for (const row of table.levels) {
+    if (shuttles >= row.first_shuttle && shuttles <= row.last_shuttle) {
+      return Object.freeze({
+        level: row.level,
+        shuttleInLevel: shuttles - row.first_shuttle + 1,
+        label: `level ${row.level}, shuttle ${shuttles - row.first_shuttle + 1}`
+      });
+    }
+  }
+  return null;   // past the end of the printed sheet
 }
 
 /**
@@ -524,6 +547,12 @@ function scoreAscendingComponent(data, { component, event, kind, sex, band, valu
   const measured = measure.key === 'seconds'
     ? { seconds: value, time: formatTime(value) }
     : { [measure.key]: value };
+
+  // The HAMR is scored on a raw count but recorded as a level and a shuttle
+  // within it, so the result carries both.
+  if (event === 'hamr_20m') {
+    measured.hamrLevel = hamrLevelFor(data, value);
+  }
 
   if (!row) {
     return baseResult(component, event, {
@@ -998,6 +1027,54 @@ function rangeFor(data, { component, event, sex, band, heightInches, altitudeFee
   });
 }
 
+/**
+ * Whether a score would earn the AFROTC Fitness Award.
+ *
+ * AFROTCI 36-2011 Volume 3, 24 June 2026, Table 15.1:
+ *   Fitness Award              95 or above on the PFA, once per term.
+ *   Fitness Award Silver Star  100 on the PFA, first time at the detachment.
+ *
+ * This reports eligibility on the numbers only. Whether a given assessment is
+ * the member's official PFA for the term, and whether they have already had the
+ * award this term or the device at this detachment, are detachment records --
+ * so the page says "if this is your official PFA" rather than announcing a
+ * ribbon.
+ *
+ * The award is a cadet award, which the caller decides; this stays a pure
+ * function of the result so it can be tested without a page around it.
+ */
+export function fitnessAward(data, result) {
+  const threshold = 95;
+  const perfect = data.composite.max;
+  const blockers = [];
+
+  if (!result.pass) blockers.push('the assessment has to pass');
+  if (result.exemptComponents.length > 0) {
+    blockers.push('no component may be exempt');
+  }
+  // "Must test on the standard 3 components": an alternate event is authorised
+  // by the DAFMAN but is not what the AFROTC assessment is.
+  const alternates = COMPONENTS
+    .filter((c) => c !== 'body_composition')
+    .filter((c) => !DET250_EVENTS.includes(result.components[c].event));
+  if (alternates.length > 0) {
+    blockers.push('all three events have to be the AFROTC ones');
+  }
+
+  const meets = result.composite >= threshold;
+  const eligible = meets && blockers.length === 0;
+
+  return Object.freeze({
+    threshold,
+    meetsThreshold: meets,
+    eligible,
+    // A perfect score earns the device as well, the first time at a detachment.
+    tier: !eligible ? null : result.composite >= perfect ? 'silver_star' : 'ribbon',
+    blockers: Object.freeze(blockers),
+    reference: 'afrotci.15.1'
+  });
+}
+
 // --- public API ------------------------------------------------------------
 
 /**
@@ -1191,6 +1268,8 @@ export function createScorer(data) {
     eventsFor,
     /** Chart bounds for one component, for a given sex and age band. */
     rangeFor: (query) => rangeFor(data, query),
+    hamrLevel: (shuttles) => hamrLevelFor(data, shuttles),
+    fitnessAward: (result) => fitnessAward(data, result),
     data
   });
 }

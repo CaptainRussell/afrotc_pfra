@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=b3b8a6bc3a';
-import { createAnalyzer } from './src/analysis.js?v=b3b8a6bc3a';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=b3b8a6bc3a';
+} from './src/engine.js?v=849c82f324';
+import { createAnalyzer } from './src/analysis.js?v=849c82f324';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=849c82f324';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=b3b8a6bc3a').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=849c82f324').then((r) => r.json());
   return { data };
 }
 
@@ -327,7 +327,8 @@ function selectEvent(component, event) {
   for (const id of control.show ?? []) $(id).hidden = false;
 
   statuses[component] = null;
-  setStatus(fieldOf(component), null);
+  const field = fieldOf(component);
+  if (field) setStatus(field, null);
   for (const id of [control.field].flat()) $(id).value = '';
 
   $(`heading-${component}`).textContent = EVENT_LABELS[event];
@@ -450,8 +451,14 @@ function setStatus(field, value) {
   const component = componentOf(field);
   statuses[component] = value;
 
+  // Not every component has a Did Not Finish control any more -- only the run
+  // and the walk do -- so clearing a status on one that does not is a no-op
+  // rather than a crash. selectEvent clears the status on every swap, which is
+  // how this first showed up.
   const note = $(`status-${field}`);
   const button = document.querySelector(`.not-done[data-status-for="${field}"]`);
+  if (!button || !note) return;
+
   const inputs = field === 'run' ? ['run-min', 'run-sec'] : [field];
 
   if (value) {
@@ -694,10 +701,12 @@ function update() {
 
   showTally(result, ready);
   showAltitudeGroup();
+  showHamrLevel();
   showAltitudeApplied(lastResult);
 
   if (!complete) {
     $('results').hidden = true;
+    $('award-line').hidden = true;
     return;
   }
 
@@ -706,6 +715,7 @@ function update() {
   renderWarnings(result);
   renderComponents(result);
   renderReferences(result);
+  showAward(result);
 
   if ($('results').hidden) {
     $('results').hidden = false;
@@ -774,6 +784,78 @@ function showAltitudeApplied(result) {
     : `${altitude.detail}, and the chart is read on the corrected figure.`;
   strip.classList.toggle('is-standard', altitude.kind === 'standard');
   strip.hidden = false;
+}
+
+/**
+ * Whether this score would earn the AFROTC Fitness Award.
+ *
+ * A cadet award, so it is shown only in cadet mode. It is written as a
+ * condition rather than an announcement -- "if this is your official PFA for
+ * the term" -- because the tool cannot know whether a given assessment is the
+ * official one, nor whether the cadet has already had the award this term or
+ * the device at this detachment. Those are detachment records.
+ */
+function showAward(result) {
+  const line = $('award-line');
+  if (role !== 'cadet' || !result) {
+    line.hidden = true;
+    return;
+  }
+
+  const award = scorer.fitnessAward(result);
+  if (!award.meetsThreshold) {
+    line.hidden = true;
+    return;
+  }
+
+  if (!award.eligible) {
+    // Worth saying: the number is there but something else rules it out, and
+    // silence would read as the tool not knowing about the award.
+    line.textContent =
+      `${result.compositeText} is at or above ${award.threshold}, but it would not ` +
+      `earn the Fitness Award: ${award.blockers.join(', and ')} ` +
+      '(AFROTCI 36-2011 V3, Table 15.1).';
+    line.className = 'award-line award-blocked';
+    line.hidden = false;
+    return;
+  }
+
+  line.textContent = award.tier === 'silver_star'
+    ? `A perfect ${result.compositeText}. If this is your official PFA for the term ` +
+      'it earns the Fitness Award, and the Silver Star device the first time you ' +
+      'score 100 at the detachment (AFROTCI 36-2011 V3, Table 15.1).'
+    : `${result.compositeText} is ${award.threshold} or above. If this is your ` +
+      'official PFA for the term it earns the Fitness Award, which may be received ' +
+      'once per term (AFROTCI 36-2011 V3, Table 15.1).';
+  line.className = `award-line award-earned${award.tier === 'silver_star' ? ' award-star' : ''}`;
+  line.hidden = false;
+}
+
+/**
+ * Say the shuttle count the way the tally sheet says it.
+ *
+ * The chart scores a raw cumulative count. Nobody works in those: an
+ * administrator marks a grid of levels and the recording announces them. Both
+ * numbers describe the same run, so both are on screen.
+ */
+function showHamrLevel() {
+  const note = $('hamr-level');
+  if (events.cardiorespiratory !== 'hamr_20m') {
+    note.hidden = true;
+    return;
+  }
+  const count = wholeNumber('hamr');
+  const place = count == null ? null : scorer.hamrLevel(count);
+  if (!place) {
+    note.textContent = count == null
+      ? 'Recorded as a cumulative shuttle count. The tally sheet shows the level.'
+      : `${count} shuttles is past the end of the printed tally sheet.`;
+  } else {
+    note.textContent =
+      `Shuttle ${count} is level ${place.level}, shuttle ${place.shuttleInLevel} ` +
+      'on the tally sheet.';
+  }
+  note.hidden = false;
 }
 
 /**
@@ -1551,7 +1633,8 @@ function renderReferences(result) {
     const box = el('div', 'reference');
     const sourceName = {
       'pfra-charts': 'PFRA Scoring charts',
-      'notacc-cy26-092': 'NOTACC CY26-092'
+      'notacc-cy26-092': 'NOTACC CY26-092',
+      'afrotci36-2011v3': 'AFROTCI 36-2011 V3'
     }[reference.source] ?? 'DAFMAN 36-2905';
     box.append(el('span', 'reference-id', `${sourceName} · ${reference.paragraph}`));
     box.append(el('span', 'reference-text', reference.text));

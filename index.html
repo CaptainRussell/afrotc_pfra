@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=b3b8a6bc3a">
+<link rel="stylesheet" href="styles.css?v=849c82f324">
 </head>
 <body>
 
@@ -172,7 +172,6 @@
       <p class="status-note" id="exempt-note-muscular_strength" hidden></p>
       <div class="range" id="range-muscular_strength" aria-label="Chart range"></div>
       <p class="chart-row" id="row-muscular_strength" hidden></p>
-      <p class="status-note" id="status-hrpu" hidden></p>
     </section>
 
     <!-- Core endurance ------------------------------------------------ -->
@@ -231,7 +230,6 @@
       <p class="status-note" id="exempt-note-core_endurance" hidden></p>
       <div class="range" id="range-core_endurance" aria-label="Chart range"></div>
       <p class="chart-row" id="row-core_endurance" hidden></p>
-      <p class="status-note" id="status-situp" hidden></p>
     </section>
 
     <!-- Cardiorespiratory --------------------------------------------- -->
@@ -298,6 +296,9 @@
         <button type="button" class="step" data-step="1" data-target="hamr"
                 aria-label="One more shuttle">+</button>
       </div>
+      <!-- The count is what the chart scores; the level is what the tally sheet
+           records and what the beep track calls out. -->
+      <p class="hint" id="hamr-level" hidden></p>
       <div class="slider-row" id="slider-cardiorespiratory" hidden>
         <span class="slider-end low" id="slider-low-cardiorespiratory"></span>
         <input type="range" class="slider" id="slide-cardiorespiratory"
@@ -392,6 +393,7 @@
         <div class="meter-mark" hidden></div>
       </div>
       <p class="meter-legend" id="meter-legend"></p>
+      <p class="award-line" id="award-line" hidden></p>
       <p class="gap-line" id="gap-line" hidden></p>
     </div>
 
@@ -580,6 +582,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=b3b8a6bc3a"></script>
+<script type="module" src="app.js?v=849c82f324"></script>
 </body>
 </html>
