@@ -23,7 +23,7 @@
 import {
   COMPONENTS, COMPONENT_LABELS, STATUS, formatTime, MEASURES, EVENT_KINDS, TABLES,
   EVENT_PHRASES
-} from './engine.js?v=d7ad03db5f';
+} from './engine.js?v=fbcb64b26f';
 
 const TRAINABLE_SOON = Object.freeze(['muscular_strength', 'core_endurance', 'cardiorespiratory']);
 
@@ -386,17 +386,40 @@ export function planForTarget(data, result, target) {
   }
 
   const gap = analyzeGap(data, result);
+
+  /*
+   * Same conversion analyzeGap makes, for the same reason: the ladders are in
+   * raw component points and the composite may be scored over fewer than 100
+   * of them. The target is brought into raw points to plan against, and every
+   * total is taken back out to a composite to be shown.
+   *
+   * Without this the target was compared against a raw sum, so with a
+   * component exempt the planner answered the wrong question: a member 80 of
+   * 85 assessed points in -- a composite of 94.1 -- was told 98.0 was "out of
+   * reach even at chart maximums", when 85 of 85 is 100.0 and the target
+   * needed 3.3 more raw points. With nothing exempt the scale is 1 and this
+   * is the arithmetic it has always been.
+   */
+  const scale = result.compositeOutOf > 0 ? max / result.compositeOutOf : 1;
+  const asComposite = (points) => roundTo(points * scale, 1);
+  const targetPoints = roundTo(target / scale, 1);
+
+  // An exempt component has no ladder worth climbing: its points are out of
+  // both halves of the composite, so improving it changes nothing.
+  const assessed = COMPONENTS.filter(
+    (c) => result.components[c].status !== STATUS.EXEMPT);
+
   const ladders = {};
   const floorPoints = {};
-  for (const component of COMPONENTS) {
+  for (const component of assessed) {
     ladders[component] = ladderFor(data, result, component);
     const mandatoryFix = gap.mandatory.find((m) => m.component === component);
     floorPoints[component] = mandatoryFix?.requirement?.points
       ?? result.components[component].points;
   }
 
-  const base = sumPoints(COMPONENTS.map((c) => floorPoints[c]));
-  const needed = roundTo(Math.max(0, target - base), 1);
+  const base = sumPoints(assessed.map((c) => floorPoints[c]));
+  const needed = roundTo(Math.max(0, targetPoints - base), 1);
 
   const blocked = gap.mandatory.filter((m) => m.requirement === null);
   if (blocked.length > 0) {
@@ -416,24 +439,26 @@ export function planForTarget(data, result, target) {
   if (needed === 0) {
     plans.push(Object.freeze({
       kind: 'already_there',
-      total: base,
+      total: asComposite(base),
       steps: Object.freeze([]),
-      label: `Clearing the component minimums alone reaches ${base.toFixed(1)}.`
+      label: 'Clearing the component minimums alone reaches ' +
+        `${asComposite(base).toFixed(1)}.`
     }));
   }
 
   // One component does all the work.
-  for (const component of COMPONENTS) {
+  for (const component of assessed) {
     if (needed === 0) break;
     const rung = rungForPoints(ladders[component], roundTo(floorPoints[component] + needed, 1),
       floorPoints[component]);
     if (!rung) continue;
+    const reached = asComposite(roundTo(base - floorPoints[component] + rung.points, 1));
     plans.push(Object.freeze({
       kind: 'single_component',
       component,
       componentLabel: COMPONENT_LABELS[component],
       eventLabel: result.components[component].eventLabel,
-      total: roundTo(base - floorPoints[component] + rung.points, 1),
+      total: reached,
       steps: Object.freeze([Object.freeze({
         component,
         eventLabel: result.components[component].eventLabel,
@@ -441,7 +466,7 @@ export function planForTarget(data, result, target) {
         distance: describeDistance(rung)
       })]),
       label: `${result.components[component].eventLabel}: ${describeDistance(rung)} reaches ` +
-        `${roundTo(base - floorPoints[component] + rung.points, 1).toFixed(1)}.`
+        `${reached.toFixed(1)}.`
     }));
   }
 
@@ -450,8 +475,9 @@ export function planForTarget(data, result, target) {
   // can move before a retest, so a plan that reaches the target without
   // touching body composition is the more useful one.
   if (needed > 0) {
-    const spread = spreadPlan(result, ladders, floorPoints, needed, TRAINABLE_SOON)
-      ?? spreadPlan(result, ladders, floorPoints, needed, COMPONENTS);
+    const trainable = TRAINABLE_SOON.filter((c) => assessed.includes(c));
+    const spread = spreadPlan(result, ladders, floorPoints, needed, trainable, assessed, asComposite)
+      ?? spreadPlan(result, ladders, floorPoints, needed, assessed, assessed, asComposite);
     if (spread) plans.push(spread);
   }
 
@@ -480,9 +506,9 @@ export function planForTarget(data, result, target) {
  * Returns null if `usable` cannot reach the target, so the caller can retry
  * with a wider set.
  */
-function spreadPlan(result, ladders, floorPoints, needed, usable) {
+function spreadPlan(result, ladders, floorPoints, needed, usable, assessed, asComposite) {
   const state = {};
-  for (const component of COMPONENTS) {
+  for (const component of assessed) {
     state[component] = { points: floorPoints[component], taken: null };
   }
 
@@ -506,7 +532,7 @@ function spreadPlan(result, ladders, floorPoints, needed, usable) {
 
   if (gained < needed) return null;
 
-  const steps = COMPONENTS
+  const steps = assessed
     .filter((c) => state[c].taken !== null)
     .map((c) => Object.freeze({
       component: c,
@@ -517,7 +543,7 @@ function spreadPlan(result, ladders, floorPoints, needed, usable) {
 
   if (steps.length <= 1) return null; // identical to a single component plan
 
-  const total = sumPoints(COMPONENTS.map((c) => state[c].points));
+  const total = asComposite(sumPoints(assessed.map((c) => state[c].points)));
   return Object.freeze({
     kind: 'spread',
     total,

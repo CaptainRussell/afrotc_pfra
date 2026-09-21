@@ -1499,6 +1499,10 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   .reset-button { display: none; }
   /* The correction changed the score, so it belongs on the printout. */
   .altitude-applied { border-left-color: #8a6d1f; background: #fff; }
+  /* So does the exemption: it is why a printed 100.0 reads Satisfactory, and
+   * gold at #caa042 is too pale on paper to mark the block as a caveat. */
+  .exempt-explainer { border-left-color: #8a6d1f; background: #fff; }
+  .exempt-headline, .exempt-math, .exempt-cap { color: #000; }
 
   .masthead {
     background: none;

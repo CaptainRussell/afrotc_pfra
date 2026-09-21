@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=d7ad03db5f';
-import { createAnalyzer } from './src/analysis.js?v=d7ad03db5f';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=d7ad03db5f';
+} from './src/engine.js?v=fbcb64b26f';
+import { createAnalyzer } from './src/analysis.js?v=fbcb64b26f';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=fbcb64b26f';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=d7ad03db5f').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=fbcb64b26f').then((r) => r.json());
   return { data };
 }
 
@@ -1296,6 +1296,14 @@ function showBfa(result, complete) {
     if (bfa.applied) clearBfaExemption();
     panel.hidden = true;
     $('bfa-body').hidden = true;
+    // workBfa owns these three and is not reached on this branch, so closing
+    // the panel would otherwise leave a verdict and an "Undo" behind it. They
+    // are rewritten before the panel is shown again and so cannot be seen
+    // stale, but a closed panel still holding the last member's answer is the
+    // kind of state that is true until someone changes how it opens.
+    $('bfa-result').hidden = true;
+    $('bfa-note').hidden = true;
+    $('bfa-apply').hidden = true;
     return;
   }
 
@@ -1858,12 +1866,30 @@ function currentMeasurement(component) {
   return wholeNumber(control.field) ?? null;
 }
 
+/**
+ * A BFA was applied against one ratio; a new height or waist is a new ratio.
+ *
+ * The height and waist fields drop an applied BFA from their own input
+ * listeners, but a slider writes `.value` directly and fires no input event,
+ * so the same drop has to be made by hand here. Without it, typing a height
+ * clears an applied BFA and dragging to that same height does not: the
+ * exemption outlives the measurement that justified it, and because an exempt
+ * component returns no ratio the panel goes on holding the old one. The waist
+ * slider is hidden while the component is exempt and so cannot reach this
+ * today, but it writes the other half of the same ratio and is not worth
+ * leaving as the one path that depends on being unreachable.
+ */
+function dropBfaOnRemeasure() {
+  if (bfa.applied) clearBfaExemption();
+}
+
 /** Write a dragged value into the fields the rest of the app reads. */
 function onSliderInput(component) {
   if (component === 'height') {
     const raw = Number($('slide-height').value);
     $('height').value = raw.toFixed(1);
     $('slide-height').setAttribute('aria-valuetext', `${raw} inches`);
+    dropBfaOnRemeasure();
     update();
     return;
   }
@@ -1874,6 +1900,7 @@ function onSliderInput(component) {
 
   if (component === 'body_composition') {
     $('waist').value = raw.toFixed(1);
+    dropBfaOnRemeasure();
   } else {
     const control = CONTROLS[events[component]];
     if (control.kind === 'hold' || control.kind === 'time' || control.kind === 'walk') {
