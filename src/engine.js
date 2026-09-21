@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=fbcb64b26f';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=006ad130ec';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *

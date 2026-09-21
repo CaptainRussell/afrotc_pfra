@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=fbcb64b26f';
-import { createAnalyzer } from './src/analysis.js?v=fbcb64b26f';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=fbcb64b26f';
+} from './src/engine.js?v=006ad130ec';
+import { createAnalyzer } from './src/analysis.js?v=006ad130ec';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=006ad130ec';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=fbcb64b26f').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=006ad130ec').then((r) => r.json());
   return { data };
 }
 
@@ -2447,8 +2447,16 @@ async function setupDocuments() {
   }
 }
 
-/** A HEAD request is enough, and a data: URI in the offline build always passes. */
+/**
+ * Is there a file at this URL?
+ *
+ * A HEAD request is enough for a served file. A data: URI is the file, so it
+ * is answered without asking: fetch only honours GET on a data: URL and
+ * rejects a HEAD outright, which would have the single-file build decide its
+ * own embedded forms were missing and hide the View button on both of them.
+ */
 async function exists(url) {
+  if (url.startsWith('data:')) return true;
   try {
     const response = await fetch(url, { method: 'HEAD' });
     return response.ok;
@@ -2457,24 +2465,61 @@ async function exists(url) {
   }
 }
 
-function toggleViewer(toggle, viewer, src) {
+/**
+ * Object URLs handed out for the inline viewer, so they can be handed back.
+ *
+ * Keyed by the viewer they were put in, because that is what closes.
+ */
+const viewerObjectUrls = new WeakMap();
+
+/**
+ * A src an iframe will actually render a PDF from.
+ *
+ * Chrome will not run its PDF viewer on a data: URL, so in the single-file
+ * build every View button opened a blank frame. The bytes are already here;
+ * they just need an address the viewer will accept, and a blob: URL is one.
+ * A served URL is left alone: it is already fine and making a blob of it
+ * would download the file twice.
+ */
+async function viewerSource(viewer, src) {
+  if (!src.startsWith('data:')) return src;
+  const blob = await fetch(src).then((response) => response.blob());
+  const url = URL.createObjectURL(blob);
+  viewerObjectUrls.set(viewer, url);
+  return url;
+}
+
+function releaseViewer(viewer) {
+  const url = viewerObjectUrls.get(viewer);
+  if (!url) return;
+  URL.revokeObjectURL(url);
+  viewerObjectUrls.delete(viewer);
+}
+
+async function toggleViewer(toggle, viewer, src) {
   const open = toggle.getAttribute('aria-expanded') === 'true';
   if (open) {
     toggle.setAttribute('aria-expanded', 'false');
     toggle.textContent = 'View';
     viewer.hidden = true;
     viewer.replaceChildren();
+    releaseViewer(viewer);
     return;
   }
 
+  // Said before the await, not after: on the offline build the blob is made
+  // from a 40 MB data: URL and the button would otherwise sit unchanged long
+  // enough to be pressed again.
+  toggle.setAttribute('aria-expanded', 'true');
+  toggle.textContent = 'Hide';
+
+  releaseViewer(viewer);
   const frame = document.createElement('iframe');
-  frame.src = src;
+  frame.src = await viewerSource(viewer, src);
   frame.title = 'Reference document';
   frame.loading = 'lazy';
   viewer.replaceChildren(frame);
   viewer.hidden = false;
-  toggle.setAttribute('aria-expanded', 'true');
-  toggle.textContent = 'Hide';
 }
 
 boot().catch((error) => {

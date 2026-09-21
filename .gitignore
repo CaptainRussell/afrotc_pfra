@@ -1,0 +1,7 @@
+# Built by tools/build_single_file.py from the sources beside it. Regenerate
+# rather than commit: the offline build is 74 MB, which is past what GitHub
+# will take quietly and would be carried in the history for ever.
+dist/
+
+# Local preview server config for the editor. Machine specific.
+.claude/

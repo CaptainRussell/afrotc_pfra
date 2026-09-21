@@ -23,7 +23,7 @@
 import {
   COMPONENTS, COMPONENT_LABELS, STATUS, formatTime, MEASURES, EVENT_KINDS, TABLES,
   EVENT_PHRASES
-} from './engine.js?v=fbcb64b26f';
+} from './engine.js?v=006ad130ec';
 
 const TRAINABLE_SOON = Object.freeze(['muscular_strength', 'core_endurance', 'cardiorespiratory']);
 
