@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=a9164ac386';
-import { createAnalyzer } from './src/analysis.js?v=a9164ac386';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=a9164ac386';
+} from './src/engine.js?v=2ddd32dbfc';
+import { createAnalyzer } from './src/analysis.js?v=2ddd32dbfc';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=2ddd32dbfc';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=a9164ac386').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=2ddd32dbfc').then((r) => r.json());
   return { data };
 }
 
@@ -813,7 +813,6 @@ function update() {
   renderScoreboard(result);
   renderFailures(result);
   renderWarnings(result);
-  renderComponents(result);
   renderReferences(result);
   showAward(result);
 
@@ -1757,46 +1756,6 @@ function renderWarnings(result) {
   }
   for (const warning of result.warnings) list.append(el('li', null, warning));
   card.hidden = false;
-}
-
-function renderComponents(result) {
-  const host = $('components');
-  host.replaceChildren();
-
-  for (const key of COMPONENTS) {
-    const component = result.components[key];
-    const failed = component.status !== 'scored' && component.status !== 'exempt';
-    const short = component.status === 'scored' && !component.meetsMinimum;
-
-    const row = el('div', `component${failed || short ? ' failed' : ''}`);
-
-    const head = el('div', 'component-head');
-    const names = el('div');
-    names.append(el('div', 'component-name', component.componentLabel));
-    names.append(el('div', 'component-event', component.eventLabel));
-    head.append(names);
-
-    const points = el('div', 'component-points');
-    points.append(document.createTextNode(component.points.toFixed(1)));
-    points.append(el('span', 'of', ` / ${component.maxPoints.toFixed(0)}`));
-    head.append(points);
-    row.append(head);
-
-    if (failed) {
-      row.append(el('span', 'flag', component.status === 'below_minimum'
-        ? 'below minimum' : component.status.toUpperCase()));
-    } else if (short) {
-      row.append(el('span', 'flag', 'below minimum'));
-    }
-
-    if (component.chartRowLabel) {
-      row.append(el('div', 'chart-row', `Chart row: ${component.chartRowLabel}`));
-    }
-    // The next threshold is already on screen as the component's range, so this
-    // panel sticks to the audit trail: what was measured, and what it scored.
-    row.append(el('div', 'component-why', component.explanation));
-    host.append(row);
-  }
 }
 
 function describeReach(rung) {

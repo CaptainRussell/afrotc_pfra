@@ -1096,17 +1096,6 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   padding: 7px 10px;
 }
 
-/* Still the lookup line, but only in the results breakdown now, where it is
- * the audit trail rather than a restatement of what is already on screen. */
-.chart-row {
-  font-size: .82rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  background: var(--page);
-  border-radius: 7px;
-  padding: 7px 10px;
-  color: var(--ink-soft);
-}
-
 /* The one thing the component card has to say in words: below the chart
  * minimum, where the red chip and red meter are the only other signal and
  * neither of them is an explanation. Reads as the warning it is. */
@@ -1187,61 +1176,6 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 
 #warnings-card { border-left: 4px solid var(--gold-deep); background: var(--warn-bg); }
 #warnings-card ul { margin-top: 10px; }
-
-/* --- component rows ----------------------------------------------------- */
-
-.component {
-  border-top: 1px solid var(--line);
-  padding: 14px 0 12px;
-  display: grid;
-  gap: 6px;
-}
-.component:last-child { padding-bottom: 0; }
-
-.component-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
-}
-
-.component-name { font-weight: 700; }
-.component-event { font-size: .82rem; color: var(--ink-faint); font-weight: 500; }
-
-.component-points {
-  font-weight: 800;
-  font-size: 1.25rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.component-points .of { font-size: .8rem; font-weight: 600; color: var(--ink-faint); }
-.component.failed .component-points { color: var(--fail); }
-
-.chart-row {
-  font-size: .85rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  background: var(--page);
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  padding: 7px 10px;
-  color: var(--ink-soft);
-}
-
-.component-why { font-size: .87rem; color: var(--ink-soft); }
-
-.flag {
-  display: inline-block;
-  justify-self: start;   /* grid items stretch by default; keep the pill tight */
-  font-size: .68rem;
-  font-weight: 800;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--fail-bg);
-  color: var(--fail);
-}
-
 /* --- target mode -------------------------------------------------------- */
 
 .target-row { grid-template-columns: 1fr auto; align-items: end; }
@@ -1288,8 +1222,6 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 .foldable[open] summary { margin-bottom: 4px; }
 
 .summary-hint { font-size: .8rem; color: var(--ink-faint); }
-
-.foldable .component:first-of-type { border-top: none; padding-top: 6px; }
 
 .reference {
   border-top: 1px solid var(--line);
@@ -1595,9 +1527,6 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   .failures { border-left: 3pt solid #000; background: none; }
   .failures h2 { color: #000; }
 
-  .chart-row { background: none; border: 1px solid #ccc; font-size: 9pt; }
-  .component { break-inside: avoid; }
-  .flag { background: none !important; color: #000 !important; border: 1pt solid #000; }
 
   footer { border-top: 1px solid #999; padding: 8pt 0 0; }
   .motto, .footer-note, .created-by { color: #000; }
