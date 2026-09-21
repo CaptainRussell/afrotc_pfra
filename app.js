@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=849c82f324';
-import { createAnalyzer } from './src/analysis.js?v=849c82f324';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=849c82f324';
+} from './src/engine.js?v=42e277e33f';
+import { createAnalyzer } from './src/analysis.js?v=42e277e33f';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=42e277e33f';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=849c82f324').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=42e277e33f').then((r) => r.json());
   return { data };
 }
 
@@ -168,6 +168,14 @@ async function boot() {
     closeAltitudePanel();
   });
 
+  for (const button of document.querySelectorAll('.chart-toggle')) {
+    button.addEventListener('click', () => {
+      const component = button.dataset.chart;
+      if (chartOpen.has(component)) chartOpen.delete(component);
+      else chartOpen.add(component);
+      renderCharts(ageBand);
+    });
+  }
   for (const button of document.querySelectorAll('.verbiage-open')) {
     button.addEventListener('click', () => openVerbiage(button.dataset.verbiage));
   }
@@ -675,6 +683,7 @@ function update() {
   if (!input) {
     for (const component of COMPONENTS) resetChip(component);
     lastResult = null;
+    renderCharts(ageBand);
     $('results').hidden = true;
     showTally(null, ready);
     return;
@@ -692,6 +701,11 @@ function update() {
   }
 
   lastResult = result;
+
+  // After the score, not before: the chart marks the row this result landed on,
+  // and reading lastResult first would mark the previous one.
+  renderCharts(ageBand);
+
   const complete = ready.size === COMPONENTS.length;
 
   for (const component of COMPONENTS) {
@@ -784,6 +798,99 @@ function showAltitudeApplied(result) {
     : `${altitude.detail}, and the chart is read on the corrected figure.`;
   strip.classList.toggle('is-standard', altitude.kind === 'standard');
   strip.hidden = false;
+}
+
+/* --- the scoring chart, in line --------------------------------------------
+ *
+ * The same table the score came from, on the same screen as the score, so a
+ * cadet can check the lookup instead of taking it on trust. It is folded away
+ * by default: it is a validation reference, not something to read every time.
+ *
+ * The row the cadet actually landed on is marked. That is the whole point --
+ * a 26 row table proves nothing on its own, and finding your own row in it is
+ * exactly the error-prone step the tool exists to remove. `chartRowIndex`
+ * comes from the engine, so the highlight cannot disagree with the score.
+ */
+const chartOpen = new Set();
+
+function renderCharts(band) {
+  for (const component of COMPONENTS) {
+    const host = $(`chart-body-${component}`);
+    const toggle = document.querySelector(`.chart-toggle[data-chart="${component}"]`);
+    const event = events[component] ?? 'whtr';
+
+    // Without a sex and a band there is no chart to show: the tables differ by
+    // both, and showing the wrong one would be worse than showing none.
+    if (!sex || !band) {
+      toggle.disabled = true;
+      toggle.textContent = 'Scoring chart';
+      host.replaceChildren();
+      host.hidden = true;
+      chartOpen.delete(component);
+      toggle.setAttribute('aria-expanded', 'false');
+      continue;
+    }
+    toggle.disabled = false;
+
+    if (!chartOpen.has(component)) {
+      host.hidden = true;
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.textContent = 'Scoring chart';
+      continue;
+    }
+
+    const chart = scorer.chartFor({
+      component, event, sex, band,
+      heightInches: component === 'body_composition' ? (decimal('height') || null) : null
+    });
+    if (!chart) {
+      host.hidden = true;
+      continue;
+    }
+
+    const scored = lastResult?.components?.[component] ?? null;
+    const currentIndex = scored && scored.status !== 'exempt'
+      ? scored.chartRowIndex : -1;
+
+    host.replaceChildren(buildChartTable(chart, currentIndex, component));
+    host.hidden = false;
+    toggle.setAttribute('aria-expanded', 'true');
+    toggle.textContent = 'Hide chart';
+
+    // Bring the marked row into view inside the scrolling table, so a cadet
+    // does not have to hunt for the thing that was highlighted for them.
+    const marked = host.querySelector('.chart-current');
+    if (marked) marked.scrollIntoView({ block: 'nearest' });
+  }
+}
+
+function buildChartTable(chart, currentIndex, component) {
+  const table = el('table', 'chart-table');
+  const caption = el('caption', null,
+    `${EVENT_LABELS[chart.event]} · ${sex === 'M' ? 'Male' : 'Female'}, ` +
+    `${scorer.data.age_band_ranges[ageBand]}`);
+  table.append(caption);
+
+  const head = el('thead');
+  const headRow = el('tr');
+  for (const column of chart.columns) headRow.append(el('th', null, column));
+  head.append(headRow);
+  table.append(head);
+
+  const body = el('tbody');
+  for (const row of chart.rows) {
+    const tr = el('tr', row.index === currentIndex ? 'chart-current' : null);
+    if (row.index === currentIndex) tr.setAttribute('aria-current', 'true');
+    if (row.isMinimum) tr.classList.add('chart-minimum');
+
+    tr.append(el('th', 'chart-measure', row.label));
+    if (row.detail != null) tr.append(el('td', 'chart-detail', row.detail));
+    tr.append(el('td', 'chart-points',
+      row.resultLabel ?? `${row.points.toFixed(1)}`));
+    body.append(tr);
+  }
+  table.append(body);
+  return table;
 }
 
 /**

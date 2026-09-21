@@ -312,6 +312,141 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 }
 
 
+/* --- before you test ------------------------------------------------------
+ *
+ * Reference, not arithmetic, so it is folded away and styled quietly. The
+ * citation under each item is the point: a cadet who needs to argue one of
+ * these with somebody needs the paragraph, not a paraphrase.
+ */
+.pretest > summary {
+  display: grid;
+  gap: 2px;
+  cursor: pointer;
+  list-style: none;
+}
+.pretest > summary::-webkit-details-marker { display: none; }
+.pretest-title { font-weight: 700; font-size: 1rem; }
+.pretest-sub { color: var(--ink-soft); font-size: .86rem; }
+.pretest > summary::after {
+  content: "be";
+  position: absolute;
+  right: var(--gutter);
+  margin-top: 2px;
+  color: var(--ink-faint);
+}
+.pretest[open] > summary::after { content: "b4"; }
+.pretest { position: relative; }
+
+.pretest-item { margin-top: 18px; }
+.pretest-item h3 { margin: 0 0 4px; font-size: .92rem; }
+.pretest-item p { margin: 0; font-size: .88rem; line-height: 1.5; color: var(--ink-soft); }
+.pretest-cite {
+  margin-top: 4px !important;
+  font-size: .74rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.pretest-footer {
+  margin: 18px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: .8rem;
+  color: var(--ink-faint);
+}
+
+/* --- the in-line scoring chart -------------------------------------------
+ *
+ * A validation reference, folded away until asked for. It scrolls inside its
+ * own box rather than pushing the rest of the form down a screen and a half.
+ */
+.chart-inline { display: grid; justify-items: start; gap: 8px; }
+
+.chart-body {
+  width: 100%;
+  max-height: 20rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.chart-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-table caption {
+  caption-side: top;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--page);
+}
+
+/* Sticky, because the point of scrolling 26 rows is lost if you forget which
+ * column is which. */
+.chart-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 12px;
+  text-align: left;
+  font-size: .7rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+
+.chart-table td,
+.chart-table tbody th {
+  padding: 5px 12px;
+  text-align: left;
+  font-weight: 400;
+  border-bottom: 1px solid var(--line);
+}
+.chart-table tbody tr:last-child td,
+.chart-table tbody tr:last-child th { border-bottom: none; }
+
+.chart-measure { color: var(--ink); }
+.chart-detail { color: var(--ink-soft); }
+.chart-points { text-align: right !important; font-weight: 600; }
+
+/* The row this cadet landed on. Gold, the tool's colour for a thing that is
+ * set, and heavy enough to find at a glance in a 26 row table. */
+.chart-table .chart-current {
+  background: var(--warn-bg);
+  box-shadow: inset 3px 0 0 var(--gold-deep);
+}
+.chart-table .chart-current th,
+.chart-table .chart-current td { font-weight: 700; }
+
+/* The floor. Below this row the component fails whatever the composite says. */
+.chart-table .chart-minimum th,
+.chart-table .chart-minimum td {
+  border-bottom: none;
+  box-shadow: inset 0 -2px 0 var(--line-strong);
+}
+.chart-table .chart-minimum .chart-measure::after {
+  content: "  b7 minimum";
+  font-size: .68rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+@media print {
+  .chart-body { max-height: none; overflow: visible; }
+}
+
 /* The Fitness Award: earned reads as a reward, blocked as a caveat. Neither is
  * a pass or a fail, so neither borrows the green and red that mean those. */
 .award-line {

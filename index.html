@@ -7,7 +7,7 @@
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=849c82f324">
+<link rel="stylesheet" href="styles.css?v=42e277e33f">
 </head>
 <body>
 
@@ -122,6 +122,12 @@
       <p class="status-note" id="exempt-note-body_composition" hidden></p>
       <div class="range" id="range-body_composition" aria-label="Chart range"></div>
       <p class="chart-row" id="row-body_composition" hidden></p>
+      <div class="chart-inline" id="chart-body_composition">
+        <button type="button" class="secondary small chart-toggle"
+                data-chart="body_composition" aria-expanded="false"
+                aria-controls="chart-body-body_composition">Scoring chart</button>
+        <div class="chart-body" id="chart-body-body_composition" hidden></div>
+      </div>
     </section>
 
     <!-- Muscular strength --------------------------------------------- -->
@@ -172,6 +178,12 @@
       <p class="status-note" id="exempt-note-muscular_strength" hidden></p>
       <div class="range" id="range-muscular_strength" aria-label="Chart range"></div>
       <p class="chart-row" id="row-muscular_strength" hidden></p>
+      <div class="chart-inline" id="chart-muscular_strength">
+        <button type="button" class="secondary small chart-toggle"
+                data-chart="muscular_strength" aria-expanded="false"
+                aria-controls="chart-body-muscular_strength">Scoring chart</button>
+        <div class="chart-body" id="chart-body-muscular_strength" hidden></div>
+      </div>
     </section>
 
     <!-- Core endurance ------------------------------------------------ -->
@@ -230,6 +242,12 @@
       <p class="status-note" id="exempt-note-core_endurance" hidden></p>
       <div class="range" id="range-core_endurance" aria-label="Chart range"></div>
       <p class="chart-row" id="row-core_endurance" hidden></p>
+      <div class="chart-inline" id="chart-core_endurance">
+        <button type="button" class="secondary small chart-toggle"
+                data-chart="core_endurance" aria-expanded="false"
+                aria-controls="chart-body-core_endurance">Scoring chart</button>
+        <div class="chart-body" id="chart-body-core_endurance" hidden></div>
+      </div>
     </section>
 
     <!-- Cardiorespiratory --------------------------------------------- -->
@@ -355,6 +373,12 @@
         <div class="viewer" hidden></div>
       </div>
       <p class="chart-row" id="row-cardiorespiratory" hidden></p>
+      <div class="chart-inline" id="chart-cardiorespiratory">
+        <button type="button" class="secondary small chart-toggle"
+                data-chart="cardiorespiratory" aria-expanded="false"
+                aria-controls="chart-body-cardiorespiratory">Scoring chart</button>
+        <div class="chart-body" id="chart-body-cardiorespiratory" hidden></div>
+      </div>
       <!-- Only the run and the walk: those are the events a member can leave
            part-way through. Stopping early on push-ups or sit-ups is just a
            lower count, which is what the verbiage says happens. -->
@@ -438,6 +462,64 @@
       <div id="reference-list"></div>
     </details>
 
+  </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <!-- Folded away by default. It is worth knowing once, not reading every
+       time a score is worked out, and none of it changes the arithmetic. -->
+  <section class="card">
+    <details class="pretest">
+      <summary>
+        <span class="pretest-title">Before you test</span>
+        <span class="pretest-sub">Three things the regulations require that are
+          easy to find out too late.</span>
+      </summary>
+
+      <div class="pretest-item">
+        <h3>An AED has to be there</h3>
+        <p>
+          Official assessments and PT are run with an automated external
+          defibrillator present &mdash; inside the building or within 100 feet &mdash;
+          and it stays on site until everyone has left the area. If there is no
+          AED, the assessment does not run.
+        </p>
+        <p class="pretest-cite">AFROTCI 36-2011 V3, para 10.6.2, citing DAFMAN 36-2905</p>
+      </div>
+
+      <div class="pretest-item">
+        <h3>How the day runs</h3>
+        <p>
+          The Fitness Screening Questionnaire is completed before anything else,
+          and may be re-accomplished if something has changed since. All three
+          physical components are done inside a <strong>3 hour window</strong>
+          from the start of the first to the end of the last. Up to a
+          <strong>3 minute warm-up</strong> is allowed before the run, the HAMR
+          or the walk. Body composition may be measured separately, by no more
+          than 5 duty days either side.
+        </p>
+        <p class="pretest-cite">
+          DAFMAN 36-2905, paras 3.15.9 and 3.4.3, and Attachment 2
+        </p>
+      </div>
+
+      <div class="pretest-item">
+        <h3>If you are on a medical restriction</h3>
+        <p>
+          Cadets are deferred from the assessment while on Medical Restriction
+          Status. On release there is a <strong>42 day reconditioning
+          period</strong>, and you cannot be made to test during it &mdash; though
+          you may choose to, in which case the assessment counts. The
+          requirement is to pass no later than the <strong>60th calendar
+          day</strong> after removal from MRS.
+        </p>
+        <p class="pretest-cite">AFROTCI 36-2011 V3, paras 8.7.2 and 8.7.2.1</p>
+      </div>
+
+      <p class="pretest-footer">
+        A summary, not a substitute. DAFMAN 36-2905 and AFROTCI 36-2011 V3 govern,
+        and both are below.
+      </p>
+    </details>
   </section>
 
   <!-- ---------------------------------------------------------------- -->
@@ -582,6 +664,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=849c82f324"></script>
+<script type="module" src="app.js?v=42e277e33f"></script>
 </body>
 </html>

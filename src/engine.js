@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=849c82f324';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=42e277e33f';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
@@ -1028,6 +1028,129 @@ function rangeFor(data, { component, event, sex, band, heightInches, altitudeFee
 }
 
 /**
+ * The whole scoring table for one event, as rows a page can print.
+ *
+ * The same numbers the score came from, so a cadet can check the lookup rather
+ * than take it on trust. Each row carries the band it covers rather than just
+ * its own threshold: the chart lists "52", "50", "48" and means 52-and-up,
+ * 50-to-51, 48-to-49, and a cadet reading it should not have to work that out.
+ *
+ * Row order is the publication's: best first. `index` matches the
+ * `chartRowIndex` a scored component reports, which is how the page knows which
+ * row to mark.
+ */
+export function chartFor(data, { event, sex, band, heightInches }) {
+  const kind = EVENT_KINDS[event];
+  const minimumPoints = data.component_minimums[componentOfEvent(data, event)];
+
+  if (kind === 'ratio') {
+    const height = heightInches ? Math.round(heightInches * 2) / 2 : null;
+    return Object.freeze({
+      event, kind, unit: 'ratio',
+      columns: Object.freeze(height ? ['Ratio', 'Waist', 'Points'] : ['Ratio', 'Points']),
+      rows: Object.freeze(data.whtr.map((row, index) => {
+        // Both ends of the band this row covers, in the inches a cadet can act
+        // on. Searched rather than solved, for the reason waistBoundary gives.
+        let waist = null;
+        if (height) {
+          const hi = row.max_ratio != null ? null
+            : waistBoundary(height, Math.round((row.min_ratio ?? row.ratio) * 100), 'atLeast');
+          const lo = row.min_ratio != null ? null
+            : waistBoundary(height, Math.round((row.max_ratio ?? row.ratio) * 100), 'atMost');
+          waist = row.max_ratio != null ? `${lo?.toFixed(1)} in or less`
+            : row.min_ratio != null ? `${hi?.toFixed(1)} in or more`
+              : (hi != null && lo != null && hi !== lo)
+                ? `${hi.toFixed(1)}–${lo.toFixed(1)} in`
+                : `${(hi ?? lo)?.toFixed(1)} in`;
+        }
+        return Object.freeze({
+          index,
+          label: row.note ?? row.ratio.toFixed(2),
+          detail: waist,
+          points: row.points,
+          isMinimum: false
+        });
+      }))
+    });
+  }
+
+  if (kind === 'walk') {
+    const row = data.walk_2km?.[sex]?.[data.walk_age_groups[band]];
+    if (!row) return null;
+    return Object.freeze({
+      event, kind, unit: 'time',
+      columns: Object.freeze(['Maximum time', 'Result']),
+      rows: Object.freeze([Object.freeze({
+        index: 0, label: `${row.max_time} or faster`, detail: null,
+        points: null, resultLabel: 'Pass', isMinimum: true
+      }), Object.freeze({
+        index: 1, label: `slower than ${row.max_time}`, detail: null,
+        points: null, resultLabel: 'Fail', isMinimum: false
+      })])
+    });
+  }
+
+  if (kind === 'time') {
+    const rows = data[event]?.[sex]?.[band];
+    if (!rows) return null;
+    return Object.freeze({
+      event, kind, unit: 'time',
+      columns: Object.freeze(['Time', 'Points']),
+      rows: Object.freeze(rows.map((row, index) => Object.freeze({
+        index,
+        // Each row is a ceiling: anything faster than the row above it and no
+        // slower than this one.
+        label: index === 0
+          ? `${row.max_time} or faster`
+          : `${formatTime(rows[index - 1].max_seconds + 1)}–${row.max_time}`,
+        detail: null,
+        points: row.points,
+        isMinimum: row.points === minimumPoints
+      })))
+    });
+  }
+
+  const measure = MEASURES[kind];
+  const rows = kind === 'reps'
+    ? data.rep_events[event]?.[sex]?.[band]
+    : data[TABLES[event].path]?.[sex]?.[band];
+  if (!rows) return null;
+
+  const field = measure.field;
+  // A plank is a time and reps are a count, so the two ends of a band have to
+  // be formatted the same way or a row reads "3:35-219".
+  const bare = kind === 'hold' ? formatTime : (v) => String(v);
+  const suffix = kind === 'hold' ? '' : ` ${measure.noun}s`;
+
+  return Object.freeze({
+    event, kind, unit: measure.key,
+    columns: Object.freeze([
+      kind === 'hold' ? 'Hold' : measure.key === 'reps' ? 'Reps' : 'Shuttles', 'Points']),
+    rows: Object.freeze(rows.map((row, index) => {
+      const low = row[field];
+      const high = index === 0 ? null : rows[index - 1][field] - 1;
+      return Object.freeze({
+        index,
+        label: index === 0 ? measure.atLeast(low)
+          : low === high ? `${bare(low)}${suffix}`
+            : `${bare(low)}–${bare(high)}${suffix}`,
+        detail: null,
+        points: row.points,
+        isMinimum: row.points === minimumPoints
+      });
+    }))
+  });
+}
+
+/** Which component an event belongs to, from the data file's own map. */
+function componentOfEvent(data, event) {
+  for (const [component, events] of Object.entries(data.events)) {
+    if (events.includes(event)) return component;
+  }
+  return 'body_composition';
+}
+
+/**
  * Whether a score would earn the AFROTC Fitness Award.
  *
  * AFROTCI 36-2011 Volume 3, 24 June 2026, Table 15.1:
@@ -1270,6 +1393,7 @@ export function createScorer(data) {
     rangeFor: (query) => rangeFor(data, query),
     hamrLevel: (shuttles) => hamrLevelFor(data, shuttles),
     fitnessAward: (result) => fitnessAward(data, result),
+    chartFor: (query) => chartFor(data, query),
     data
   });
 }
