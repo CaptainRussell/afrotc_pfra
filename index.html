@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=ebea330c47">
+<link rel="stylesheet" href="styles.css?v=525a665938">
 </head>
 <body>
 
@@ -124,6 +124,13 @@
           </div>
           <p class="hint">Rounded <em>down</em> to &frac12; inch.</p>
         </div>
+      </div>
+      <!-- The ratio is what the chart is read on, so it gets said out loud
+           rather than left in the lookup line underneath. -->
+      <div class="ratio-readout" id="ratio-readout" aria-live="polite" hidden>
+        <p class="ratio-label">Waist to height ratio</p>
+        <p class="ratio-value" id="ratio-value"></p>
+        <p class="ratio-working" id="ratio-working"></p>
       </div>
       <p class="status-note" id="exempt-note-body_composition" hidden></p>
       <div class="range" id="range-body_composition" aria-label="Chart range"></div>
@@ -726,6 +733,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=ebea330c47"></script>
+<script type="module" src="app.js?v=525a665938"></script>
 </body>
 </html>

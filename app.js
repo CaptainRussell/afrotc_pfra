@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=ebea330c47';
-import { createAnalyzer } from './src/analysis.js?v=ebea330c47';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=ebea330c47';
+} from './src/engine.js?v=525a665938';
+import { createAnalyzer } from './src/analysis.js?v=525a665938';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=525a665938';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=ebea330c47').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=525a665938').then((r) => r.json());
   return { data };
 }
 
@@ -744,6 +744,7 @@ function update() {
     lastResult = null;
     renderCharts(ageBand);
     showAltitudeApplied(null);
+    showRatio(null);
     $('results').hidden = true;
     showTally(null, ready);
     return;
@@ -775,6 +776,7 @@ function update() {
 
   showTally(result, ready);
   showAltitudeApplied(lastResult);
+  showRatio(lastResult);
 
   if (!complete) {
     $('results').hidden = true;
@@ -949,6 +951,52 @@ function buildChartTable(chart, currentIndex, component) {
   }
   table.append(body);
   return table;
+}
+
+/**
+ * Say the waist to height ratio out loud.
+ *
+ * It is the number the chart is actually read on, and it was living in the
+ * small monospace lookup line at the bottom of the card, which is the least
+ * likely place for a cadet to find the one figure their body composition score
+ * turns on.
+ *
+ * The working is shown with it because two roundings sit between what gets
+ * typed and what gets graded, and the second one is the subtlest rule in the
+ * tool: the ratio is *truncated* to two decimals, not rounded (para 3.15.4.2).
+ * When rounding would have given a different answer, that is said, because
+ * that is the moment the rule is worth a cadet knowing about.
+ */
+function showRatio(result) {
+  const readout = $('ratio-readout');
+  const scored = result?.components?.body_composition ?? null;
+  const measured = scored?.measured ?? null;
+
+  if (!measured || measured.ratio == null || scored.status === 'exempt') {
+    readout.hidden = true;
+    return;
+  }
+
+  $('ratio-value').textContent = measured.ratio.toFixed(2);
+
+  if (measured.waistInches == null || measured.exactRatio == null) {
+    $('ratio-working').textContent = 'Graded on this ratio.';
+    readout.hidden = false;
+    return;
+  }
+
+  const exact = measured.exactRatio;
+  const rounded = Math.round(exact * 100) / 100;
+  const truncationMattered = Math.abs(rounded - measured.ratio) > 1e-9;
+
+  $('ratio-working').textContent =
+    `${measured.waistInches.toFixed(1)} in waist ÷ ` +
+    `${measured.heightInches.toFixed(1)} in height = ${exact.toFixed(4)}, ` +
+    (truncationMattered
+      ? `truncated to ${measured.ratio.toFixed(2)}. Rounding would have given ` +
+        `${rounded.toFixed(2)}; the DAFMAN truncates.`
+      : 'truncated to two decimals.');
+  readout.hidden = false;
 }
 
 /**

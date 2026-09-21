@@ -467,6 +467,46 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
   color: var(--ink-soft);
 }
 
+/* --- the waist to height ratio ------------------------------------------
+ *
+ * The figure the chart is read on, so it is the largest thing in the card
+ * after the score itself. Deliberately not gold: gold in this tool means a
+ * setting somebody chose, and this is a measurement, not a choice.
+ */
+.ratio-readout {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--page);
+}
+
+.ratio-label {
+  margin: 0;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.ratio-value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.ratio-working {
+  margin: 0;
+  font-size: .8rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
 /* --- an applied altitude correction -------------------------------------
  *
  * A number that silently changes the score has to be readable at a glance, so
