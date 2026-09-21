@@ -1540,15 +1540,24 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
  * Only on screen when the waist to height ratio reaches 0.55, so it is styled
  * as an alert that opened rather than as another field in the card. The gold
  * edge is the same one the form uses to mean "this needs your attention".
+ *
+ * It is the last block in the form and a sibling of the event blocks, so it
+ * takes their padding and radius: the alert colouring is what sets it apart,
+ * not a different shape from everything it is stacked with.
  */
 .bfa {
   display: grid;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 14px var(--gutter);
   border: 1px solid var(--gold-deep);
   border-left: 4px solid var(--gold);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--warn-bg);
+}
+
+.bfa-title {
+  margin: 0;
+  font-size: 1rem;
 }
 
 .bfa-trigger {

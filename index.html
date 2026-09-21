@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=25cf549490">
+<link rel="stylesheet" href="styles.css?v=bcb70072b5">
 </head>
 <body>
 
@@ -131,66 +131,6 @@
         <p class="ratio-label">Waist to height ratio</p>
         <p class="ratio-value" id="ratio-value"></p>
         <p class="ratio-working" id="ratio-working"></p>
-      </div>
-      <!-- Secondary body fat assessment -----------------------------------
-           DAFMAN 36-2905 para 3.15.4.7 calls for a BFA when the ratio is 0.55
-           or higher and the member is not meeting PFRA standards, and para
-           3.7.2 makes passing it exempt the body composition component. That
-           changes the composite, so it belongs in the calculator rather than
-           in a footnote. The panel stays out of the way until the ratio
-           reaches 0.55, which is the only point at which any of it applies. -->
-      <div class="bfa" id="bfa" hidden>
-        <p class="bfa-trigger" id="bfa-trigger"></p>
-        <div class="bfa-body" id="bfa-body" hidden>
-          <div class="bfa-methods" role="group" aria-label="Body fat assessment method">
-            <button type="button" class="bfa-method on" data-bfa-method="scale">InBody Scale</button>
-            <button type="button" class="bfa-method" data-bfa-method="tape">Tape</button>
-          </div>
-          <p class="hint" id="bfa-method-hint"></p>
-
-          <div class="row bfa-fields" id="bfa-fields-scale">
-            <div class="field">
-              <label for="bfa-percent">Body Fat (percent)</label>
-              <input type="number" id="bfa-percent" inputmode="decimal" min="0" max="75"
-                     step="0.1" placeholder="%">
-              <p class="hint">As the scale reports it.</p>
-            </div>
-          </div>
-
-          <div class="row bfa-fields" id="bfa-fields-tape" hidden>
-            <div class="field">
-              <label for="bfa-neck">Neck</label>
-              <input type="number" id="bfa-neck" inputmode="decimal" min="8" max="30"
-                     step="0.25" placeholder="in">
-              <p class="hint">Rounded <em>up</em> to &frac14; inch.</p>
-            </div>
-            <div class="field" id="bfa-field-abdomen">
-              <label for="bfa-abdomen">Abdomen</label>
-              <input type="number" id="bfa-abdomen" inputmode="decimal" min="16" max="80"
-                     step="0.25" placeholder="in">
-              <p class="hint">At the navel. Rounded <em>down</em>.</p>
-            </div>
-            <div class="field" id="bfa-field-waist" hidden>
-              <label for="bfa-waist">Natural Waist</label>
-              <input type="number" id="bfa-waist" inputmode="decimal" min="16" max="80"
-                     step="0.25" placeholder="in">
-              <p class="hint">Narrowest point. Rounded <em>down</em>.</p>
-            </div>
-            <div class="field" id="bfa-field-buttocks" hidden>
-              <label for="bfa-buttocks">Buttocks</label>
-              <input type="number" id="bfa-buttocks" inputmode="decimal" min="20" max="90"
-                     step="0.25" placeholder="in">
-              <p class="hint">Widest point. Rounded <em>down</em>.</p>
-            </div>
-          </div>
-
-          <div class="bfa-result" id="bfa-result" hidden>
-            <p class="bfa-verdict" id="bfa-verdict"></p>
-            <p class="bfa-working" id="bfa-working"></p>
-          </div>
-          <p class="bfa-note" id="bfa-note" hidden></p>
-          <button type="button" class="bfa-apply" id="bfa-apply" hidden></button>
-        </div>
       </div>
       <p class="status-note" id="exempt-note-body_composition" hidden></p>
       <div class="range" id="range-body_composition" aria-label="Chart range"></div>
@@ -461,6 +401,119 @@
               data-status-for="run" hidden>Did Not Finish</button>
       <p class="status-note" id="status-run" hidden></p>
     </section>
+
+    <!-- Secondary body fat assessment ---------------------------------------
+         Last, because it is the last thing that happens. DAFMAN 36-2905 para
+         3.15.4.7 calls for a BFA only when the waist to height ratio is 0.55
+         or higher AND the member is not meeting PFRA standards, and whether
+         they are meeting them is not known until all four components have been
+         assessed. Sitting under the waist field it read as a fifth measurement
+         of body composition; sitting here it reads as what it is, a step taken
+         after the assessment on the strength of the whole result.
+
+         Para 3.7.2 makes passing it exempt the body composition component,
+         which changes the composite, so it belongs in the calculator rather
+         than in a footnote. The panel stays out of the way until the ratio
+         reaches 0.55, which is the earliest point at which any of it applies. -->
+    <div class="bfa" id="bfa" hidden>
+      <!-- Every other block in the form is titled, and this one now sits
+           among them rather than inside one, so it is titled too. -->
+      <h2 class="bfa-title">Secondary Body Fat Assessment</h2>
+      <p class="bfa-trigger" id="bfa-trigger"></p>
+      <div class="bfa-body" id="bfa-body" hidden>
+        <!-- Tape first and tape by default: para 3.15.4.7 prefers the InBody
+             where one is available, but a detachment assessment is run with a
+             tape in hand far more often than beside a scale, so the method
+             that is actually used is the one that does not need selecting. -->
+        <div class="bfa-methods" role="group" aria-label="Body fat assessment method">
+          <button type="button" class="bfa-method on" data-bfa-method="tape">Tape</button>
+          <button type="button" class="bfa-method" data-bfa-method="scale">InBody Scale</button>
+        </div>
+        <p class="hint" id="bfa-method-hint"></p>
+
+        <div class="row bfa-fields" id="bfa-fields-scale" hidden>
+          <div class="field">
+            <label for="bfa-percent">Body Fat (percent)</label>
+            <input type="number" id="bfa-percent" inputmode="decimal" min="0" max="75"
+                   step="0.1" placeholder="%">
+            <!-- The field runs 0 to 75 because a scale will report whatever it
+                 reports; the track is narrowed to the range a reading actually
+                 falls in, the same way the height track is narrowed to the
+                 chart's own grid. A reading outside it pins the handle. -->
+            <div class="slider-row" id="slider-bfa-percent">
+              <span class="slider-end low">5</span>
+              <input type="range" class="slider" id="slide-bfa-percent"
+                     data-bfa-slider="bfa-percent" min="5" max="50" step="0.1" value="5"
+                     aria-label="Body fat percent">
+              <span class="slider-end high">50</span>
+            </div>
+            <p class="hint">As the scale reports it.</p>
+          </div>
+        </div>
+
+        <div class="row bfa-fields" id="bfa-fields-tape">
+          <div class="field">
+            <label for="bfa-neck">Neck</label>
+            <input type="number" id="bfa-neck" inputmode="decimal" min="8" max="30"
+                   step="0.25" placeholder="in">
+            <div class="slider-row" id="slider-bfa-neck">
+              <span class="slider-end low">11</span>
+              <input type="range" class="slider" id="slide-bfa-neck"
+                     data-bfa-slider="bfa-neck" min="11" max="23" step="0.25" value="11"
+                     aria-label="Neck in inches">
+              <span class="slider-end high">23</span>
+            </div>
+            <p class="hint">Rounded <em>up</em> to &frac14; inch.</p>
+          </div>
+          <div class="field" id="bfa-field-abdomen">
+            <label for="bfa-abdomen">Abdomen</label>
+            <input type="number" id="bfa-abdomen" inputmode="decimal" min="16" max="80"
+                   step="0.25" placeholder="in">
+            <div class="slider-row" id="slider-bfa-abdomen">
+              <span class="slider-end low">26</span>
+              <input type="range" class="slider" id="slide-bfa-abdomen"
+                     data-bfa-slider="bfa-abdomen" min="26" max="54" step="0.25" value="26"
+                     aria-label="Abdomen in inches">
+              <span class="slider-end high">54</span>
+            </div>
+            <p class="hint">At the navel. Rounded <em>down</em>.</p>
+          </div>
+          <div class="field" id="bfa-field-waist" hidden>
+            <label for="bfa-waist">Natural Waist</label>
+            <input type="number" id="bfa-waist" inputmode="decimal" min="16" max="80"
+                   step="0.25" placeholder="in">
+            <div class="slider-row" id="slider-bfa-waist">
+              <span class="slider-end low">22</span>
+              <input type="range" class="slider" id="slide-bfa-waist"
+                     data-bfa-slider="bfa-waist" min="22" max="50" step="0.25" value="22"
+                     aria-label="Natural waist in inches">
+              <span class="slider-end high">50</span>
+            </div>
+            <p class="hint">Narrowest point. Rounded <em>down</em>.</p>
+          </div>
+          <div class="field" id="bfa-field-buttocks" hidden>
+            <label for="bfa-buttocks">Buttocks</label>
+            <input type="number" id="bfa-buttocks" inputmode="decimal" min="20" max="90"
+                   step="0.25" placeholder="in">
+            <div class="slider-row" id="slider-bfa-buttocks">
+              <span class="slider-end low">30</span>
+              <input type="range" class="slider" id="slide-bfa-buttocks"
+                     data-bfa-slider="bfa-buttocks" min="30" max="58" step="0.25" value="30"
+                     aria-label="Buttocks in inches">
+              <span class="slider-end high">58</span>
+            </div>
+            <p class="hint">Widest point. Rounded <em>down</em>.</p>
+          </div>
+        </div>
+
+        <div class="bfa-result" id="bfa-result" hidden>
+          <p class="bfa-verdict" id="bfa-verdict"></p>
+          <p class="bfa-working" id="bfa-working"></p>
+        </div>
+        <p class="bfa-note" id="bfa-note" hidden></p>
+        <button type="button" class="bfa-apply" id="bfa-apply" hidden></button>
+      </div>
+    </div>
 
     <div class="form-footer">
       <button type="button" class="reset-button" id="reset-all"
@@ -780,6 +833,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=25cf549490"></script>
+<script type="module" src="app.js?v=bcb70072b5"></script>
 </body>
 </html>

@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=25cf549490';
-import { createAnalyzer } from './src/analysis.js?v=25cf549490';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=25cf549490';
+} from './src/engine.js?v=bcb70072b5';
+import { createAnalyzer } from './src/analysis.js?v=bcb70072b5';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=bcb70072b5';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=25cf549490').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=bcb70072b5').then((r) => r.json());
   return { data };
 }
 
@@ -141,7 +141,9 @@ async function boot() {
     button.addEventListener('click', () => nudge(button.dataset.target,
       Number(button.dataset.step)));
   }
-  for (const slider of document.querySelectorAll('.slider')) {
+  // [data-component] only: the BFA tracks are .slider for the look of them but
+  // they measure a member rather than score one, so wireBfa drives those.
+  for (const slider of document.querySelectorAll('.slider[data-component]')) {
     slider.addEventListener('input', () => onSliderInput(slider.dataset.component));
     // Tracked by pointer rather than by focus, so that arrowing along the track
     // with a keyboard still re-seats the handle from the fields it writes.
@@ -1237,8 +1239,15 @@ function fieldsOf(component) {
 /** The ratio at which para 3.15.4.7 starts to apply. */
 const BFA_RATIO = 0.55;
 
-/** What the BFA panel is holding, independent of the fields it came from. */
-const bfa = { method: 'scale', applied: false, ratio: null };
+/**
+ * What the BFA panel is holding, independent of the fields it came from.
+ *
+ * Tape is the default. Para 3.15.4.7 prefers the InBody where one is
+ * available, but a detachment assessment is far more often run with a tape in
+ * hand than beside a scale, so the method that is actually used is the one
+ * that costs no tap.
+ */
+const bfa = { method: 'tape', applied: false, ratio: null };
 
 /** The measurements the chosen method needs, or null if they are not all in. */
 function bfaMeasurements(sexCode) {
@@ -1303,6 +1312,7 @@ function showBfa(result, complete) {
       '(DAFMAN 36-2905 para 3.15.4.7).';
 
   showBfaFields(sex);
+  renderBfaSliders();
   workBfa(sex);
 }
 
@@ -1321,14 +1331,88 @@ function showBfaFields(sexCode) {
     button.setAttribute('aria-pressed', String(on));
   }
 
+  // Tape is the default, so its hint carries the line about the InBody that
+  // the scale hint used to be the only place to read: a member who never taps
+  // across still learns which method para 3.15.4.7 asks for first.
   $('bfa-method-hint').textContent = tape
-    ? sexCode === 'M'
-      ? 'Attachment 8, two sites. The circumference value is the abdomen less the neck.'
+    ? (sexCode === 'M'
+      ? 'Attachment 8, two sites. The circumference value is the abdomen less the neck. '
       : 'Attachment 8, three sites. The circumference value is the waist plus the ' +
-        'buttocks, less the neck.'
+        'buttocks, less the neck. ') +
+      'Use an InBody scale instead where one is available (para 3.15.4.7).'
     : 'Para 3.15.4.7 takes the BFA on an InBody bio-impedance scale where one is ' +
       'available and by tape where one is not. Either way a same sex administrator ' +
       'is required.';
+}
+
+/* The BFA tracks.
+ *
+ * Same affordance as the event sliders and the same look, but none of this is
+ * a score: a tape measurement is read off a member, not off a chart, so there
+ * are no chart bounds to take ends from and nothing about them depends on sex,
+ * age band or the event. The bounds below are therefore declared, chosen to
+ * cover the range a measurement actually lands in rather than the range the
+ * field will accept. The fields stay wider on purpose, exactly as the height
+ * field is wider than the height track: anything outside these ends can still
+ * be typed, and the handle pins to the end when it is.
+ *
+ * Every track runs low to high, because every one of these measures inches or
+ * percent directly. There is no mirroring to undo and no failing tip to shade:
+ * a neck is not better for being bigger, and the pass or fail comes out of the
+ * lookup below rather than off any one of these.
+ */
+const BFA_SLIDERS = Object.freeze({
+  'bfa-percent': { step: 0.1, format: (v) => `${v.toFixed(1)} percent` },
+  'bfa-neck': { step: 0.25, format: (v) => `${trimQuarter(v)} inches` },
+  'bfa-abdomen': { step: 0.25, format: (v) => `${trimQuarter(v)} inches` },
+  'bfa-waist': { step: 0.25, format: (v) => `${trimQuarter(v)} inches` },
+  'bfa-buttocks': { step: 0.25, format: (v) => `${trimQuarter(v)} inches` }
+});
+
+/**
+ * A quarter inch written the way a tape is read: 14.25, 14.5, 15, not 15.00.
+ *
+ * The step lands every value on a quarter already, so this is rounding off
+ * float noise rather than the measurement.
+ */
+const trimQuarter = (v) => String(Math.round(v * 100) / 100);
+
+/**
+ * Seat each handle where its field already is.
+ *
+ * The ends live in the markup rather than here, because unlike every other
+ * track on the page they are fixed: nothing the member selects can move them.
+ * That leaves this reading min and max back off the element it is setting.
+ */
+function renderBfaSliders() {
+  for (const [id, spec] of Object.entries(BFA_SLIDERS)) {
+    const input = $(`slide-${id}`);
+    if (dragging === `bfa:${id}`) continue;
+    const min = Number(input.min);
+    const max = Number(input.max);
+    const current = decimal(id) ?? null;
+    // Empty parks at the left, the same as every other track on the page.
+    input.value = String(current == null ? min : Math.max(min, Math.min(max, current)));
+    input.setAttribute('aria-valuetext',
+      current == null ? 'not entered' : spec.format(current));
+  }
+}
+
+/**
+ * Write a dragged measurement into the field the assessment reads.
+ *
+ * Setting `.value` fires no input event, so the exemption that the field's own
+ * listener would have dropped has to be dropped here: a BFA applied against
+ * the old measurement must not survive a new one.
+ */
+function onBfaSliderInput(id) {
+  const spec = BFA_SLIDERS[id];
+  if (!spec) return;
+  const raw = Number($(`slide-${id}`).value);
+  $(id).value = id === 'bfa-percent' ? raw.toFixed(1) : trimQuarter(raw);
+  $(`slide-${id}`).setAttribute('aria-valuetext', spec.format(raw));
+  clearBfaExemption();
+  update();
 }
 
 /** Run the assessment and say what it means for the score. */
@@ -1449,6 +1533,14 @@ function wireBfa() {
       update();
     });
   }
+  // The BFA tracks are held in `dragging` the same way the event tracks are,
+  // under a name no component can take, so that a handle is left alone while a
+  // finger is on it and the window's pointerup still runs a final update.
+  for (const id of Object.keys(BFA_SLIDERS)) {
+    const slider = $(`slide-${id}`);
+    slider.addEventListener('input', () => onBfaSliderInput(id));
+    slider.addEventListener('pointerdown', () => { dragging = `bfa:${id}`; });
+  }
   // Re-measuring the member invalidates a BFA that was applied against the old
   // ratio, so the two measurement fields drop it rather than carrying it over.
   // These listeners are added after the general one, so by the time they run
@@ -1471,13 +1563,18 @@ function wireBfa() {
 
 /** Put the BFA panel back to its starting state. */
 function resetBfa() {
-  bfa.method = 'scale';
+  bfa.method = 'tape';
   bfa.applied = false;
   bfa.ratio = null;
   bfaExemptionNote(false);
   for (const id of ['bfa-percent', 'bfa-neck', 'bfa-abdomen', 'bfa-waist', 'bfa-buttocks']) {
     $(id).value = '';
   }
+  // The panel is hidden below, and showBfa would put these right before it was
+  // seen again, but a hidden panel that disagrees with `bfa.method` is a state
+  // waiting to be read wrong. Put the markup back with the object.
+  showBfaFields(sex);
+  renderBfaSliders();
   $('bfa').hidden = true;
   $('bfa-body').hidden = true;
   $('bfa-result').hidden = true;
