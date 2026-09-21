@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=d9f3ab9555';
-import { createAnalyzer } from './src/analysis.js?v=d9f3ab9555';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=d9f3ab9555';
+} from './src/engine.js?v=a9164ac386';
+import { createAnalyzer } from './src/analysis.js?v=a9164ac386';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=a9164ac386';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=d9f3ab9555').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=a9164ac386').then((r) => r.json());
   return { data };
 }
 
@@ -909,7 +909,7 @@ function renderCharts(band) {
     // both, and showing the wrong one would be worse than showing none.
     if (!sex || !band) {
       toggle.disabled = true;
-      toggle.textContent = 'Scoring chart';
+      toggle.textContent = 'Scoring Chart';
       host.replaceChildren();
       host.hidden = true;
       chartOpen.delete(component);
@@ -921,7 +921,7 @@ function renderCharts(band) {
     if (!chartOpen.has(component)) {
       host.hidden = true;
       toggle.setAttribute('aria-expanded', 'false');
-      toggle.textContent = 'Scoring chart';
+      toggle.textContent = 'Scoring Chart';
       continue;
     }
 
@@ -941,7 +941,7 @@ function renderCharts(band) {
     host.replaceChildren(buildChartTable(chart, currentIndex, component));
     host.hidden = false;
     toggle.setAttribute('aria-expanded', 'true');
-    toggle.textContent = 'Hide chart';
+    toggle.textContent = 'Hide Chart';
 
     // Bring the marked row into view inside the scrolling table, so a cadet
     // does not have to hunt for the thing that was highlighted for them.
@@ -990,8 +990,9 @@ function buildChartTable(chart, currentIndex, component) {
  * The working is shown with it because two roundings sit between what gets
  * typed and what gets graded, and the second one is the subtlest rule in the
  * tool: the ratio is *truncated* to two decimals, not rounded (para 3.15.4.2).
- * When rounding would have given a different answer, that is said, because
- * that is the moment the rule is worth a cadet knowing about.
+ * Showing the undivided figure alongside the truncated one is enough to make
+ * that visible; saying what rounding would have given as well was noise on
+ * every reading where it made no difference.
  */
 function showRatio(result) {
   const readout = $('ratio-readout');
@@ -1011,17 +1012,10 @@ function showRatio(result) {
     return;
   }
 
-  const exact = measured.exactRatio;
-  const rounded = Math.round(exact * 100) / 100;
-  const truncationMattered = Math.abs(rounded - measured.ratio) > 1e-9;
-
   $('ratio-working').textContent =
     `${measured.waistInches.toFixed(1)} in waist ÷ ` +
-    `${measured.heightInches.toFixed(1)} in height = ${exact.toFixed(4)}, ` +
-    (truncationMattered
-      ? `truncated to ${measured.ratio.toFixed(2)}. Rounding would have given ` +
-        `${rounded.toFixed(2)}; the DAFMAN truncates.`
-      : 'truncated to two decimals.');
+    `${measured.heightInches.toFixed(1)} in height = ` +
+    `${measured.exactRatio.toFixed(4)}, truncated to two decimals.`;
   readout.hidden = false;
 }
 
@@ -1135,8 +1129,8 @@ function showAltitudeGroup() {
 
 /** Shown until the question is answered. Kept beside index.html's copy. */
 const ROLE_PROMPT =
-  'Start here. The charts are the same either way; this decides what the rest ' +
-  'of the form offers.';
+  'Start here. This decides which components you are assessed on and what the ' +
+  'rest of the form offers.';
 
 function selectRole(value) {
   role = value;
@@ -1156,12 +1150,11 @@ function selectRole(value) {
   }
 
   $('role-hint').textContent = role === 'cadet'
-    ? 'The charts are the same. NOTACC CY26-092 sets the cadet assessment as ' +
-      'three events exclusively, and AFROTCI 36-2011 V3 requires a most recent ' +
-      'PFRA with no exemptions.'
+    ? 'NOTACC CY26-092 sets the cadet assessment as three events exclusively, ' +
+      'and AFROTCI 36-2011 V3 requires a most recent PFRA with no exemptions.'
     : role === 'cadre'
-      ? 'Alternate events and component exemptions are available. The charts are ' +
-        'the same ones cadets are scored on.'
+      ? 'Alternate events and component exemptions are available for active ' +
+        'duty members.'
       : ROLE_PROMPT;
 
   showRoleControls();

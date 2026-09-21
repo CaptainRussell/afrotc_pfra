@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=d9f3ab9555';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=a9164ac386';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
@@ -138,22 +138,22 @@ export const COMPONENTS = Object.freeze([
 ]);
 
 export const COMPONENT_LABELS = Object.freeze({
-  muscular_strength: 'Muscular strength',
-  core_endurance: 'Core endurance',
+  muscular_strength: 'Muscular Strength',
+  core_endurance: 'Core Endurance',
   cardiorespiratory: 'Cardiorespiratory',
-  body_composition: 'Body composition'
+  body_composition: 'Body Composition'
 });
 
 export const EVENT_LABELS = Object.freeze({
-  hand_release_pushup: 'Hand release push-ups',
-  pushup: 'Push-ups',
-  situp: 'Sit-ups',
-  cross_leg_reverse_crunch: 'Cross-leg reverse crunches',
-  forearm_plank: 'Forearm plank',
-  run_2mile: '2 mile run',
-  hamr_20m: '20 meter HAMR',
-  walk_2km: '2 kilometer walk',
-  whtr: 'Waist to height ratio'
+  hand_release_pushup: 'Hand Release Push-Ups',
+  pushup: 'Push-Ups',
+  situp: 'Sit-Ups',
+  cross_leg_reverse_crunch: 'Cross-Leg Reverse Crunches',
+  forearm_plank: 'Forearm Plank',
+  run_2mile: '2 Mile Run',
+  hamr_20m: '20 Meter HAMR',
+  walk_2km: '2 Kilometer Walk',
+  whtr: 'Waist to Height Ratio'
 });
 
 /**

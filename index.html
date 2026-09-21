@@ -8,14 +8,14 @@
 <!-- Dark first so the browser paints scrollbars, form controls and the
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
-<link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=d9f3ab9555">
+<link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
+<link rel="stylesheet" href="styles.css?v=a9164ac386">
 </head>
 <body>
 
 <header class="masthead">
   <div class="masthead-inner">
-    <div class="mark patch" role="img" aria-label="AFROTC Detachment 250 patch"></div>
+    <div class="mark shield" role="img" aria-label="Air Force ROTC shield"></div>
     <h1>AFROTC PFRA Calculator</h1>
   </div>
 </header>
@@ -31,17 +31,17 @@
       <span class="label-text" id="role-label">Assessing</span>
       <div class="segmented" role="radiogroup" aria-labelledby="role-label">
         <button type="button" class="segment" role="radio" aria-checked="false"
-                data-role="cadet">AFROTC cadet</button>
+                data-role="cadet">AFROTC Cadet</button>
         <button type="button" class="segment" role="radio" aria-checked="false"
-                data-role="cadre">Active duty / cadre</button>
+                data-role="cadre">Active Duty / Cadre</button>
       </div>
       <!-- Kept in step with selectRole(): this is the cadet wording, which is
            the default, and the button click rewrites it for cadre. -->
       <!-- Kept in step with ROLE_PROMPT in app.js: this is the unanswered
            wording, and selecting a role rewrites it. -->
       <p class="hint" id="role-hint">
-        Start here. The charts are the same either way; this decides what the
-        rest of the form offers.
+        Start here. This decides which components you are assessed on and what
+        the rest of the form offers.
       </p>
     </div>
 
@@ -78,7 +78,7 @@
     <!-- Body composition, measured first ----------------------------- -->
     <section class="event" data-component="body_composition">
       <div class="event-head">
-        <h2>Waist to height (WHtR)</h2>
+        <h2>Waist to Height (WHtR)</h2>
         <div class="event-tools">
           <button type="button" class="verbiage-open" data-verbiage="body_composition"
                 title="What the assessment administrator reads out">Verbiage</button>
@@ -138,7 +138,7 @@
       <div class="chart-inline" id="chart-body_composition">
         <button type="button" class="secondary small chart-toggle"
                 data-chart="body_composition" aria-expanded="false"
-                aria-controls="chart-body-body_composition">Scoring chart</button>
+                aria-controls="chart-body-body_composition">Scoring Chart</button>
         <div class="chart-body" id="chart-body-body_composition" hidden></div>
       </div>
     </section>
@@ -146,7 +146,7 @@
     <!-- Muscular strength --------------------------------------------- -->
     <section class="event" data-component="muscular_strength">
       <div class="event-head">
-        <h2 id="heading-muscular_strength">Hand release push-ups</h2>
+        <h2 id="heading-muscular_strength">Hand Release Push-Ups</h2>
         <div class="event-tools">
           <button type="button" class="swap" data-swap="muscular_strength"
                   aria-expanded="false" aria-controls="event-muscular_strength"
@@ -194,7 +194,7 @@
       <div class="chart-inline" id="chart-muscular_strength">
         <button type="button" class="secondary small chart-toggle"
                 data-chart="muscular_strength" aria-expanded="false"
-                aria-controls="chart-body-muscular_strength">Scoring chart</button>
+                aria-controls="chart-body-muscular_strength">Scoring Chart</button>
         <div class="chart-body" id="chart-body-muscular_strength" hidden></div>
       </div>
     </section>
@@ -202,7 +202,7 @@
     <!-- Core endurance ------------------------------------------------ -->
     <section class="event" data-component="core_endurance">
       <div class="event-head">
-        <h2 id="heading-core_endurance">Sit-ups</h2>
+        <h2 id="heading-core_endurance">Sit-Ups</h2>
         <div class="event-tools">
           <button type="button" class="swap" data-swap="core_endurance"
                   aria-expanded="false" aria-controls="event-core_endurance"
@@ -258,7 +258,7 @@
       <div class="chart-inline" id="chart-core_endurance">
         <button type="button" class="secondary small chart-toggle"
                 data-chart="core_endurance" aria-expanded="false"
-                aria-controls="chart-body-core_endurance">Scoring chart</button>
+                aria-controls="chart-body-core_endurance">Scoring Chart</button>
         <div class="chart-body" id="chart-body-core_endurance" hidden></div>
       </div>
     </section>
@@ -266,7 +266,7 @@
     <!-- Cardiorespiratory --------------------------------------------- -->
     <section class="event" data-component="cardiorespiratory">
       <div class="event-head">
-        <h2 id="heading-cardiorespiratory">2 mile run</h2>
+        <h2 id="heading-cardiorespiratory">2 Mile Run</h2>
         <div class="event-tools">
           <button type="button" class="swap" data-swap="cardiorespiratory"
                   aria-expanded="false" aria-controls="event-cardiorespiratory"
@@ -391,14 +391,14 @@
       <div class="chart-inline" id="chart-cardiorespiratory">
         <button type="button" class="secondary small chart-toggle"
                 data-chart="cardiorespiratory" aria-expanded="false"
-                aria-controls="chart-body-cardiorespiratory">Scoring chart</button>
+                aria-controls="chart-body-cardiorespiratory">Scoring Chart</button>
         <div class="chart-body" id="chart-body-cardiorespiratory" hidden></div>
       </div>
       <!-- Only the run and the walk: those are the events a member can leave
            part-way through. Stopping early on push-ups or sit-ups is just a
            lower count, which is what the verbiage says happens. -->
       <button type="button" class="not-done" id="dnf-run"
-              data-status-for="run" hidden>Did not finish</button>
+              data-status-for="run" hidden>Did Not Finish</button>
       <p class="status-note" id="status-run" hidden></p>
     </section>
 
@@ -433,25 +433,25 @@
     </div>
 
     <div class="card failures" id="failures" hidden>
-      <h2>Why this is unsatisfactory</h2>
+      <h2>Why This Is Unsatisfactory</h2>
       <ul id="failure-list"></ul>
     </div>
 
     <div class="card" id="warnings-card" hidden>
-      <h2>Worth knowing</h2>
+      <h2>Worth Knowing</h2>
       <ul id="warning-list"></ul>
     </div>
 
     <details class="card foldable">
       <summary>
-        <h2>Component by component</h2>
+        <h2>Component by Component</h2>
         <span class="summary-hint">the chart line each number scored against</span>
       </summary>
       <div id="components"></div>
     </details>
 
     <div class="card">
-      <h2>Aim for a score</h2>
+      <h2>Aim for a Score</h2>
       <p class="card-intro">Enter a composite you want and see what reaches it.</p>
       <div class="row target-row">
         <div class="field">
@@ -467,7 +467,7 @@
 
     <details class="card foldable">
       <summary>
-        <h2>The rules behind these numbers</h2>
+        <h2>The Rules Behind These Numbers</h2>
         <span class="summary-hint">DAFMAN 36-2905 and NOTACC CY26-092</span>
       </summary>
       <div id="reference-list"></div>
@@ -481,7 +481,7 @@
   <section class="card">
     <details class="pretest">
       <summary>
-        <span class="pretest-title">Before you test</span>
+        <span class="pretest-title">Before You Test</span>
         <span class="pretest-sub">Three things the regulations require that are
           easy to find out too late.</span>
       </summary>
@@ -568,7 +568,7 @@
 
   <!-- ---------------------------------------------------------------- -->
   <section class="card documents">
-    <h2>Reference documents</h2>
+    <h2>Reference Documents</h2>
     <p class="card-intro">The official paperwork behind the assessment.</p>
 
     <div class="document">
@@ -729,6 +729,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=d9f3ab9555"></script>
+<script type="module" src="app.js?v=a9164ac386"></script>
 </body>
 </html>

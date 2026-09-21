@@ -47,10 +47,20 @@
   /* The patch appears twice, masthead and footer. Holding it in one custom
    * property means the offline build inlines the image once instead of twice. */
   --patch: url("assets/det250-patch.png");
+  --shield: url("assets/afrotc-shield.png");
+
+  /* The shield's own colours, sampled from the artwork rather than guessed,
+   * so the bar it sits on is the blue it is drawn in. */
+  --af-blue: #006186;
+  --af-blue-deep: #004d6b;
 }
 
 .patch {
   background: center / contain no-repeat var(--patch);
+}
+
+.shield {
+  background: center / contain no-repeat var(--shield);
 }
 
 /* The light palette, kept whole and unused. Set data-theme="light" on <html>
@@ -112,8 +122,12 @@ main {
 /* Deliberately small: the tool is the point, so the masthead is a name badge
  * rather than a banner. The detachment line, motto and citations live in the
  * footer, where they are read once rather than scrolled past every time. */
+/* Air Force blue rather than Iowa State cardinal: the assessment is the same
+ * one across AFROTC, and a detachment's colours on the banner made the tool
+ * look like it was only for that detachment. The Det 250 patch stays in the
+ * footer, where the attribution is. */
 .masthead {
-  background: var(--cardinal);
+  background: var(--af-blue);
   color: #fff;
   padding: 10px var(--gutter);
   border-bottom: 4px solid var(--gold);
@@ -127,13 +141,13 @@ main {
   gap: 10px;
 }
 
-/* The detachment patch, same mark as the footer. It carries its own cardinal
- * ring, so a soft gold halo keeps it from dissolving into the cardinal bar. */
+/* The shield carries its own gold border, so it needs no halo to separate it
+ * from the blue bar; a faint dark shadow just lifts it off. */
 .mark {
   flex: 0 0 auto;
   width: 38px;
   height: 39px;
-  filter: drop-shadow(0 0 2px rgba(241, 190, 72, .55));
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .35));
 }
 
 .masthead h1 { font-size: 1.15rem; letter-spacing: -.01em; }
