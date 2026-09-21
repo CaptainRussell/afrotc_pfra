@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=bcb70072b5">
+<link rel="stylesheet" href="styles.css?v=d7ad03db5f">
 </head>
 <body>
 
@@ -541,6 +541,16 @@
         <div class="meter-mark" hidden></div>
       </div>
       <p class="meter-legend" id="meter-legend"></p>
+      <!-- Only on an assessment with a component exempt. Two things about such
+           a composite are not readable off the number: it was divided by
+           something other than 100, and it cannot be rated Excellent. Both are
+           said here, next to the number, rather than left to the reference
+           list at the bottom of the page. -->
+      <div class="exempt-explainer" id="exempt-explainer" hidden>
+        <p class="exempt-headline" id="exempt-headline"></p>
+        <p class="exempt-math" id="exempt-math"></p>
+        <p class="exempt-cap" id="exempt-cap"></p>
+      </div>
       <p class="award-line" id="award-line" hidden></p>
       <p class="gap-line" id="gap-line" hidden></p>
     </div>
@@ -833,6 +843,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=bcb70072b5"></script>
+<script type="module" src="app.js?v=d7ad03db5f"></script>
 </body>
 </html>

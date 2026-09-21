@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=bcb70072b5';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=d7ad03db5f';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
@@ -1563,13 +1563,30 @@ export function createScorer(data) {
 
     const pass = failures.length === 0;
 
-    // Para 3.10.1: a member who meets the 2 kilometer walk standard is not
-    // eligible for Excellent, whatever the arithmetic says. The cap is on the
-    // rating rather than on the number, because the number is still the
-    // composite that gets recorded.
-    const walked = COMPONENTS.some((c) => components[c].walk);
+    /*
+     * Excellent is off the board once anything is exempt.
+     *
+     * Para 3.6.1 defines the three categories "when assessing all components",
+     * so an assessment with a component exempt is outside the sentence that
+     * creates Excellent in the first place. Para 3.10.1 then gives the
+     * Excellent category to members "without any component exemptions", and
+     * para 3.10.2 gives Satisfactory on the same terms but adds a Note putting
+     * walk members in it. Read together: exempt a component and the best
+     * available rating is Satisfactory, whatever the arithmetic says.
+     *
+     * The walk was already handled here, by its own para 3.7.3 sentence. It is
+     * not a separate rule -- a walk member is component exempt under para
+     * 3.6.2, so scoreWalkComponent returns STATUS.EXEMPT and the general test
+     * below already covers it. The cap stays on the rating rather than on the
+     * number, because the number is still the composite that gets recorded.
+     */
     const rating = !pass ? 'Unsatisfactory'
-      : (composite >= 90 && !walked) ? 'Excellent' : 'Satisfactory';
+      : (composite >= 90 && exempted.length === 0) ? 'Excellent' : 'Satisfactory';
+
+    // A composite that would have been Excellent but for an exemption is the
+    // one result a member is most likely to read wrong, so say outright that
+    // it happened rather than leaving "Satisfactory" beside a 92.
+    const excellentWithheld = pass && composite >= 90 && exempted.length > 0;
 
     const warnings = COMPONENTS.flatMap((c) => components[c].warnings ?? []);
     const citationIds = [...new Set([
@@ -1578,6 +1595,10 @@ export function createScorer(data) {
       'notacc.whtr',
       'dafman.3.6.1',
       'dafman.3.7.1',
+      // Only when something is exempt: these are the paragraphs that scale the
+      // composite and cap the rating, and on an ordinary assessment neither
+      // does anything worth a citation.
+      ...(exempted.length > 0 ? ['dafman.3.10.1', 'dafman.3.10.2'] : []),
       ...COMPONENTS.flatMap((c) => components[c].references ?? [])
     ])];
 
@@ -1592,8 +1613,13 @@ export function createScorer(data) {
       altitudeLabel: altitude ? `${altitude.label} (${altitude.range_label})` : null,
       composite,
       compositeText: composite.toFixed(1),
+      // Both halves of the fraction, so the UI can print the arithmetic rather
+      // than assert the result of it. With nothing exempt these are the plain
+      // sum and 100, and the division is the identity.
+      compositeEarned: earned,
       compositeOutOf: available,
       exemptComponents: Object.freeze(exempted),
+      excellentWithheld,
       passingComposite,
       compositeMeetsMinimum,
       pass,

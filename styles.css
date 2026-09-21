@@ -1169,6 +1169,50 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 
 .band { color: var(--ink-soft); font-size: .85rem; margin-top: 2px; }
 
+/* --- what an exempt component does to the composite ------------------------
+ *
+ * The scoreboard is centred, because a composite is one big number. This is
+ * prose about that number, so it is left aligned: three centred sentences of
+ * arithmetic are harder to read than any of them is worth.
+ *
+ * Gold rather than red or green. It qualifies the result without changing
+ * whether it passed, which is the same job the warnings card does and the same
+ * colour the form uses for "this needs your attention".
+ */
+.exempt-explainer {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--gold-deep);
+  border-radius: 8px;
+  background: var(--warn-bg);
+  text-align: left;
+}
+
+.exempt-headline {
+  margin: 0;
+  font-size: .88rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.exempt-math,
+.exempt-cap {
+  margin: 0;
+  font-size: .78rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* A composite that actually reached 90 is the case someone will argue about,
+ * so that sentence is given the weight of the headline. */
+.exempt-cap.withheld {
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .failures { border-left: 4px solid var(--fail); background: var(--fail-bg); }
 .failures h2 { color: var(--fail); }
 .failures ul { margin-top: 10px; }

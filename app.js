@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=bcb70072b5';
-import { createAnalyzer } from './src/analysis.js?v=bcb70072b5';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=bcb70072b5';
+} from './src/engine.js?v=d7ad03db5f';
+import { createAnalyzer } from './src/analysis.js?v=d7ad03db5f';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=d7ad03db5f';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=bcb70072b5').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=d7ad03db5f').then((r) => r.json());
   return { data };
 }
 
@@ -2136,17 +2136,21 @@ function renderScoreboard(result) {
 
   setMeter('meter-composite', result.composite, 100,
     result.pass ? 'is-pass' : 'is-fail', result.passingComposite);
-  // With a component exempt the composite is scored over what was actually
-  // assessed, so saying "of 100" would hide the thing most worth knowing: that
-  // the number came from fewer components than usual.
+
+  // The legend used to read "76.9 scored over 80 assessed points", which puts
+  // the composite where the earned points belong: 76.9 is not 76.9 of 80, it
+  // is what 61.5 of 80 comes to. With a component exempt the legend now shows
+  // the fraction and its result as two different numbers, which is the whole
+  // point of printing it.
   const exempt = result.exemptComponents ?? [];
-  const scale = exempt.length === 0
-    ? 'of 100'
-    : `scored over ${result.compositeOutOf.toFixed(0)} assessed points, ` +
-      `${exempt.map((c) => COMPONENT_LABELS[c].toLowerCase()).join(' and ')} exempt`;
-  $('meter-legend').textContent =
-    `${result.composite.toFixed(1)} ${scale} · the mark is ` +
-    `${result.passingComposite.toFixed(1)}`;
+  $('meter-legend').textContent = exempt.length === 0
+    ? `${result.composite.toFixed(1)} of 100 · the mark is ` +
+      `${result.passingComposite.toFixed(1)}`
+    : `${result.compositeEarned.toFixed(1)} of ${result.compositeOutOf.toFixed(0)} ` +
+      `assessed points → ${result.composite.toFixed(1)} · the mark is ` +
+      `${result.passingComposite.toFixed(1)}`;
+
+  showExemptExplainer(result, exempt);
 
   // One line of targeting, which is the point of building this over the public
   // calculators. Only shown on a fail: a passing cadet does not need advice.
@@ -2157,6 +2161,66 @@ function renderScoreboard(result) {
     line.textContent = analyzer.analyzeGap(result).summary;
     line.hidden = false;
   }
+}
+
+/**
+ * Say the two things an exempt component does to a composite.
+ *
+ * Someone reading a scoreboard sees a number and a rating. When a component is
+ * exempt, neither is quite what it looks like:
+ *
+ *   The number was divided by something other than 100. Para 3.7.1 puts 100
+ *   points on the board across four components; exempting one takes its points
+ *   out of both the earned total and the divisor, and para 3.7.3 says outright
+ *   that a passed walk is "calculated based on the assessed components in the
+ *   same way the score will be calculated if the member were exempt from the
+ *   cardiorespiratory component". So the arithmetic is printed rather than
+ *   asserted: the reader can check it.
+ *
+ *   The rating cannot be Excellent. Para 3.6.1 names the three categories
+ *   "when assessing all components" and para 3.10.1 gives Excellent to members
+ *   "without any component exemptions". A 92 that records as Satisfactory is
+ *   the single most confusing thing this tool can put on screen, so it is
+ *   spelled out whether or not the composite actually got there.
+ */
+function showExemptExplainer(result, exempt) {
+  const box = $('exempt-explainer');
+  if (exempt.length === 0) {
+    box.hidden = true;
+    return;
+  }
+
+  const names = exempt.map((c) => COMPONENT_LABELS[c].toLowerCase());
+  const list = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+  const assessed = COMPONENTS.length - exempt.length;
+  const sitting = exempt.length === 1 ? 'is exempt' : 'are exempt';
+
+  $('exempt-headline').textContent =
+    `${list.charAt(0).toUpperCase()}${list.slice(1)} ${sitting}, so this composite ` +
+    `was earned over ${assessed} component${assessed === 1 ? '' : 's'}, not four.`;
+
+  // Written as the division it is. The multiplication by 100 is named because
+  // without it the fraction looks like it should already be the composite.
+  $('exempt-math').textContent =
+    `${result.compositeEarned.toFixed(1)} points earned ÷ ` +
+    `${result.compositeOutOf.toFixed(0)} points available × 100 = ` +
+    `${result.composite.toFixed(1)}. An exempt component leaves the total on ` +
+    'both sides, so the remaining components are scaled back up to 100 ' +
+    '(DAFMAN 36-2905 para 3.7.1 and 3.7.3).';
+
+  const cap = $('exempt-cap');
+  cap.textContent = result.excellentWithheld
+    ? `${result.composite.toFixed(1)} would be Excellent on a full assessment. ` +
+      'It records as Satisfactory: para 3.6.1 names the three categories "when ' +
+      'assessing all components", and para 3.10.1 gives Excellent only to members ' +
+      '"without any component exemptions".'
+    : 'Excellent is not available on this assessment, whatever the composite ' +
+      'reaches. Para 3.6.1 names the three categories "when assessing all ' +
+      'components", and para 3.10.1 gives Excellent only to members "without any ' +
+      'component exemptions". Satisfactory is the best rating on offer here.';
+  cap.classList.toggle('withheld', result.excellentWithheld);
+
+  box.hidden = false;
 }
 
 function renderFailures(result) {

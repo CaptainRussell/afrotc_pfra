@@ -210,7 +210,10 @@ export const REFERENCES = Object.freeze({
     text: 'The 2-kilometer walk is a pass or fail assessment for members that are ' +
       'medically prohibited from assessing the 2.0mi run or 20m HAMR. No points are ' +
       'awarded for successful completion, nor can this assessment apply to the ' +
-      'Excellent PFRA score.'
+      'Excellent PFRA score. If a member passes the assessment, the member will have ' +
+      'a composite score calculated based on the assessed components in the same way ' +
+      'the score will be calculated if the member were exempt from the ' +
+      'cardiorespiratory component in accordance with paragraph 3.6.2.'
   },
   'dafman.3.6.2': {
     source: PUBLICATION.id,
@@ -221,8 +224,18 @@ export const REFERENCES = Object.freeze({
   'dafman.3.10.1': {
     source: PUBLICATION.id,
     paragraph: '3.10.1',
-    text: 'Members who meet the 2 kilometer walk standard in Table 3.1 are not ' +
-      'eligible for the Excellent category.'
+    text: 'Excellent (≥ 90) (Ready). All members scoring Excellent without any ' +
+      'component exemptions will be due again in 6 months. (ARC test once every 12 ' +
+      'months.) Note: Members who meet the 2 kilometer walk standard in Table 3.1, ' +
+      'are not eligible for this category.'
+  },
+  'dafman.3.10.2': {
+    source: PUBLICATION.id,
+    paragraph: '3.10.2',
+    text: 'Satisfactory (75-89.9) (Ready). All members scoring Satisfactory without ' +
+      'any component exemptions will be due again in 6 months (ARC test once every 12 ' +
+      'months) Note: Members who meet the 2 kilometer walk standard in Table 3.1, are ' +
+      'eligible for this category.'
   },
   'charts.walk': {
     source: CHARTS.id,
