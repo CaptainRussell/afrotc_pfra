@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=006ad130ec">
+<link rel="stylesheet" href="styles.css?v=96d751bb6e">
 </head>
 <body>
 
@@ -525,8 +525,8 @@
   <section id="results" class="results" hidden>
 
     <p class="print-only print-caveat">
-      Unofficial planning tool. Official scores come from the Fitness Assessment Cell
-      and the UFPM or MFL who administers the assessment.
+      Official scores come from the Fitness Assessment Cell and the UFPM or MFL who
+      administers the assessment.
     </p>
 
     <div class="card scoreboard" id="scoreboard">
@@ -555,6 +555,21 @@
       <p class="gap-line" id="gap-line" hidden></p>
     </div>
 
+    <!-- Screen only. The printed page is reached through this rather than
+         through the browser's own menu, because a cadet on a phone will not
+         find that menu and the result is the thing worth keeping. -->
+    <div class="result-actions">
+      <button type="button" class="secondary" id="print-result">Print Result</button>
+    </div>
+
+    <!-- Paper only, and built by renderPrintSummary().
+         On screen each component's measurement is in its own field and its
+         score in its own chip, spread down a form that print drops. On paper
+         there is no form, so the scoreboard would be a composite with nothing
+         behind it. This is that: what was entered and what it earned, four
+         rows, in the order the components are assessed. -->
+    <div class="print-only print-summary" id="print-summary"></div>
+
     <div class="card failures" id="failures" hidden>
       <h2>Why This Is Unsatisfactory</h2>
       <ul id="failure-list"></ul>
@@ -565,7 +580,7 @@
       <ul id="warning-list"></ul>
     </div>
 
-    <div class="card">
+    <div class="card" id="aim-card">
       <h2>Aim for a Score</h2>
       <p class="card-intro">Enter a composite you want and see what reaches it.</p>
       <div class="row target-row">
@@ -593,7 +608,7 @@
   <!-- ---------------------------------------------------------------- -->
   <!-- Folded away by default. It is worth knowing once, not reading every
        time a score is worked out, and none of it changes the arithmetic. -->
-  <section class="card">
+  <section class="card" id="proctor-card">
     <details class="pretest">
       <summary>
         <span class="pretest-title">PFRA Proctor Details</span>
@@ -843,6 +858,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=006ad130ec"></script>
+<script type="module" src="app.js?v=96d751bb6e"></script>
 </body>
 </html>

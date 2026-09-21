@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=006ad130ec';
-import { createAnalyzer } from './src/analysis.js?v=006ad130ec';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=006ad130ec';
+} from './src/engine.js?v=96d751bb6e';
+import { createAnalyzer } from './src/analysis.js?v=96d751bb6e';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=96d751bb6e';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=006ad130ec').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=96d751bb6e').then((r) => r.json());
   return { data };
 }
 
@@ -218,7 +218,9 @@ async function boot() {
   }
 
   $('reset-all').addEventListener('click', resetAll);
-  setupPrinting();
+  // A cadet reading this on a phone will not go looking through the browser
+  // menu for Print, and the result is the part worth keeping.
+  $('print-result').addEventListener('click', () => window.print());
 
   setupDocuments();
   showEventDocs();
@@ -816,6 +818,7 @@ function update() {
   }
 
   renderScoreboard(result);
+  renderPrintSummary(result);
   renderFailures(result);
   renderWarnings(result);
   renderReferences(result);
@@ -2250,6 +2253,108 @@ function showExemptExplainer(result, exempt) {
   box.hidden = false;
 }
 
+/* --- the printed component table ------------------------------------------
+ *
+ * On screen the assessment reads itself: each measurement sits in the field it
+ * was typed into and each score in the chip beside it. Print drops the whole
+ * form, because a form is a thing to fill in and paper is not, which left the
+ * printed page carrying a composite and nothing that made it.
+ *
+ * This is what the form was saying, in four rows: what the member did, and
+ * what it earned. It is built here rather than written in the markup because
+ * every cell of it depends on the result, down to which events were assessed.
+ */
+
+/** What the member actually did, in the unit the event is recorded in. */
+function describeMeasured(component, scored) {
+  if (scored.status === 'dns') return 'Did not start';
+  if (scored.status === 'dnf') return 'Did not finish';
+
+  const measured = scored.measured;
+  if (!measured) return scored.status === 'exempt' ? 'Not assessed' : '--';
+
+  // The walk is a time against a maximum rather than a time worth points, so
+  // the maximum goes beside it: the number alone says nothing on paper.
+  if (scored.walk) return `${measured.time} of ${scored.walk.maxTime} allowed`;
+
+  if (measured.ratio != null) {
+    return measured.waistInches == null
+      ? `Ratio ${measured.ratio.toFixed(2)}`
+      : `${measured.waistInches.toFixed(1)} in waist, ` +
+        `${measured.heightInches.toFixed(1)} in height, ratio ${measured.ratio.toFixed(2)}`;
+  }
+  if (measured.reps != null) return `${measured.reps} reps`;
+  if (measured.shuttles != null) {
+    // The count is what scores; the level is what the tally sheet is read in,
+    // and a scorer checking this against the sheet needs both.
+    const place = measured.hamrLevel;
+    return place
+      ? `${measured.shuttles} shuttles (level ${place.level}, shuttle ${place.shuttleInLevel})`
+      : `${measured.shuttles} shuttles`;
+  }
+  if (measured.time != null) return measured.time;
+  return '--';
+}
+
+/** What it was worth, in the terms that component is scored in. */
+function describeEarned(scored) {
+  if (scored.status === 'exempt' && !scored.walk) return 'Exempt';
+  if (scored.walk) return scored.walk.passed ? 'Pass' : 'Fail';
+  return `${scored.points.toFixed(1)} / ${scored.maxPoints.toFixed(0)}`;
+}
+
+function renderPrintSummary(result) {
+  const host = $('print-summary');
+  host.replaceChildren();
+
+  const table = el('table', 'print-table');
+  const head = el('tr');
+  for (const [label, className] of [['Component', null], ['Event', null],
+    ['Measured', null], ['Score', 'num']]) {
+    head.append(el('th', className, label));
+  }
+  const thead = el('thead');
+  thead.append(head);
+  table.append(thead);
+
+  const body = el('tbody');
+  for (const component of COMPONENTS) {
+    const scored = result.components[component];
+    const row = el('tr');
+    row.append(el('td', null, COMPONENT_LABELS[component]));
+    row.append(el('td', null, scored.eventLabel));
+    row.append(el('td', null, describeMeasured(component, scored)));
+    row.append(el('td', 'num', describeEarned(scored)));
+    body.append(row);
+  }
+  table.append(body);
+
+  // The same two numbers the meter legend carries, on the row that adds the
+  // column up. With a component exempt these are not the composite, which is
+  // why the composite is printed above rather than in this column.
+  const foot = el('tr', 'print-total');
+  foot.append(el('td', null, 'Composite'));
+  foot.append(el('td', null, ''));
+  foot.append(el('td', null, result.exemptComponents.length === 0
+    ? `${result.compositeEarned.toFixed(1)} of 100 points`
+    : `${result.compositeEarned.toFixed(1)} of ${result.compositeOutOf.toFixed(0)} ` +
+      'assessed points'));
+  foot.append(el('td', 'num', `${result.compositeText} · ${result.rating}`));
+  const tfoot = el('tfoot');
+  tfoot.append(foot);
+  table.append(tfoot);
+
+  host.append(table);
+
+  // A record leaving the device wants a date on it. Printed rather than
+  // entered: this is when the sheet was made, not when the member was tested,
+  // and saying so stops it being read as the assessment date.
+  host.append(el('p', 'print-printed',
+    `Printed ${new Date().toLocaleDateString(undefined, {
+      year: 'numeric', month: 'long', day: 'numeric'
+    })}.`));
+}
+
 function renderFailures(result) {
   const card = $('failures');
   const list = $('failure-list');
@@ -2376,31 +2481,14 @@ function renderReferences(result) {
   host.append(pub);
 }
 
-/**
- * Open the folded panels while printing, then put them back.
- *
- * CSS cannot open a <details>, and a printed record with its working folded
- * away would be useless to a scorer checking a lookup.
+/*
+ * There was a setupPrinting() here that opened the folded reference list on
+ * beforeprint, so a scorer could check a lookup against the paragraph it came
+ * from. The printed page is now one sheet, and twenty quoted paragraphs is
+ * four of them; the reference list is hidden in print instead, and the working
+ * a scorer actually needs -- what was measured and what it scored -- is in the
+ * component table, which is on the sheet rather than folded anywhere.
  */
-function setupPrinting() {
-  let reopened = [];
-
-  const expand = () => {
-    reopened = [...document.querySelectorAll('details.foldable')].filter((d) => !d.open);
-    for (const panel of reopened) panel.open = true;
-  };
-  const restore = () => {
-    for (const panel of reopened) panel.open = false;
-    reopened = [];
-  };
-
-  window.addEventListener('beforeprint', expand);
-  window.addEventListener('afterprint', restore);
-
-  // Safari and some older engines only fire the media query, not the events.
-  const query = window.matchMedia('print');
-  query.addEventListener?.('change', (event) => (event.matches ? expand() : restore()));
-}
 
 // --- reference documents ---------------------------------------------------
 

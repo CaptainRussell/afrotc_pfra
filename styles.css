@@ -1169,6 +1169,12 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 
 .band { color: var(--ink-soft); font-size: .85rem; margin-top: 2px; }
 
+/* Under the scoreboard rather than in it: the card is the result, and this is
+ * something to do with the result. Full width on a phone, where it is the only
+ * way to the printed sheet. */
+.result-actions { display: flex; justify-content: center; }
+.result-actions button { width: 100%; max-width: 320px; }
+
 /* --- what an exempt component does to the composite ------------------------
  *
  * The scoreboard is centred, because a composite is one big number. This is
@@ -1531,24 +1537,30 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
     break-inside: avoid;
   }
 
-  /* Everything a reader cannot act on from paper. */
+  /* Everything a reader cannot act on from paper, and everything that would
+   * push the record onto a second sheet. The reference list is twenty quoted
+   * paragraphs and the proctor details a page of their own: both are worth
+   * reading once on screen and neither is part of a member's result. What a
+   * scorer needs to check the arithmetic is the component table, which is on
+   * the sheet. */
   form#assessment,
   .tally,
   .swap,
   .not-done,
   .event-picker,
   .documents,
-  .target-row,
-  #target-plans,
-  #target-error,
-  .foldable summary::after,
+  .result-actions,
+  #aim-card,
+  #proctor-card,
+  .foldable,
   .footer-patch { display: none !important; }
 
   .print-only { display: block; }
   .print-caveat {
     border: 1px solid #000;
-    padding: 5pt 8pt;
-    font-size: 9pt;
+    padding: 4pt 7pt;
+    font-size: 8.5pt;
+    line-height: 1.35;
     font-weight: 700;
   }
 
@@ -1574,13 +1586,103 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   .failures { border-left: 3pt solid #000; background: none; }
   .failures h2 { color: #000; }
 
+  /* --- the component table ---------------------------------------------
+   * The scoreboard says what the assessment came to; this says how. Ruled
+   * rather than boxed, because it is read across a row.
+   */
+  .print-summary { margin-top: 8pt; }
+
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.5pt;
+  }
+  .print-table th,
+  .print-table td {
+    padding: 3.5pt 6pt;
+    text-align: left;
+    vertical-align: baseline;
+    border-bottom: .5pt solid #999;
+  }
+  .print-table th {
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    border-bottom: 1pt solid #000;
+  }
+  /* Scores line up on the right and share a digit width, so a column of them
+   * can be read down rather than one at a time. */
+  .print-table .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .print-table td:first-child { font-weight: 600; }
+  .print-table tfoot .print-total td {
+    border-top: 1pt solid #000;
+    border-bottom: none;
+    font-weight: 700;
+  }
+
+  .print-printed {
+    margin-top: 6pt;
+    font-size: 8pt;
+    color: #444;
+  }
+
+  /* One sheet.
+   *
+   * The budget is a US Letter page less its margins, which is about 965
+   * device pixels of height. The worst case is a failing assessment with a
+   * component exempt: scoreboard, exemption panel, component table, the
+   * failures list and the warnings card, all at once. Sized against that,
+   * so everything lighter fits with room over.
+   *
+   * These are the blocks that carry screen spacing into print, where the
+   * type is already smaller and the gaps no longer earn their height. */
+  main { gap: 5pt; }
+  .card { padding: 6pt 8pt; break-inside: avoid; }
+  .composite { font-size: 23pt; margin: 2pt 0 4pt; }
+  .scoreboard-label { font-size: 7.5pt; }
+  .verdict { padding: 1.5pt 7pt; font-size: 8.5pt; }
+  .band { font-size: 8.5pt; }
+  .meter { height: 7pt; margin-top: 4pt; }
+  .meter-legend { margin-top: 4pt; font-size: 8.5pt; }
+  .exempt-explainer { margin-top: 6pt; padding: 5pt 7pt; gap: 2pt; }
+  .exempt-headline { font-size: 8.5pt; line-height: 1.35; }
+  .exempt-math, .exempt-cap { font-size: 7.5pt; line-height: 1.35; }
+  .award-line, .gap-line { font-size: 8.5pt; margin-top: 5pt; padding: 4pt 7pt; }
+  .failures ul, #warnings-card ul { margin-top: 4pt; font-size: 8.5pt; }
+  .failures li, #warnings-card li { line-height: 1.35; }
+  .failures h2, #warnings-card h2 { font-size: 9.5pt; }
+  .masthead { padding: 0 0 4pt; }
+  .masthead h1 { font-size: 13pt; }
+  .mark { width: 24pt; height: 25pt; }
+
+  /* The footer keeps the provenance and drops the decoration. Which edition
+   * of the DAFMAN and which scoring charts a number was worked out against
+   * is the one thing on a printed record that cannot be re-derived from it;
+   * the motto and the byline are the page's, not the member's. */
+  .motto,
+  .created-by { display: none !important; }
+  footer { padding: 5pt 0 0; font-size: 7.5pt; }
+  .footer-note { font-size: 8pt; }
+  .source-line { font-size: 7.5pt; padding: 4pt 0 0; line-height: 1.4; }
+
 
   footer { border-top: 1px solid #999; padding: 8pt 0 0; }
   .motto, .footer-note, .created-by { color: #000; }
 
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 8pt; word-break: break-all; }
 
-  @page { margin: 12mm; }
+  /* 10mm rather than 12: a US Letter page at 12mm leaves about 965 device
+   * pixels, and the worst case -- a failing assessment with a component
+   * exempt, so scoreboard, exemption panel, table, failures and warnings all
+   * at once -- came to 961 of them. Four pixels is not headroom. This buys
+   * enough for a fifth failure line without shrinking type that is already
+   * at 7.5pt. Every printer here takes a 10mm margin. */
+  @page { margin: 10mm; }
 }
 
 /* --- secondary body fat assessment ----------------------------------------
