@@ -18,14 +18,14 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=890c765ad2';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=3b6f79adf8';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
  * Thin air costs time, so above 5,250 feet the manual gives it back: seconds
  * off a run, shuttles onto a HAMR, and a later maximum for the walk. Below that
  * there is no correction at all, which is why this returns null rather than a
- * zero group — "no correction applies" and "a correction of zero" are different
+ * zero group. "No correction applies" and "a correction of zero" are different
  * things to say on screen.
  *
  * Det 250 assesses at Ames, about 955 feet, so this never fires for a cadet.
@@ -127,7 +127,7 @@ const PASSING_STATUSES = Object.freeze([STATUS.SCORED, STATUS.EXEMPT]);
  *
  * Body composition is first because the waist measurement is taken before any
  * exercise; the three events then run in the order they are administered.
- * Scoring does not depend on this — the composite is a sum — but every list the
+ * Scoring does not depend on this, since the composite is a sum, but every list the
  * page builds does, so there is one order and this is it.
  */
 export const COMPONENTS = Object.freeze([
@@ -676,7 +676,7 @@ function scoreRunComponent(data, { component, event, sex, band, seconds, status,
 /**
  * The 2 kilometer walk: pass or fail, and worth no points at all.
  *
- * Para 3.7.3 is explicit — "No points are awarded for successful completion,
+ * Para 3.7.3 is explicit: "No points are awarded for successful completion,
  * nor can this assessment apply to the Excellent PFRA score." A member on the
  * walk is component exempt for cardiorespiratory (para 3.6.2), so the component
  * contributes nothing and fails nothing; what it does carry is a maximum time,

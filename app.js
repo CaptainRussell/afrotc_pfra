@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=890c765ad2';
-import { createAnalyzer } from './src/analysis.js?v=890c765ad2';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=890c765ad2';
+} from './src/engine.js?v=3b6f79adf8';
+import { createAnalyzer } from './src/analysis.js?v=3b6f79adf8';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=3b6f79adf8';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=890c765ad2').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=3b6f79adf8').then((r) => r.json());
   return { data };
 }
 
@@ -1216,7 +1216,7 @@ function renderSliders(band) {
         altitudeGroup: $('altitude-group').value || null })
       : null;
 
-    // No chart yet, or — for the waist — no height, so there is no way to turn
+    // No chart yet, or, for the waist, no height, so there is no way to turn
     // a ratio into the inches a slider would have to move through. A declared
     // DNS or DNF hides it too: there is no measurement left to adjust.
     const bestValue = kind === 'ratio' ? range?.best.waistInches : range?.best.value;
@@ -1495,7 +1495,7 @@ function showTally(result, ready) {
 
   if (!result) {
     tally.hidden = ready.size === 0;
-    score.textContent = '—';
+    score.textContent = '–';
     text.textContent = 'Add your age and sex to start scoring';
     tally.className = 'tally';
     return;
@@ -1726,7 +1726,7 @@ function onPlan() {
       for (const step of entry.steps) {
         list.append(el('li', null,
           `${step.eventLabel}: ${describeEffort(step.rung)} ` +
-          `— reach ${describeReach(step.rung)} for ${step.rung.points.toFixed(1)} points`));
+          `to reach ${describeReach(step.rung)} for ${step.rung.points.toFixed(1)} points`));
       }
       box.append(list);
       box.append(el('p', 'plan-total', `Reaches ${entry.total.toFixed(1)}.`));
@@ -1796,8 +1796,8 @@ function setupPrinting() {
  *
  * A PDF only gets an inline viewer if a browser can actually render it. The
  * scoring charts can. The two AF forms are XFA (Adobe LiveCycle) documents,
- * which no browser renders — they show only their own "requires Adobe Reader"
- * placeholder — so they are download-only until a flattened copy exists.
+ * which no browser renders: they show only their own "requires Adobe Reader"
+ * placeholder, so they are download-only until a flattened copy exists.
  *
  * If one does, `data-flat` points at it and this picks it up: the download
  * switches to the flattened file and the View button appears. Nothing here

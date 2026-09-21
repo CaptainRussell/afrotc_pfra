@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AFROTC PFRA Calculator — Det 250</title>
+<title>AFROTC PFRA Calculator, Det 250</title>
 <meta name="description" content="Unofficial PFRA score calculator for AFROTC Detachment 250 cadets at Iowa State University.">
 <meta name="color-scheme" content="light dark">
 <link rel="icon" href="assets/det250-patch-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=890c765ad2">
+<link rel="stylesheet" href="styles.css?v=3b6f79adf8">
 </head>
 <body>
 
@@ -72,7 +72,7 @@
       </select>
     </div>
 
-    <!-- Body composition — measured first ----------------------------- -->
+    <!-- Body composition, measured first ----------------------------- -->
     <section class="event" data-component="body_composition">
       <div class="event-head">
         <h2>Waist to height (WHtR)</h2>
@@ -287,7 +287,7 @@
       <div class="event-picker" id="altitude-panel" hidden>
         <label for="altitude-group">Test altitude</label>
         <select id="altitude-group">
-          <option value="">Below 5,250 ft &mdash; no correction</option>
+          <option value="">Below 5,250 ft: no correction</option>
         </select>
         <p class="hint" id="altitude-note">
           DAFMAN 36-2905 Attachment 3. No correction applies below 5,250 feet,
@@ -366,7 +366,7 @@
           <div>
             <p class="document-name">HAMR pacing audio</p>
             <p class="document-note">
-              The official beep track the shuttle run is paced to. 9 MB &mdash;
+              The official beep track the shuttle run is paced to. 9 MB, so
               download it before test day rather than streaming it on the field.
             </p>
           </div>
@@ -412,7 +412,7 @@
 
     <div class="card scoreboard" id="scoreboard">
       <p class="scoreboard-label">Composite</p>
-      <p class="composite" id="composite">&mdash;</p>
+      <p class="composite" id="composite">&ndash;</p>
       <p class="verdict" id="verdict"></p>
       <p class="band" id="band"></p>
       <div class="meter meter-composite" id="meter-composite" role="progressbar"
@@ -484,7 +484,7 @@
         <h3>An AED has to be there</h3>
         <p>
           Official assessments and PT are run with an automated external
-          defibrillator present &mdash; inside the building or within 100 feet &mdash;
+          defibrillator present, inside the building or within 100 feet,
           and it stays on site until everyone has left the area. If there is no
           AED, the assessment does not run.
         </p>
@@ -519,7 +519,7 @@
         <p>
           Cadets are deferred from the assessment while on Medical Restriction
           Status. On release there is a <strong>42 day reconditioning
-          period</strong>, and you cannot be made to test during it &mdash; though
+          period</strong>, and you cannot be made to test during it, though
           you may choose to, in which case the assessment counts. The
           requirement is to pass no later than the <strong>60th calendar
           day</strong> after removal from MRS.
@@ -547,7 +547,7 @@
           you are giving up the 42 days.
         </p>
         <p class="pretest-cite">
-          AFROTC Supplement para 5.5.1.4 &mdash; from the 2023 supplement, which is
+          AFROTC Supplement para 5.5.1.4, from the 2023 supplement, which is
           awaiting revision. Nothing newer replaces it.
         </p>
       </div>
@@ -587,7 +587,7 @@
     <div class="document">
       <div class="document-head">
         <div>
-          <p class="document-name">AF Form 4446 &ndash; Scorecard</p>
+          <p class="document-name">AF Form 4446 - Scorecard</p>
           <p class="document-note">The scorecard you sign.</p>
         </div>
         <div class="document-actions">
@@ -605,7 +605,7 @@
     <div class="document">
       <div class="document-head">
         <div>
-          <p class="document-name">AF Form 4446A &ndash; FSQ</p>
+          <p class="document-name">AF Form 4446A - FSQ</p>
           <p class="document-note">Fitness Screening Questionnaire.</p>
         </div>
         <div class="document-actions">
@@ -623,9 +623,9 @@
     <div class="document">
       <div class="document-head">
         <div>
-          <p class="document-name">DAFMAN 36-2905 &ndash; AFROTC Supplement</p>
+          <p class="document-name">DAFMAN 36-2905 - AFROTC Supplement</p>
           <p class="document-note">
-            28 April 2023, and <strong>awaiting revision</strong> &mdash; NOTACC
+            28 April 2023, and <strong>awaiting revision</strong>. NOTACC
             CY26-092 states HQ AFROTC will rewrite it for the new assessment. It
             still describes a 1.5 mile run and BMI. Read it for AFROTC
             administration nothing newer covers, not for what is tested.
@@ -644,7 +644,7 @@
     <div class="document">
       <div class="document-head">
         <div>
-          <p class="document-name">AFROTCI 36-2011 Volume 3 &ndash; Cadet Operations</p>
+          <p class="document-name">AFROTCI 36-2011 Volume 3 - Cadet Operations</p>
           <p class="document-note">
             24 June 2026. The AFROTC side of the assessment: what a PFA is worth,
             what failing one costs, and the Fitness Award in Table 15.1.
@@ -701,7 +701,7 @@
 <!-- Running total, always in reach on a phone -------------------------- -->
 <div class="tally" id="tally" hidden>
   <button type="button" class="tally-inner" id="tally-button">
-    <span class="tally-score" id="tally-score">&mdash;</span>
+    <span class="tally-score" id="tally-score">&ndash;</span>
     <span class="tally-text" id="tally-text">Fill in your numbers</span>
     <span class="tally-go" aria-hidden="true">&#8595;</span>
   </button>
@@ -723,6 +723,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=890c765ad2"></script>
+<script type="module" src="app.js?v=3b6f79adf8"></script>
 </body>
 </html>
