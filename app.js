@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=15f69bf33c';
-import { createAnalyzer } from './src/analysis.js?v=15f69bf33c';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=15f69bf33c';
+} from './src/engine.js?v=25cf549490';
+import { createAnalyzer } from './src/analysis.js?v=25cf549490';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=25cf549490';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=15f69bf33c').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=25cf549490').then((r) => r.json());
   return { data };
 }
 
@@ -1957,22 +1957,32 @@ function showTally(result, ready) {
   }
 
   tally.hidden = false;
-  // Only count what the cadet has actually entered. Components still blank are
-  // standing in as DNS, and their zeros are not a score anyone has earned yet.
-  const tenths = [...ready].reduce(
-    (acc, c) => acc + Math.round(result.components[c].points * 10), 0);
-  animateTo(score, tenths / 10);
-
   const remaining = COMPONENTS.length - ready.size;
+
   if (remaining > 0) {
+    // Only count what the cadet has actually entered. Components still blank
+    // are standing in as DNS, and their zeros are not a score anyone has
+    // earned yet. There is no composite to show either, because a composite
+    // is worked out over the components that were assessed and some of them
+    // have not been.
+    const tenths = [...ready].reduce(
+      (acc, c) => acc + Math.round(result.components[c].points * 10), 0);
+    animateTo(score, tenths / 10);
     const missing = COMPONENTS.filter((c) => !ready.has(c))
       .map((c) => COMPONENT_LABELS[c].toLowerCase());
     text.textContent = `so far · still need ${missing.join(', ')}`;
     tally.className = 'tally';
-  } else {
-    text.textContent = `${result.rating} · tap for the breakdown`;
-    tally.className = `tally ${result.pass ? 'is-pass' : 'is-fail'}`;
+    return;
   }
+
+  // Once everything is in, show the composite rather than the points earned.
+  // The two are the same number until something is exempt, and then they are
+  // not: a member whose body composition is exempt on a passed BFA earns 61.5
+  // points and composites 76.9, and a footer reading "61.5 - Satisfactory"
+  // beside a scoreboard reading 76.9 invites exactly the wrong conclusion.
+  animateTo(score, result.composite);
+  text.textContent = `${result.rating} · tap for the breakdown`;
+  tally.className = `tally ${result.pass ? 'is-pass' : 'is-fail'}`;
 }
 
 /**
