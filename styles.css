@@ -1534,3 +1534,110 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
 
   @page { margin: 12mm; }
 }
+
+/* --- secondary body fat assessment ----------------------------------------
+ *
+ * Only on screen when the waist to height ratio reaches 0.55, so it is styled
+ * as an alert that opened rather than as another field in the card. The gold
+ * edge is the same one the form uses to mean "this needs your attention".
+ */
+.bfa {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--gold-deep);
+  border-left: 4px solid var(--gold);
+  border-radius: 8px;
+  background: var(--warn-bg);
+}
+
+.bfa-trigger {
+  margin: 0;
+  font-size: .82rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.bfa-body {
+  display: grid;
+  gap: 10px;
+}
+
+.bfa-methods {
+  display: flex;
+  gap: 8px;
+}
+
+.bfa-method {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bfa-method.on {
+  border-color: var(--gold);
+  background: var(--page);
+  color: var(--ink);
+}
+
+.bfa-fields {
+  gap: 10px;
+}
+
+.bfa-result {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--page);
+}
+
+.bfa-verdict {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.bfa-verdict.pass { color: var(--pass); }
+.bfa-verdict.fail { color: var(--fail); }
+
+.bfa-working {
+  margin: 0;
+  font-size: .76rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.bfa-note {
+  margin: 0;
+  font-size: .76rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.bfa-apply {
+  padding: 11px 14px;
+  border: 1px solid var(--pass);
+  border-radius: 8px;
+  background: var(--pass-bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: .85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bfa-apply.on {
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-soft);
+}

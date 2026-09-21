@@ -18,7 +18,7 @@
  * against the published charts by tests/verify_charts.py.
  */
 
-import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=17644a63a3';
+import { PUBLICATION, CHARTS, NOTACC, resolveReferences } from './references.js?v=15f69bf33c';
 
 /* --- altitude time correction (DAFMAN 36-2905 Attachment 3) ---------------
  *
@@ -870,6 +870,228 @@ function scoreWhtrComponent(data, { component, event, waistInches, heightInches,
   });
 }
 
+/* --- body fat assessment (DAFMAN 36-2905 Attachment 8, 9 and 10) ----------
+ *
+ * The BFA is the second look at body composition, and the only one that can
+ * turn a failed waist to height ratio into a pass. Para 3.15.4.7 calls for one
+ * when a member's ratio is 0.55 or higher and they are not meeting PFRA
+ * standards, taken on an InBody bio-impedance scale where there is one and by
+ * the tape method of Attachment 8 where there is not, by an administrator of
+ * the same sex. Para 3.7.2 makes it pass or fail: a member who meets the
+ * standard has body composition scored as an exempt component, and one who
+ * does not receives an unsatisfactory PFRA outright.
+ *
+ * The consequence of that exemption is arithmetic rather than cosmetic. An
+ * exempt body composition takes its 20 points out of the divisor, so the
+ * composite is earned over 80 rather than 100, and a member whose other three
+ * components total between 60.0 and 62.4 points passes on the BFA having
+ * failed on the ratio.
+ *
+ * Tape measurements follow Attachment 8: the neck rounds up to the quarter
+ * inch and every other site rounds down, which is the conservative direction
+ * in both cases. The circumference value is the abdomen less the neck for men
+ * and the waist plus the buttocks less the neck for women. That value and the
+ * member's height index the tables at Attachment 9 and Attachment 10.
+ */
+
+/** Round up to the nearest quarter inch. Attachment 8, neck. */
+function quarterUp(value) {
+  return Math.ceil(roundTo(value, 4) * 4) / 4;
+}
+
+/** Round down to the nearest quarter inch. Attachment 8, every other site. */
+function quarterDown(value) {
+  return Math.floor(roundTo(value, 4) * 4) / 4;
+}
+
+/**
+ * The circumference value a tape measurement produces, with each site rounded
+ * the way Attachment 8 requires.
+ */
+export function circumferenceValueFor(sex, { neckInches, abdomenInches, waistInches, buttocksInches }) {
+  const normalized = normalizeSex(sex);
+  if (!(neckInches > 0)) throw new RangeError('a body fat assessment needs a neck measurement');
+  const neck = quarterUp(neckInches);
+
+  if (normalized === 'M') {
+    if (!(abdomenInches > 0)) {
+      throw new RangeError('a male body fat assessment needs an abdomen measurement');
+    }
+    const abdomen = quarterDown(abdomenInches);
+    return {
+      sex: normalized,
+      sites: { neckInches: neck, abdomenInches: abdomen },
+      value: roundTo(abdomen - neck, 2),
+      arithmetic: `${abdomen} inch abdomen minus ${neck} inch neck`
+    };
+  }
+
+  if (!(waistInches > 0) || !(buttocksInches > 0)) {
+    throw new RangeError('a female body fat assessment needs waist and buttocks measurements');
+  }
+  const waist = quarterDown(waistInches);
+  const buttocks = quarterDown(buttocksInches);
+  return {
+    sex: normalized,
+    sites: { neckInches: neck, waistInches: waist, buttocksInches: buttocks },
+    value: roundTo(waist + buttocks - neck, 2),
+    arithmetic: `${waist} inch waist plus ${buttocks} inch buttocks minus ${neck} inch neck`
+  };
+}
+
+/** Where a value sits on one of the packed axes, and whether it ran off an end. */
+function axisIndex(axis, value) {
+  const raw = Math.round((value - axis.start) / axis.step);
+  const index = Math.min(Math.max(raw, 0), axis.count - 1);
+  return {
+    index,
+    used: roundTo(axis.start + axis.step * index, 2),
+    below: raw < 0,
+    above: raw > axis.count - 1
+  };
+}
+
+/** The last value on a packed axis. */
+function axisEnd(axis) {
+  return roundTo(axis.start + axis.step * (axis.count - 1), 2);
+}
+
+/**
+ * Read one cell out of a packed column.
+ *
+ * A column is its value at the first circumference plus one step entry per
+ * point gained, so the percentage is the base plus the number of entries at or
+ * below this index. The entries are sorted, so that is a binary search.
+ */
+function packedCell(column, circIndex) {
+  const steps = column.steps;
+  let lo = 0;
+  let hi = steps.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (steps[mid] <= circIndex) lo = mid + 1;
+    else hi = mid;
+  }
+  return column.base + lo;
+}
+
+/**
+ * Body fat percent for a circumference value and a height, off Attachment 9
+ * for men or Attachment 10 for women.
+ */
+export function bodyFatPercent(data, { sex, heightInches, circumferenceValue }) {
+  const normalized = normalizeSex(sex);
+  const table = data.body_fat && data.body_fat.tables
+    ? data.body_fat.tables[normalized === 'M' ? 'male' : 'female']
+    : null;
+  if (!table) throw new TypeError('the scoring data has no body fat tables');
+  if (!(heightInches > 0)) throw new RangeError('a body fat lookup needs a height');
+  if (circumferenceValue == null) {
+    throw new RangeError('a body fat lookup needs a circumference value');
+  }
+
+  const height = axisIndex(table.heights, Math.round(heightInches * 2) / 2);
+  const circ = axisIndex(table.circumferences, circumferenceValue);
+  const warnings = [];
+
+  if (height.below || height.above) {
+    warnings.push(
+      `The ${normalized === 'M' ? 'male' : 'female'} table is printed for heights ` +
+      `${table.heights.start} to ${axisEnd(table.heights)} inches, so ` +
+      `${roundTo(heightInches, 2)} inches is off the chart. This reads the ` +
+      `${height.used} inch column instead, which the manual does not authorise. ` +
+      'Work the lookup by hand.');
+  }
+  if (circ.below || circ.above) {
+    warnings.push(
+      `The table is printed for circumference values ${table.circumferences.start} ` +
+      `to ${axisEnd(table.circumferences)}, so ${circumferenceValue} is off the ` +
+      `chart. This reads the ${circ.used} row instead. Check the measurements.`);
+  }
+
+  const percent = packedCell(table.columns[height.index], circ.index);
+  const defects = data.body_fat.defects || [];
+  const defect = defects.find((d) =>
+    (d.sex === 'male') === (normalized === 'M')
+    && d.height === height.used
+    && d.circumference === circ.used) || null;
+  if (defect) {
+    warnings.push(
+      `The chart prints ${defect.printed} in this cell, which cannot be right. ` +
+      `${defect.note} This uses ${defect.used}.`);
+  }
+
+  return {
+    percent,
+    heightInches: height.used,
+    circumferenceValue: circ.used,
+    offChart: height.below || height.above || circ.below || circ.above,
+    defect,
+    warnings
+  };
+}
+
+/**
+ * A whole body fat assessment: measurements in, pass or fail out.
+ *
+ * `percent` may be supplied directly, which is the InBody path, or the tape
+ * sites may be supplied and the percentage looked up.
+ */
+export function bodyFatAssessment(data, input) {
+  const sex = normalizeSex(input.sex);
+  const standard = data.body_fat && data.body_fat.standards
+    ? data.body_fat.standards[sex]
+    : null;
+  if (standard == null) throw new TypeError('the scoring data has no body fat standards');
+
+  let percent;
+  let measured;
+  let lookup = null;
+  const warnings = [];
+
+  if (input.percent != null) {
+    // A bio-impedance scale reports the percentage itself, with no tape at all.
+    if (!(input.percent >= 0)) throw new RangeError('body fat percent must not be negative');
+    percent = input.percent;
+    measured = { method: 'bioimpedance', percent };
+  } else {
+    const circumference = circumferenceValueFor(sex, input);
+    lookup = bodyFatPercent(data, {
+      sex,
+      heightInches: input.heightInches,
+      circumferenceValue: circumference.value
+    });
+    percent = lookup.percent;
+    measured = {
+      method: 'tape',
+      sites: circumference.sites,
+      arithmetic: circumference.arithmetic,
+      heightInches: lookup.heightInches,
+      circumferenceValue: lookup.circumferenceValue
+    };
+    warnings.push(...lookup.warnings);
+  }
+
+  const pass = percent <= standard;
+  return Object.freeze({
+    sex,
+    percent,
+    standard,
+    pass,
+    measured: Object.freeze(measured),
+    lookup: lookup ? Object.freeze(lookup) : null,
+    explanation: pass
+      ? `${percent} percent body fat meets the ${standard} percent standard, so the BFA ` +
+        'passes. Under DAFMAN 36-2905 para 3.7.2 body composition is then scored as an ' +
+        'exempt component, and the composite is earned over the remaining 80 points.'
+      : `${percent} percent body fat exceeds the ${standard} percent standard, so the BFA ` +
+        'fails. Under DAFMAN 36-2905 para 3.7.2 that is an unsatisfactory PFRA.',
+    references: Object.freeze(resolveReferences(
+      ['dafman.3.15.4.7', 'dafman.3.7.2', 'dafman.table.3.2', 'dafman.attachment.8'])),
+    warnings: Object.freeze(warnings)
+  });
+}
+
 // --- component ranges ------------------------------------------------------
 
 /**
@@ -1394,6 +1616,12 @@ export function createScorer(data) {
     hamrLevel: (shuttles) => hamrLevelFor(data, shuttles),
     fitnessAward: (result) => fitnessAward(data, result),
     chartFor: (query) => chartFor(data, query),
+    /** Circumference value from tape measurements, per Attachment 8. */
+    circumferenceValue: (sex, sites) => circumferenceValueFor(sex, sites),
+    /** Body fat percent off Attachment 9 or Attachment 10. */
+    bodyFatPercent: (query) => bodyFatPercent(data, query),
+    /** A whole body fat assessment, measurements in and pass or fail out. */
+    bodyFatAssessment: (query) => bodyFatAssessment(data, query),
     data
   });
 }

@@ -149,7 +149,34 @@ export const REFERENCES = Object.freeze({
     source: PUBLICATION.id,
     paragraph: '3.15.4.7',
     text: 'A secondary BFA must be accomplished for members identified with a WHtR ' +
-      '≥ .55 and not meeting PFRA standards.'
+      '≥ .55 and not meeting PFRA standards using an InBody Bio-Impedance (BIA) ' +
+      'scale. If an InBody is not available, the BFA will be conducted using the ' +
+      '2-3 site tape method as described in Attachment 8. Note: Same sex is ' +
+      'required when administering this assessment.'
+  },
+  'dafman.3.7.2': {
+    source: PUBLICATION.id,
+    paragraph: '3.7.2',
+    text: 'BFA is a pass/fail assessment. If the member meets standards, the body ' +
+      'composition assessment will be scored as an exempt component. If the member ' +
+      'does not meet BFA standards, the member will receive an unsatisfactory score ' +
+      'on the PFRA.'
+  },
+  'dafman.table.3.2': {
+    source: PUBLICATION.id,
+    paragraph: 'Table 3.2',
+    text: 'Body Fat Assessment (BFA) Standards. Male Standard ≤ 26%. ' +
+      'Female Standard ≤ 36%.'
+  },
+  'dafman.attachment.8': {
+    source: PUBLICATION.id,
+    paragraph: 'Attachment 8',
+    text: 'Body Fat Assessment (BFA) Instructions. Round the neck measurement up to ' +
+      'the nearest quarter inch. Round the abdomen, waist and buttock measurements ' +
+      'down to the nearest quarter inch. Men subtract the neck from the abdomen; ' +
+      'women add the waist and buttocks then subtract the neck. Compare the ' +
+      'circumference value to the height in Attachment 9 (male) or Attachment 10 ' +
+      '(female).'
   },
   'dafman.3.15.11': {
     source: PUBLICATION.id,

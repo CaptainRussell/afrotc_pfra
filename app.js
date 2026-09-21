@@ -18,9 +18,9 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=17644a63a3';
-import { createAnalyzer } from './src/analysis.js?v=17644a63a3';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=17644a63a3';
+} from './src/engine.js?v=15f69bf33c';
+import { createAnalyzer } from './src/analysis.js?v=15f69bf33c';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=15f69bf33c';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +99,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=17644a63a3').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=15f69bf33c').then((r) => r.json());
   return { data };
 }
 
@@ -119,6 +119,7 @@ async function boot() {
   for (const button of document.querySelectorAll('.segment[data-role]')) {
     button.addEventListener('click', () => selectRole(button.dataset.role));
   }
+  wireBfa();
   for (const button of document.querySelectorAll('.exempt-toggle')) {
     button.addEventListener('click', () => {
       const component = button.dataset.exempt;
@@ -551,6 +552,7 @@ function resetAll() {
     $(id).disabled = false;
   }
 
+  resetBfa();
   $('altitude-group').value = '';
   closeAltitudePanel();
 
@@ -695,10 +697,9 @@ function readForm() {
  * full marks depend on it. So height leads, and the waist follows once height
  * is in.
  *
- * Falls back to the whole block when there is no slider to point at. The 2
- * kilometre walk is pass or fail and has none, and a component marked exempt
- * or did-not-finish has its slider hidden; a ring around nothing would be
- * worse than a ring around the card.
+ * Falls back to the whole block when there is no slider to point at: a
+ * component marked exempt or did-not-finish has its slider hidden, and a ring
+ * around nothing would be worse than a ring around the card.
  */
 function cueTargetFor(component) {
   const row = component === 'body_composition'
@@ -771,6 +772,7 @@ function update() {
     renderCharts(ageBand);
     showAltitudeApplied(null);
     showRatio(null);
+    showBfa(null, false);
     $('results').hidden = true;
     showTally(null, ready);
     return;
@@ -803,6 +805,7 @@ function update() {
   showTally(result, ready);
   showAltitudeApplied(lastResult);
   showRatio(lastResult);
+  showBfa(lastResult, complete);
 
   if (!complete) {
     $('results').hidden = true;
@@ -1208,6 +1211,280 @@ function fieldsOf(component) {
   return Array.isArray(control.field) ? control.field : [control.field];
 }
 
+/* --- the secondary body fat assessment ------------------------------------
+ *
+ * DAFMAN 36-2905 para 3.15.4.7 calls for a BFA when a member's waist to height
+ * ratio is 0.55 or higher and they are not meeting PFRA standards. Para 3.7.2
+ * makes it pass or fail, and a pass has body composition scored as an exempt
+ * component, which takes its 20 points out of the divisor. That is a score
+ * change and not a footnote: a member whose other three components total
+ * between 60.0 and 62.4 points fails on the ratio and passes on the BFA.
+ *
+ * The panel stays out of sight until the ratio reaches 0.55, which is the
+ * only point at which any of this applies, and then says which of the two
+ * states the member is in: already failing, so a BFA is required, or not yet
+ * finished, so one may be.
+ *
+ * Applying the pass sets the component's status the way the Exempt button
+ * does, but it leaves the height and waist fields alone, because the ratio
+ * that triggered the BFA is still worth reading. The ratio is kept here for
+ * the same reason: once the component is exempt the engine stops returning
+ * one, and the panel would otherwise close the moment it was used. Editing
+ * either measurement drops the applied state, so the kept ratio can never go
+ * stale behind a changed waist.
+ */
+
+/** The ratio at which para 3.15.4.7 starts to apply. */
+const BFA_RATIO = 0.55;
+
+/** What the BFA panel is holding, independent of the fields it came from. */
+const bfa = { method: 'scale', applied: false, ratio: null };
+
+/** The measurements the chosen method needs, or null if they are not all in. */
+function bfaMeasurements(sexCode) {
+  if (bfa.method === 'scale') {
+    const percent = decimal('bfa-percent');
+    return percent === null || percent === undefined || percent < 0
+      ? null
+      : { sex: sexCode, percent };
+  }
+
+  const neckInches = decimal('bfa-neck');
+  if (!neckInches) return null;
+  if (sexCode === 'M') {
+    const abdomenInches = decimal('bfa-abdomen');
+    return abdomenInches ? { sex: sexCode, neckInches, abdomenInches } : null;
+  }
+  const waistInches = decimal('bfa-waist');
+  const buttocksInches = decimal('bfa-buttocks');
+  return waistInches && buttocksInches
+    ? { sex: sexCode, neckInches, waistInches, buttocksInches }
+    : null;
+}
+
+/**
+ * Show the BFA panel, and work the assessment if there is one to work.
+ *
+ * @param {object|null} result the current score, or null if unscoreable.
+ * @param {boolean} complete whether all four components have been entered.
+ */
+function showBfa(result, complete) {
+  const panel = $('bfa');
+  const scored = result && result.components
+    ? result.components.body_composition
+    : null;
+
+  // Keep the ratio that the engine last worked out. Once the BFA has exempted
+  // the component the engine returns no ratio at all, and the panel has to go
+  // on showing the number that put the member in front of it.
+  if (scored && scored.measured && scored.measured.ratio != null) {
+    bfa.ratio = scored.measured.ratio;
+  } else if (!bfa.applied) {
+    bfa.ratio = null;
+  }
+
+  if (bfa.ratio == null || bfa.ratio < BFA_RATIO) {
+    if (bfa.applied) clearBfaExemption();
+    panel.hidden = true;
+    $('bfa-body').hidden = true;
+    return;
+  }
+
+  panel.hidden = false;
+  $('bfa-body').hidden = false;
+
+  const failing = complete && result.pass === false;
+  $('bfa-trigger').textContent = failing
+    ? `A ratio of ${bfa.ratio.toFixed(2)} with an unsatisfactory composite requires a ` +
+      'secondary body fat assessment (DAFMAN 36-2905 para 3.15.4.7). Passing it has ' +
+      'body composition scored as exempt; failing it is an unsatisfactory PFRA.'
+    : `A ratio of ${bfa.ratio.toFixed(2)} is at or above 0.55. If this assessment ` +
+      'does not meet PFRA standards, a secondary body fat assessment is required ' +
+      '(DAFMAN 36-2905 para 3.15.4.7).';
+
+  showBfaFields(sex);
+  workBfa(sex);
+}
+
+/** Which measurement fields this member's BFA needs. */
+function showBfaFields(sexCode) {
+  const tape = bfa.method === 'tape';
+  $('bfa-fields-scale').hidden = tape;
+  $('bfa-fields-tape').hidden = !tape;
+  $('bfa-field-abdomen').hidden = sexCode !== 'M';
+  $('bfa-field-waist').hidden = sexCode === 'M';
+  $('bfa-field-buttocks').hidden = sexCode === 'M';
+
+  for (const button of document.querySelectorAll('.bfa-method')) {
+    const on = button.dataset.bfaMethod === bfa.method;
+    button.classList.toggle('on', on);
+    button.setAttribute('aria-pressed', String(on));
+  }
+
+  $('bfa-method-hint').textContent = tape
+    ? sexCode === 'M'
+      ? 'Attachment 8, two sites. The circumference value is the abdomen less the neck.'
+      : 'Attachment 8, three sites. The circumference value is the waist plus the ' +
+        'buttocks, less the neck.'
+    : 'Para 3.15.4.7 takes the BFA on an InBody bio-impedance scale where one is ' +
+      'available and by tape where one is not. Either way a same sex administrator ' +
+      'is required.';
+}
+
+/** Run the assessment and say what it means for the score. */
+function workBfa(sexCode) {
+  const box = $('bfa-result');
+  const note = $('bfa-note');
+  const apply = $('bfa-apply');
+  const measurements = bfaMeasurements(sexCode);
+
+  if (!measurements) {
+    if (bfa.applied) clearBfaExemption();
+    box.hidden = true;
+    note.hidden = true;
+    apply.hidden = true;
+    return;
+  }
+
+  let assessment;
+  try {
+    assessment = scorer.bodyFatAssessment({
+      ...measurements,
+      heightInches: decimal('height')
+    });
+  } catch (error) {
+    // The fields are checked above, so a throw here is a measurement the
+    // lookup cannot use rather than a half-typed one. Say which.
+    box.hidden = false;
+    $('bfa-verdict').textContent = 'Cannot work this one out yet.';
+    $('bfa-verdict').className = 'bfa-verdict';
+    $('bfa-working').textContent = error.message;
+    note.hidden = true;
+    apply.hidden = true;
+    return;
+  }
+
+  box.hidden = false;
+  $('bfa-verdict').textContent = assessment.pass
+    ? `${assessment.percent}% body fat, within the ${assessment.standard}% standard.`
+    : `${assessment.percent}% body fat, over the ${assessment.standard}% standard.`;
+  $('bfa-verdict').className = `bfa-verdict ${assessment.pass ? 'pass' : 'fail'}`;
+  $('bfa-working').textContent = assessment.measured.method === 'tape'
+    ? `${assessment.measured.arithmetic} = ${assessment.measured.circumferenceValue}, ` +
+      `read against ${assessment.measured.heightInches} inches.`
+    : 'Taken from the scale, so there is no tape arithmetic to show.';
+
+  const notes = [...assessment.warnings];
+  if (role === 'cadet') {
+    notes.push(
+      'AFROTC has not yet said whether the secondary BFA reaches cadets. The 2023 ' +
+      'supplement authorises no cadet exemptions at all and still measures body ' +
+      'composition by BMI, and the revision that would settle it against the ' +
+      'current DAFMAN and NOTACC has not been published. Check with HQ before ' +
+      'recording this.');
+  }
+  note.textContent = notes.join(' ');
+  note.hidden = notes.length === 0;
+
+  if (!assessment.pass) {
+    if (bfa.applied) clearBfaExemption();
+    apply.hidden = true;
+    return;
+  }
+
+  apply.hidden = false;
+  apply.textContent = bfa.applied
+    ? 'Body composition is exempt on this BFA. Undo'
+    : 'Apply this pass (exempts body composition)';
+  apply.classList.toggle('on', bfa.applied);
+}
+
+/** Hand the pass to the scorer as an exemption, the way para 3.7.2 reads. */
+function applyBfaExemption() {
+  bfa.applied = true;
+  statuses.body_composition = 'exempt';
+  bfaExemptionNote(true);
+}
+
+function clearBfaExemption() {
+  bfa.applied = false;
+  if (statuses.body_composition === 'exempt') statuses.body_composition = null;
+  bfaExemptionNote(false);
+}
+
+/**
+ * Body composition can be exempted by the Exempt button or by a passed BFA,
+ * and the two mean different things, so the note says which one did it and
+ * only ever clears its own words.
+ */
+function bfaExemptionNote(on) {
+  const note = $('exempt-note-body_composition');
+  if (!on) {
+    if (note.dataset.from === 'bfa') {
+      note.textContent = '';
+      note.hidden = true;
+      delete note.dataset.from;
+    }
+    return;
+  }
+  note.dataset.from = 'bfa';
+  note.textContent =
+    'Exempt because the secondary body fat assessment passed (DAFMAN 36-2905 para ' +
+    '3.7.2). It scores no points, fails nothing, and the composite is worked out ' +
+    'over the three components that were assessed.';
+  note.hidden = false;
+}
+
+function wireBfa() {
+  for (const button of document.querySelectorAll('.bfa-method')) {
+    button.addEventListener('click', () => {
+      bfa.method = button.dataset.bfaMethod;
+      clearBfaExemption();
+      update();
+    });
+  }
+  for (const id of ['bfa-percent', 'bfa-neck', 'bfa-abdomen', 'bfa-waist', 'bfa-buttocks']) {
+    $(id).addEventListener('input', () => {
+      clearBfaExemption();
+      update();
+    });
+  }
+  // Re-measuring the member invalidates a BFA that was applied against the old
+  // ratio, so the two measurement fields drop it rather than carrying it over.
+  // These listeners are added after the general one, so by the time they run
+  // the score has already been worked out from the stale exemption. Scoring
+  // again is cheap, and the alternative is a composite that belongs to a waist
+  // the member no longer has.
+  for (const id of ['height', 'waist']) {
+    $(id).addEventListener('input', () => {
+      if (!bfa.applied) return;
+      clearBfaExemption();
+      update();
+    });
+  }
+  $('bfa-apply').addEventListener('click', () => {
+    if (bfa.applied) clearBfaExemption();
+    else applyBfaExemption();
+    update();
+  });
+}
+
+/** Put the BFA panel back to its starting state. */
+function resetBfa() {
+  bfa.method = 'scale';
+  bfa.applied = false;
+  bfa.ratio = null;
+  bfaExemptionNote(false);
+  for (const id of ['bfa-percent', 'bfa-neck', 'bfa-abdomen', 'bfa-waist', 'bfa-buttocks']) {
+    $(id).value = '';
+  }
+  $('bfa').hidden = true;
+  $('bfa-body').hidden = true;
+  $('bfa-result').hidden = true;
+  $('bfa-note').hidden = true;
+  $('bfa-apply').hidden = true;
+}
+
 /* --- the verbiage dialog -------------------------------------------------
  *
  * Attachment 2 of DAFMAN 36-2905 is the script an assessment administrator reads
@@ -1288,27 +1565,67 @@ const SLIDER_MEASURES = {
   //
   // Anything below the left end can still be typed. The handle pins to the end
   // in that case, and the chip beside it shows what the number really scored.
-  reps: { descending: false, step: 1, worst: (r) => r.floor.value - 1, format: (v) => `${v}` },
+  reps: {
+    descending: false,
+    step: 1,
+    worst: (r) => r.floor.value - 1,
+    best: (r) => r.best.value,
+    failingBelow: (r) => (r.floor.isFloor ? r.floor.value : null),
+    format: (v) => `${v}`
+  },
   shuttles: {
-    descending: false, step: 1, worst: (r) => r.floor.value - 1, format: (v) => `${v}`
+    descending: false,
+    step: 1,
+    worst: (r) => r.floor.value - 1,
+    best: (r) => r.best.value,
+    failingBelow: (r) => (r.floor.isFloor ? r.floor.value : null),
+    format: (v) => `${v}`
   },
   hold: {
-    descending: false, step: 1, worst: (r) => r.floor.value - 1, format: formatTime
+    descending: false,
+    step: 1,
+    worst: (r) => r.floor.value - 1,
+    best: (r) => r.best.value,
+    failingBelow: (r) => (r.floor.isFloor ? r.floor.value : null),
+    format: formatTime
   },
   time: {
     descending: true,
     step: 1,
     // Slower is worse, so one step short of the minimum is one second past it.
     worst: (range) => range.floor.value + 1,
+    best: (range) => range.best.value,
+    failingBelow: (range) => (range.floor.isFloor ? range.floor.value : null),
+    format: formatTime
+  },
+  walk: {
+    // The walk is pass or fail, so it has no full marks end to run to. The
+    // track still needs a right hand end, and WALK_FASTEST is that anchor: it
+    // is comfortably inside every standard on Table 3.1, so the whole of the
+    // track bar its left tip is a pass, which is the only thing the walk has
+    // to say. The left tip is one second past this member's own maximum, so
+    // dragging all the way left fails exactly as it does on every other track.
+    descending: true,
+    step: 1,
+    worst: (range) => range.standard.seconds + 1,
+    best: () => WALK_FASTEST,
+    failingBelow: (range) => range.standard.seconds,
     format: formatTime
   },
   ratio: {
     descending: true,
     step: 0.5,
     worst: (range) => range.floor.waistInches,
+    best: (range) => range.best.waistInches,
+    // Body composition has no minimum (DAFMAN 36-2905 para 3.7.1), so no part
+    // of its track fails on its own.
+    failingBelow: () => null,
     format: (v) => `${v.toFixed(1)} in`
   }
 };
+
+/** The fast end of the walk track, in seconds. */
+const WALK_FASTEST = 14 * 60;
 
 /** Bounds are kept because an input event carries only the element's value. */
 const sliderBounds = {};
@@ -1335,8 +1652,6 @@ function renderSliders(band) {
     const spec = SLIDER_MEASURES[kind];
     const event = events[component] ?? 'whtr';
 
-    // The 2 kilometer walk is pass or fail, so there is no worst-to-best track
-    // to drag along. Its standard shows in the range strip instead.
     if (!spec) {
       row.hidden = true;
       continue;
@@ -1351,7 +1666,7 @@ function renderSliders(band) {
     // No chart yet, or, for the waist, no height, so there is no way to turn
     // a ratio into the inches a slider would have to move through. A declared
     // DNS or DNF hides it too: there is no measurement left to adjust.
-    const bestValue = kind === 'ratio' ? range?.best.waistInches : range?.best.value;
+    const bestValue = range ? spec.best(range) : null;
     const worstValue = range ? spec.worst(range) : null;
     if (bestValue == null || worstValue == null || statuses[component]) {
       row.hidden = true;
@@ -1378,10 +1693,12 @@ function renderSliders(band) {
     // Shade the failing tip of the track. It is one step wide by construction,
     // which on a run is one second of a six minute range and would render as
     // nothing, so it is floored at a width that can actually be seen: this is
-    // an affordance marking the failing end, not a plot of anything. Body
-    // composition has no minimum (DAFMAN 36-2905 para 3.7.1) and gets no tip.
+    // an affordance marking the failing end, not a plot of anything. Which
+    // components have such a tip is the spec's business: body composition has
+    // no minimum to fail against, and the walk fails anything slower than its
+    // own maximum.
     const span = bounds.max - bounds.min;
-    const threshold = range.floor.isFloor ? range.floor.value : null;
+    const threshold = spec.failingBelow(range);
     const cut = (threshold == null || span === 0)
       ? 0
       : Math.max(3, (toPosition(bounds, threshold) - bounds.min) / span * 100);

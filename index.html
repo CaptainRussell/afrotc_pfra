@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=17644a63a3">
+<link rel="stylesheet" href="styles.css?v=15f69bf33c">
 </head>
 <body>
 
@@ -131,6 +131,66 @@
         <p class="ratio-label">Waist to height ratio</p>
         <p class="ratio-value" id="ratio-value"></p>
         <p class="ratio-working" id="ratio-working"></p>
+      </div>
+      <!-- Secondary body fat assessment -----------------------------------
+           DAFMAN 36-2905 para 3.15.4.7 calls for a BFA when the ratio is 0.55
+           or higher and the member is not meeting PFRA standards, and para
+           3.7.2 makes passing it exempt the body composition component. That
+           changes the composite, so it belongs in the calculator rather than
+           in a footnote. The panel stays out of the way until the ratio
+           reaches 0.55, which is the only point at which any of it applies. -->
+      <div class="bfa" id="bfa" hidden>
+        <p class="bfa-trigger" id="bfa-trigger"></p>
+        <div class="bfa-body" id="bfa-body" hidden>
+          <div class="bfa-methods" role="group" aria-label="Body fat assessment method">
+            <button type="button" class="bfa-method on" data-bfa-method="scale">InBody Scale</button>
+            <button type="button" class="bfa-method" data-bfa-method="tape">Tape</button>
+          </div>
+          <p class="hint" id="bfa-method-hint"></p>
+
+          <div class="row bfa-fields" id="bfa-fields-scale">
+            <div class="field">
+              <label for="bfa-percent">Body Fat (percent)</label>
+              <input type="number" id="bfa-percent" inputmode="decimal" min="0" max="75"
+                     step="0.1" placeholder="%">
+              <p class="hint">As the scale reports it.</p>
+            </div>
+          </div>
+
+          <div class="row bfa-fields" id="bfa-fields-tape" hidden>
+            <div class="field">
+              <label for="bfa-neck">Neck</label>
+              <input type="number" id="bfa-neck" inputmode="decimal" min="8" max="30"
+                     step="0.25" placeholder="in">
+              <p class="hint">Rounded <em>up</em> to &frac14; inch.</p>
+            </div>
+            <div class="field" id="bfa-field-abdomen">
+              <label for="bfa-abdomen">Abdomen</label>
+              <input type="number" id="bfa-abdomen" inputmode="decimal" min="16" max="80"
+                     step="0.25" placeholder="in">
+              <p class="hint">At the navel. Rounded <em>down</em>.</p>
+            </div>
+            <div class="field" id="bfa-field-waist" hidden>
+              <label for="bfa-waist">Natural Waist</label>
+              <input type="number" id="bfa-waist" inputmode="decimal" min="16" max="80"
+                     step="0.25" placeholder="in">
+              <p class="hint">Narrowest point. Rounded <em>down</em>.</p>
+            </div>
+            <div class="field" id="bfa-field-buttocks" hidden>
+              <label for="bfa-buttocks">Buttocks</label>
+              <input type="number" id="bfa-buttocks" inputmode="decimal" min="20" max="90"
+                     step="0.25" placeholder="in">
+              <p class="hint">Widest point. Rounded <em>down</em>.</p>
+            </div>
+          </div>
+
+          <div class="bfa-result" id="bfa-result" hidden>
+            <p class="bfa-verdict" id="bfa-verdict"></p>
+            <p class="bfa-working" id="bfa-working"></p>
+          </div>
+          <p class="bfa-note" id="bfa-note" hidden></p>
+          <button type="button" class="bfa-apply" id="bfa-apply" hidden></button>
+        </div>
       </div>
       <p class="status-note" id="exempt-note-body_composition" hidden></p>
       <div class="range" id="range-body_composition" aria-label="Chart range"></div>
@@ -720,6 +780,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=17644a63a3"></script>
+<script type="module" src="app.js?v=15f69bf33c"></script>
 </body>
 </html>
