@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=306e6fd5fc';
-import { createAnalyzer } from './src/analysis.js?v=306e6fd5fc';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=306e6fd5fc';
+} from './src/engine.js?v=4de957efbf';
+import { createAnalyzer } from './src/analysis.js?v=4de957efbf';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=4de957efbf';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent
-} from './src/track.js?v=306e6fd5fc';
+} from './src/track.js?v=4de957efbf';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=306e6fd5fc').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=4de957efbf').then((r) => r.json());
   return { data };
 }
 
@@ -2333,10 +2333,18 @@ function trackMark(group, at, { name, kind, inside }) {
   group.append(label);
 }
 
-function renderTrackFigure(plan) {
-  const host = $('track-figure');
-  host.replaceChildren();
+/**
+ * A counter, because the panel and the printed sheet each hold a drawing and
+ * each drawing carries its own arrowhead marker. Two elements with the same
+ * id make url(#id) resolve to whichever comes first in the document, so the
+ * sheet was pointing at the panel's marker -- which is inside the form that
+ * print has just hidden, and a marker in a hidden tree draws nothing. Both
+ * arrows came out as plain bars with no head on them.
+ */
+let trackFigureSerial = 0;
 
+function buildTrackFigure(plan) {
+  const arrowheadId = `track-arrowhead-${trackFigureSerial += 1}`;
   const length = plan.shape.length;
   const extent = trackExtent(length);
 
@@ -2360,8 +2368,8 @@ function renderTrackFigure(plan) {
 
   const defs = svgEl('defs', {});
   const marker = svgEl('marker', {
-    id: 'track-arrowhead', viewBox: '0 0 10 10', refX: 8, refY: 5,
-    markerWidth: 5, markerHeight: 5, orient: 'auto-start-reverse'
+    id: arrowheadId, viewBox: '0 0 10 10', refX: 8, refY: 5,
+    markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse'
   });
   marker.append(svgEl('path', { d: 'M0 0 L10 5 L0 10 z', class: 'track-arrowhead' }));
   defs.append(marker);
@@ -2384,14 +2392,16 @@ function renderTrackFigure(plan) {
   svg.append(svgEl('path', { d: oval, class: 'track-surface', 'stroke-width': 16 }));
   svg.append(svgEl('path', { d: oval, class: 'track-lane' }));
 
-  // Which way round. On the straights, where a runner is going one way only.
+  // Which way round. On the straights, where a runner is going one way only,
+  // and long enough to read as an arrow on a printed sheet held at arm's
+  // length rather than as a smudge on the lane.
   const arrow = (x, y, dir) => svg.append(svgEl('path', {
-    d: `M ${x} ${y} h ${26 * dir}`,
+    d: `M ${x} ${y} h ${40 * dir}`,
     class: 'track-arrow',
-    'marker-end': 'url(#track-arrowhead)'
+    'marker-end': `url(#${arrowheadId})`
   }));
-  arrow(-13, r, 1);        // bottom straight, travelling right
-  arrow(13, -r, -1);       // top straight, travelling left
+  arrow(-20, r, 1);        // bottom straight, travelling right
+  arrow(20, -r, -1);       // top straight, travelling left
 
   const middle = svgEl('text', { x: 0, y: -10, class: 'track-count', 'text-anchor': 'middle' });
   middle.textContent = plan.exact
@@ -2425,15 +2435,12 @@ function renderTrackFigure(plan) {
   }
   svg.append(marks);
 
-  host.append(svg);
+  return svg;
 }
 
 
 /** The same plan in words, which is what someone holding a wheel reads. */
-function renderTrackGroups(plan) {
-  const host = $('track-groups');
-  host.replaceChildren();
-
+function buildTrackGroups(plan, host) {
   const column = (title, kind, lines) => {
     const box = el('div', `track-group track-group-${kind}`);
     box.append(el('h3', null, title));
@@ -2462,9 +2469,11 @@ function renderTrackGroups(plan) {
   confirm.append(el('strong', null, 'Confirm one lap'));
   confirm.append(el('span', null, ` ${plan.lap.label}`));
   host.append(confirm);
+}
 
-  $('track-note').textContent =
-    'Wheel in lane 1, 30 cm (12 in) out from the inside edge. Group B’s line is half ' +
+/** The standing instructions, which are the same whatever is being marked. */
+function trackNote(plan) {
+  return 'Wheel in lane 1, 30 cm (12 in) out from the inside edge. Group B’s line is half ' +
     `a lap counterclockwise from A’s. The drawing assumes ${plan.shape.straight} m ` +
     `straights and ${plan.shape.curve} m curves; a track built to different straights ` +
     'moves where the marks fall in the picture but not how far they are wheeled.';
@@ -2536,8 +2545,79 @@ function renderTrack() {
   if ($('track-body').hidden) return;   // nothing to draw into
 
   const plan = trackPlan({ distanceId: distance.id, trackLength: length });
-  renderTrackFigure(plan);
-  renderTrackGroups(plan);
+  $('track-figure').replaceChildren(buildTrackFigure(plan));
+  $('track-groups').replaceChildren();
+  buildTrackGroups(plan, $('track-groups'));
+  $('track-note').textContent = trackNote(plan);
+}
+
+/* --- the track layout as a printed sheet -----------------------------------
+ *
+ * The page can print two entirely different documents. One is the member's
+ * result, which is what the print rules were written for and what the Print
+ * Result button sends. The other is this: a sheet for whoever is walking the
+ * track with a measuring wheel, who is outside and not at a screen.
+ *
+ * They share no content, so rather than bend one layout into the other, the
+ * sheet is built into its own section outside the form and a class on <body>
+ * says which of the two this print run is for. The class goes on immediately
+ * before window.print() and comes off after, so nothing about it is visible
+ * on screen at any point.
+ */
+
+/** Fill the printed sheet from the same plan the panel is drawn from. */
+function renderTrackPrint(plan) {
+  const host = $('track-print');
+  host.replaceChildren();
+
+  host.append(el('h2', 'track-sheet-title',
+    `${plan.distance.label} on a ${plan.shape.length} m track`));
+  host.append(el('p', 'track-sheet-sub',
+    plan.exact
+      ? `${plan.laps} laps exactly. Two groups, both counterclockwise, each ` +
+        'finishing on its own line.'
+      : `${plan.laps} laps + ${plan.remainderLabel} m. Two groups, both ` +
+        'counterclockwise, each finishing on its own line.'));
+
+  const figure = el('div', 'track-figure');
+  figure.append(buildTrackFigure(plan));
+  host.append(figure);
+
+  const groups = el('div', 'track-groups');
+  buildTrackGroups(plan, groups);
+  host.append(groups);
+
+  host.append(el('p', 'track-sheet-note', trackNote(plan)));
+
+  // A marked track is marked on a day. Printed rather than entered, for the
+  // same reason the result sheet says so: this is when the sheet was made.
+  host.append(el('p', 'track-sheet-printed',
+    `Printed ${new Date().toLocaleDateString(undefined, {
+      year: 'numeric', month: 'long', day: 'numeric'
+    })} · AFROTC Detachment 250`));
+
+  host.hidden = false;
+}
+
+function printTrackLayout() {
+  const distance = TRACK_DISTANCES[track.distanceIndex];
+  const length = TRACK_LENGTHS[track.lengthIndex];
+  renderTrackPrint(trackPlan({ distanceId: distance.id, trackLength: length }));
+
+  document.body.classList.add('printing-track');
+  const done = () => {
+    document.body.classList.remove('printing-track');
+    $('track-print').hidden = true;
+    $('track-print').replaceChildren();
+  };
+  // afterprint is the reliable signal, but a browser that never fires it
+  // would leave the page in printing-track for ever, and the next ordinary
+  // print would silently send the wrong document. So the line after print()
+  // clears it too: on every engine here print() blocks until the dialog is
+  // done, and clearing twice costs nothing.
+  window.addEventListener('afterprint', done, { once: true });
+  window.print();
+  done();
 }
 
 function wireTrack() {
@@ -2556,6 +2636,7 @@ function wireTrack() {
     track.lengthIndex = Number($('slide-track-length').value);
     renderTrack();
   });
+  $('print-track').addEventListener('click', printTrackLayout);
 }
 
 /* --- the printed component table ------------------------------------------

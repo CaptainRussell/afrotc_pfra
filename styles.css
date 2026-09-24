@@ -1528,7 +1528,7 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
 .track-arrow {
   fill: none;
   stroke: var(--ink-soft);
-  stroke-width: 1.6;
+  stroke-width: 2.2;
 }
 .track-arrowhead { fill: var(--ink-soft); }
 
@@ -1598,6 +1598,10 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   padding-top: 8px;
 }
 .track-confirm strong { color: var(--ink); }
+
+/* The printed track sheet. It has no screen life at all: renderTrackPrint()
+ * fills it, print takes it, and it is emptied again. */
+.track-sheet { display: none; }
 
 /* --- print -------------------------------------------------------------- */
 
@@ -1823,6 +1827,73 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
    * enough for a fifth failure line without shrinking type that is already
    * at 7.5pt. Every printer here takes a 10mm margin. */
   @page { margin: 10mm; }
+
+  /* --- the other printed document -------------------------------------
+   *
+   * Everything above prints a member's result. This prints the track
+   * layout instead, for whoever is marking the course, and the two share
+   * nothing: when body carries printing-track the result is dropped whole
+   * and the sheet takes the page.
+   */
+  body.printing-track > main > *,
+  body.printing-track > footer { display: none !important; }
+  body.printing-track #track-print { display: block !important; }
+
+  /* Ink on paper rather than the screen's brick and cardinal: a pale band
+   * with the marks drawn over it is what a person squinting at a sheet in
+   * daylight can actually read, and it is what a mono printer gives back. */
+  body.printing-track {
+    --oval-surface: #e2e2e2;
+    --cardinal: #a8102a;
+    --pass: #13603a;
+  }
+  .track-sheet .track-figure { background: none; padding: 0; }
+  .track-sheet .track-lane { stroke: #444; }
+  .track-sheet .track-arrow { stroke: #444; }
+  .track-sheet .track-arrowhead { fill: #444; }
+  .track-sheet .track-label { stroke: #fff; }
+  .track-sheet .track-count { fill: #000; }
+  .track-sheet .track-count-sub,
+  .track-sheet .track-count-note { fill: #222; }
+
+  .track-sheet-title {
+    font-size: 17pt;
+    margin: 0;
+  }
+  .track-sheet-sub {
+    margin: 2pt 0 6pt;
+    font-size: 10pt;
+    color: #222;
+  }
+  .track-sheet .track-svg { max-height: 118mm; }
+  .track-sheet .track-groups {
+    margin-top: 6pt;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6pt 16pt;
+  }
+  .track-sheet .track-group h3 { font-size: 11pt; margin: 0 0 2pt; }
+  .track-sheet .track-group p { font-size: 9.5pt; margin: 1pt 0; color: #000; }
+  .track-sheet .track-group-a h3 { color: #a8102a; }
+  .track-sheet .track-group-b h3 { color: #13603a; }
+  .track-sheet .track-confirm {
+    grid-column: 1 / -1;
+    border-top: 1pt solid #000;
+    padding-top: 5pt;
+    font-size: 10pt;
+    color: #000;
+  }
+  .track-sheet-note {
+    margin: 7pt 0 0;
+    font-size: 8.5pt;
+    line-height: 1.45;
+    color: #222;
+  }
+  .track-sheet-printed {
+    margin: 6pt 0 0;
+    font-size: 8pt;
+    color: #444;
+  }
 }
 
 /* --- secondary body fat assessment ----------------------------------------

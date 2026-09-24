@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=306e6fd5fc">
+<link rel="stylesheet" href="styles.css?v=4de957efbf">
 </head>
 <body>
 
@@ -438,6 +438,11 @@
           <div class="track-figure" id="track-figure"></div>
           <div class="track-groups" id="track-groups"></div>
           <p class="hint" id="track-note"></p>
+          <!-- The person marking the track is outside with a wheel, not at a
+               screen. This prints the layout on its own sheet: the result
+               record and this are two different documents and only one of them
+               goes out at a time, which is what body.printing-track decides. -->
+          <button type="button" class="secondary small" id="print-track">Print Layout</button>
         </div>
       </div>
       <!-- Only the run and the walk: those are the events a member can leave
@@ -650,6 +655,13 @@
     </details>
 
   </section>
+
+  <!-- ---------------------------------------------------------------- -->
+  <!-- The track layout as its own printed sheet. Never on screen: it is a
+       second copy of what the panel in the form already shows, and it exists
+       out here because print drops that form whole. renderTrackPrint() fills
+       it from the same plan the panel is drawn from. -->
+  <section class="track-sheet" id="track-print" hidden aria-hidden="true"></section>
 
   <!-- ---------------------------------------------------------------- -->
   <!-- Folded away by default. It is worth knowing once, not reading every
@@ -904,6 +916,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=306e6fd5fc"></script>
+<script type="module" src="app.js?v=4de957efbf"></script>
 </body>
 </html>
