@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=96d751bb6e">
+<link rel="stylesheet" href="styles.css?v=306e6fd5fc">
 </head>
 <body>
 
@@ -393,6 +393,52 @@
                 data-chart="cardiorespiratory" aria-expanded="false"
                 aria-controls="chart-body-cardiorespiratory">Scoring Chart</button>
         <div class="chart-body" id="chart-body-cardiorespiratory" hidden></div>
+      </div>
+
+      <!-- Where to put the marks ----------------------------------------
+           A track is painted for the events it was built for, and a PFRA is
+           not one of them: 2 miles is eight laps and 18.7 m over on a 400,
+           and the 2 km walk is six laps and 200 m on a 300. Someone has to
+           wheel that out before anyone runs, which is a job done at the
+           track rather than at a desk, so it sits in the same section as the
+           event it is for and folds away like the scoring chart.
+
+           Shown for the run and the walk, which are the two events assessed
+           on a marked course. The HAMR is run between two lines 20 m apart
+           and has nothing to lay out. -->
+      <div class="chart-inline" id="track-inline" hidden>
+        <button type="button" class="secondary small" id="track-toggle"
+                aria-expanded="false" aria-controls="track-body">Track Layout</button>
+        <div class="chart-body track-body" id="track-body" hidden>
+          <div class="track-pickers">
+            <div class="field">
+              <label for="slide-track-distance">Distance to mark</label>
+              <div class="slider-row">
+                <span class="slider-end low" id="track-distance-low"></span>
+                <input type="range" class="slider" id="slide-track-distance"
+                       min="0" max="3" step="1" value="0"
+                       aria-label="Distance to mark out">
+                <span class="slider-end high" id="track-distance-high"></span>
+              </div>
+              <p class="hint track-picked" id="track-distance-picked"></p>
+            </div>
+            <div class="field">
+              <label for="slide-track-length">Track</label>
+              <div class="slider-row">
+                <span class="slider-end low">300 m</span>
+                <input type="range" class="slider" id="slide-track-length"
+                       min="0" max="1" step="1" value="1"
+                       aria-label="Track size">
+                <span class="slider-end high">400 m</span>
+              </div>
+              <p class="hint track-picked" id="track-length-picked"></p>
+            </div>
+          </div>
+
+          <div class="track-figure" id="track-figure"></div>
+          <div class="track-groups" id="track-groups"></div>
+          <p class="hint" id="track-note"></p>
+        </div>
       </div>
       <!-- Only the run and the walk: those are the events a member can leave
            part-way through. Stopping early on push-ups or sit-ups is just a
@@ -858,6 +904,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=96d751bb6e"></script>
+<script type="module" src="app.js?v=306e6fd5fc"></script>
 </body>
 </html>

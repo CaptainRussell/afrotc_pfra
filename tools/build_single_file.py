@@ -40,7 +40,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SITE = 'https://captainrussell.github.io/afrotc_pfra/'
 
 # Concatenation order is dependency order; app.js is the entry and comes last.
-MODULES = ['src/references.js', 'src/engine.js', 'src/analysis.js', 'src/verbiage.js']
+MODULES = ['src/references.js', 'src/engine.js', 'src/analysis.js', 'src/verbiage.js',
+           'src/track.js']
 ENTRY = 'app.js'
 
 

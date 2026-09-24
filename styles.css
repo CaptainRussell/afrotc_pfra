@@ -37,6 +37,9 @@
   --warn-bg: #3a2f1580;
   --track-fail: #4a2624;
   --track-pass: #23422f;
+  /* The running surface in the track layout diagram. Named for the oval to
+   * keep it clear of --track-pass/--track-fail, which shade slider tracks. */
+  --oval-surface: #6d3a2e;
 
   --radius: 12px;
   --gutter: 16px;
@@ -84,6 +87,7 @@
   --warn-bg: #fff6e0;
   --track-fail: #f2cdc9;
   --track-pass: #c9dfd2;
+  --oval-surface: #c97f68;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, .06), 0 4px 14px rgba(0, 0, 0, .05);
 }
@@ -1458,6 +1462,142 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   .results.revealed > .card:nth-child(3) { animation-delay: .08s; }
   .results.revealed > .card:nth-child(4) { animation-delay: .12s; }
 }
+
+/* --- the track layout panel ------------------------------------------------
+ *
+ * Folded in beside the scoring chart, because it answers the other question
+ * the cardiorespiratory section raises: not what a time scored, but where the
+ * lines go before anyone runs it.
+ *
+ * It shares .chart-body's frame so the two panels open the same way, but not
+ * its scroll: a chart is a long table to look down, and this is one picture
+ * that has to be seen whole.
+ */
+.track-body {
+  max-height: none;
+  overflow: visible;
+  padding: 12px 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.track-pickers {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px 16px;
+}
+/* Stack sooner than the other rows. The track slider has two stops, so at
+ * half a narrow card its thumb sits on top of the end label naming the stop
+ * it is parked at, which is the one label that has to stay readable. */
+@media (max-width: 620px) {
+  .track-pickers { grid-template-columns: 1fr; }
+}
+
+/* The slider ends name the extremes; this names the stop it is actually on,
+ * which on a four-stop track is the only way to read it. */
+.track-picked {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.track-figure {
+  background: var(--page);
+  border-radius: 8px;
+  padding: 6px 4px;
+}
+
+.track-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* The running surface, drawn as one band rather than as lanes: which lane a
+ * member runs in is not what this diagram is for. Lane 1 is drawn over it,
+ * because lane 1 is the line every distance here is measured along. */
+.track-surface {
+  fill: none;
+  stroke: var(--oval-surface);
+  stroke-linejoin: round;
+}
+.track-lane {
+  fill: none;
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+}
+.track-arrow {
+  fill: none;
+  stroke: var(--ink-soft);
+  stroke-width: 1.6;
+}
+.track-arrowhead { fill: var(--ink-soft); }
+
+/* Two colours, one per group, so a reader tracks a group round the oval
+ * rather than reading four labels. Within a group, a finish line is
+ * chequered and a start is solid, which is how they are painted. */
+.track-tick {
+  stroke-width: 3.5;
+  stroke-linecap: butt;
+}
+.track-tick.track-a-finish,
+.track-tick.track-a-start { stroke: var(--cardinal); }
+.track-tick.track-b-finish,
+.track-tick.track-b-start { stroke: var(--pass); }
+.track-tick.track-a-finish,
+.track-tick.track-b-finish { stroke-dasharray: 3.5 3; }
+
+.track-label {
+  font-size: 11px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--page);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+.track-label.track-a-finish,
+.track-label.track-a-start { fill: var(--cardinal); }
+.track-label.track-b-finish,
+.track-label.track-b-start { fill: var(--pass); }
+
+.track-count {
+  fill: var(--ink);
+  font-size: 16px;
+  font-weight: 800;
+}
+.track-count-sub { fill: var(--ink); font-size: 11px; }
+.track-count-note { fill: var(--ink-soft); font-size: 10px; }
+
+.track-groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+@media (max-width: 460px) {
+  .track-groups { grid-template-columns: 1fr; }
+}
+
+.track-group h3 {
+  margin: 0 0 3px;
+  font-size: .9rem;
+}
+.track-group-a h3 { color: var(--cardinal); }
+.track-group-b h3 { color: var(--pass); }
+.track-group p {
+  margin: 1px 0;
+  font-size: .8rem;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+/* Spans both columns: it is the check on the whole layout, not on one group. */
+.track-confirm {
+  grid-column: 1 / -1;
+  font-size: .82rem;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.track-confirm strong { color: var(--ink); }
 
 /* --- print -------------------------------------------------------------- */
 

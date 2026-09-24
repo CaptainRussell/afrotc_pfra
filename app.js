@@ -18,9 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=96d751bb6e';
-import { createAnalyzer } from './src/analysis.js?v=96d751bb6e';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=96d751bb6e';
+} from './src/engine.js?v=306e6fd5fc';
+import { createAnalyzer } from './src/analysis.js?v=306e6fd5fc';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=306e6fd5fc';
+import {
+  TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent
+} from './src/track.js?v=306e6fd5fc';
 
 const $ = (id) => document.getElementById(id);
 
@@ -99,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=96d751bb6e').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=306e6fd5fc').then((r) => r.json());
   return { data };
 }
 
@@ -120,6 +123,7 @@ async function boot() {
     button.addEventListener('click', () => selectRole(button.dataset.role));
   }
   wireBfa();
+  wireTrack();
   for (const button of document.querySelectorAll('.exempt-toggle')) {
     button.addEventListener('click', () => {
       const component = button.dataset.exempt;
@@ -225,6 +229,7 @@ async function boot() {
   setupDocuments();
   showEventDocs();
   showNotFinished();
+  showTrackPanel();
 
   update();
 }
@@ -347,6 +352,7 @@ function selectEvent(component, event) {
   $(`heading-${component}`).textContent = EVENT_LABELS[event];
   showEventDocs();
   showNotFinished();
+  showTrackPanel();
   update();
 }
 
@@ -557,6 +563,11 @@ function resetAll() {
   }
 
   resetBfa();
+  resetTrack();
+  // selectEvent() is what normally refreshes this, and above it only runs for
+  // a component whose event actually changed. Resetting from the run changes
+  // nothing there, which left the panel still showing the last member's picks.
+  showTrackPanel();
   $('altitude-group').value = '';
   closeAltitudePanel();
 
@@ -2251,6 +2262,300 @@ function showExemptExplainer(result, exempt) {
   cap.classList.toggle('withheld', result.excellentWithheld);
 
   box.hidden = false;
+}
+
+/* --- where to put the marks on the track ----------------------------------
+ *
+ * The scoring half of this tool answers "what did that earn". This answers the
+ * question that comes before anyone runs: the track has one painted finish
+ * line, the assessment is not a distance the track was painted for, so where
+ * does the start go?
+ *
+ * src/track.js does the arithmetic and the geometry; everything here is
+ * drawing. The diagram is built rather than stored because there are eight
+ * combinations of distance and track size and they differ only in numbers --
+ * eight saved pictures would be eight things to keep in step with one formula.
+ *
+ * Drawn in metres and scaled once, so a length on the page is a length on the
+ * ground: the 300 m track comes out visibly smaller than the 400, which is the
+ * first thing that tells a reader which one they are looking at.
+ */
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/** What the two sliders are currently on. */
+const track = { distanceIndex: 0, lengthIndex: TRACK_LENGTHS.indexOf(400) };
+
+const svgEl = (tag, attrs) => {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [name, value] of Object.entries(attrs)) node.setAttribute(name, String(value));
+  return node;
+};
+
+/**
+ * One mark across the track, with its name beside it.
+ *
+ * Everything is in page units by the time it gets here. Drawing the oval
+ * inside a scaled group was the obvious way to work in metres, but text
+ * inherits the transform: an 11px label came out at 26px and the four names
+ * sat on top of each other. So the metres-to-page scaling is done by hand,
+ * once, and nothing on the drawing is inside a transform.
+ *
+ * The tick is drawn along the outward normal so it crosses the lane rather
+ * than lying along it, which is how a line is painted and how it reads. The
+ * label sits on that same normal, which makes a mark on the bottom straight
+ * label downwards and one on the top label up, with no table of special
+ * cases. Finish labels go outside the oval and start labels inside it: on a
+ * 2 mile the two are 18.7 m apart, which is close enough that side by side
+ * they would overlap, and opposite sides of the track is a separation the
+ * geometry cannot take away.
+ */
+function trackMark(group, at, { name, kind, inside }) {
+  const half = 7;
+  const out = inside ? -13 : 13;
+
+  group.append(svgEl('line', {
+    x1: at.x - at.nx * half, y1: at.y - at.ny * half,
+    x2: at.x + at.nx * half, y2: at.y + at.ny * half,
+    class: `track-tick track-${kind}`
+  }));
+
+  const label = svgEl('text', {
+    x: at.x + at.nx * out,
+    y: at.y + at.ny * out,
+    class: `track-label track-${kind}`,
+    'text-anchor': at.nx > 0.3 ? (inside ? 'end' : 'start')
+      : at.nx < -0.3 ? (inside ? 'start' : 'end') : 'middle',
+    'dominant-baseline': at.ny > 0.3 ? (inside ? 'auto' : 'hanging')
+      : at.ny < -0.3 ? (inside ? 'hanging' : 'auto') : 'middle'
+  });
+  label.textContent = name;
+  group.append(label);
+}
+
+function renderTrackFigure(plan) {
+  const host = $('track-figure');
+  host.replaceChildren();
+
+  const length = plan.shape.length;
+  const extent = trackExtent(length);
+
+  // One scale for both sizes, pinned to the larger, so switching tracks
+  // shrinks the oval instead of redrawing it at the same size with different
+  // numbers on it. 400 m is the wider of the two.
+  const widest = trackExtent(400);
+  const scale = 360 / widest.width;
+  const boxW = widest.width * scale + 150;
+  const boxH = widest.height * scale + 92;
+
+  const svg = svgEl('svg', {
+    viewBox: `${-boxW / 2} ${-boxH / 2} ${boxW} ${boxH}`,
+    class: 'track-svg',
+    role: 'img',
+    'aria-label':
+      `${length} metre track marked for ${plan.distance.label}: ` +
+      `${plan.laps} laps${plan.exact ? ' exactly' : `, plus ${plan.remainder} metres`}, ` +
+      'Group A on the painted finish line and Group B half a lap around.'
+  });
+
+  const defs = svgEl('defs', {});
+  const marker = svgEl('marker', {
+    id: 'track-arrowhead', viewBox: '0 0 10 10', refX: 8, refY: 5,
+    markerWidth: 5, markerHeight: 5, orient: 'auto-start-reverse'
+  });
+  marker.append(svgEl('path', { d: 'M0 0 L10 5 L0 10 z', class: 'track-arrowhead' }));
+  defs.append(marker);
+  svg.append(defs);
+
+  /** A distance along the lane, in page units with its outward normal. */
+  const at = (metres) => {
+    const p = pointOnTrack(length, metres);
+    return { x: p.x * scale, y: p.y * scale, nx: p.nx, ny: p.ny };
+  };
+
+  const r = extent.radius * scale;
+  const h = extent.halfStraight * scale;
+  const oval = `M ${-h} ${-r} H ${h} A ${r} ${r} 0 0 1 ${h} ${r} ` +
+    `H ${-h} A ${r} ${r} 0 0 1 ${-h} ${-r} Z`;
+
+  // The running surface, drawn as one band rather than as lanes: which lane a
+  // member runs in is not what this diagram is for. Lane 1 goes over it,
+  // because lane 1 is the line every distance here is measured along.
+  svg.append(svgEl('path', { d: oval, class: 'track-surface', 'stroke-width': 16 }));
+  svg.append(svgEl('path', { d: oval, class: 'track-lane' }));
+
+  // Which way round. On the straights, where a runner is going one way only.
+  const arrow = (x, y, dir) => svg.append(svgEl('path', {
+    d: `M ${x} ${y} h ${26 * dir}`,
+    class: 'track-arrow',
+    'marker-end': 'url(#track-arrowhead)'
+  }));
+  arrow(-13, r, 1);        // bottom straight, travelling right
+  arrow(13, -r, -1);       // top straight, travelling left
+
+  const middle = svgEl('text', { x: 0, y: -10, class: 'track-count', 'text-anchor': 'middle' });
+  middle.textContent = plan.exact
+    ? `${plan.laps} laps exactly`
+    : `${plan.laps} laps + ${plan.remainderLabel} m`;
+  svg.append(middle);
+
+  const under = svgEl('text', { x: 0, y: 8, class: 'track-count-sub', 'text-anchor': 'middle' });
+  under.textContent = `= ${plan.total.metres.toLocaleString()} m (${plan.distance.label})`;
+  svg.append(under);
+
+  const crossing = svgEl('text', { x: 0, y: 25, class: 'track-count-note', 'text-anchor': 'middle' });
+  crossing.textContent = plan.exact
+    ? `Finish = ${plan.crossings}th crossing after the start`
+    : `Finish = ${plan.crossings}th crossing of own line`;
+  svg.append(crossing);
+
+  const marks = svgEl('g', {});
+  const startOffset = plan.start ? plan.start.offset : 0;
+  const b = plan.groupB.offset;
+
+  if (plan.exact) {
+    // Nothing to wheel for A, and B's line is its start and its finish both.
+    trackMark(marks, at(0), { name: 'A start / finish', kind: 'a-finish', inside: false });
+    trackMark(marks, at(b), { name: 'B start / finish', kind: 'b-finish', inside: false });
+  } else {
+    trackMark(marks, at(0), { name: 'A finish', kind: 'a-finish', inside: false });
+    trackMark(marks, at(startOffset), { name: 'A start', kind: 'a-start', inside: true });
+    trackMark(marks, at(b), { name: 'B finish', kind: 'b-finish', inside: false });
+    trackMark(marks, at(b + startOffset), { name: 'B start', kind: 'b-start', inside: true });
+  }
+  svg.append(marks);
+
+  host.append(svg);
+}
+
+
+/** The same plan in words, which is what someone holding a wheel reads. */
+function renderTrackGroups(plan) {
+  const host = $('track-groups');
+  host.replaceChildren();
+
+  const column = (title, kind, lines) => {
+    const box = el('div', `track-group track-group-${kind}`);
+    box.append(el('h3', null, title));
+    for (const line of lines) box.append(el('p', null, line));
+    return box;
+  };
+
+  const push = plan.start
+    ? `${plan.start.wheel.label} ${plan.start.direction === 'back'
+      ? 'back (against the running direction)'
+      : 'forward (with the running direction)'}`
+    : null;
+
+  host.append(column('Group A', 'a', plan.exact
+    ? ['Start and finish: the painted finish line', 'Nothing to wheel']
+    : ['Finish: the painted finish line', `Start: ${push} from A finish`]));
+
+  host.append(column('Group B', 'b', plan.exact
+    ? [`Start and finish: ${plan.groupB.fromA.label} from A finish`,
+      'Half a lap around, at the end of the back straight']
+    : [`Finish: ${plan.groupB.fromA.label} from A finish`,
+      `Start: ${push} from B finish`,
+      `(or ${plan.groupB.startFromA.label} from A finish)`]));
+
+  const confirm = el('div', 'track-confirm');
+  confirm.append(el('strong', null, 'Confirm one lap'));
+  confirm.append(el('span', null, ` ${plan.lap.label}`));
+  host.append(confirm);
+
+  $('track-note').textContent =
+    'Wheel in lane 1, 30 cm (12 in) out from the inside edge. Group B’s line is half ' +
+    `a lap counterclockwise from A’s. The drawing assumes ${plan.shape.straight} m ` +
+    `straights and ${plan.shape.curve} m curves; a track built to different straights ` +
+    'moves where the marks fall in the picture but not how far they are wheeled.';
+}
+
+/**
+ * Offer the layout for the two events that are run on a marked course.
+ *
+ * The HAMR is run between two lines 20 m apart, which is on the tally sheet
+ * and needs no diagram, so the panel is not offered for it -- and it closes
+ * rather than merely hiding, so switching to the HAMR and back does not
+ * reopen a panel the member never opened.
+ */
+function showTrackPanel() {
+  const event = events.cardiorespiratory;
+  const wanted = event === 'run_2mile' || event === 'walk_2km';
+  const host = $('track-inline');
+  if (!wanted) {
+    host.hidden = true;
+    closeTrackPanel();
+    return;
+  }
+  host.hidden = false;
+
+  // Follow the event the first time it is shown for it: the walk is 2 km and
+  // the run is 2 miles, so the useful distance is the one being assessed.
+  // Only while the panel is closed, so it never moves under a reader.
+  if ($('track-body').hidden) {
+    const wants = event === 'walk_2km' ? 'km2' : 'mile2';
+    const index = TRACK_DISTANCES.findIndex((d) => d.id === wants);
+    if (index >= 0) track.distanceIndex = index;
+  }
+  renderTrack();
+}
+
+function closeTrackPanel() {
+  $('track-body').hidden = true;
+  $('track-toggle').setAttribute('aria-expanded', 'false');
+}
+
+/**
+ * Put the track panel back to how it loads.
+ *
+ * Only the track size, because the distance is not really the member's
+ * choice: showTrackPanel() picks it from the event whenever the panel is
+ * closed, and resetAll() calls that straight after this, so setting one here
+ * would be overwritten a line later and reading it would be a lie.
+ */
+function resetTrack() {
+  track.lengthIndex = TRACK_LENGTHS.indexOf(400);
+  closeTrackPanel();
+}
+
+function renderTrack() {
+  const distance = TRACK_DISTANCES[track.distanceIndex];
+  const length = TRACK_LENGTHS[track.lengthIndex];
+
+  $('slide-track-distance').max = String(TRACK_DISTANCES.length - 1);
+  $('slide-track-distance').value = String(track.distanceIndex);
+  $('slide-track-distance').setAttribute('aria-valuetext', distance.label);
+  $('slide-track-length').max = String(TRACK_LENGTHS.length - 1);
+  $('slide-track-length').value = String(track.lengthIndex);
+  $('slide-track-length').setAttribute('aria-valuetext', `${length} metre track`);
+  $('track-distance-low').textContent = TRACK_DISTANCES[0].label;
+  $('track-distance-high').textContent = TRACK_DISTANCES[TRACK_DISTANCES.length - 1].label;
+  $('track-distance-picked').textContent = distance.label;
+  $('track-length-picked').textContent = `${length} m track`;
+
+  if ($('track-body').hidden) return;   // nothing to draw into
+
+  const plan = trackPlan({ distanceId: distance.id, trackLength: length });
+  renderTrackFigure(plan);
+  renderTrackGroups(plan);
+}
+
+function wireTrack() {
+  $('track-toggle').addEventListener('click', () => {
+    const body = $('track-body');
+    const open = body.hidden;
+    body.hidden = !open;
+    $('track-toggle').setAttribute('aria-expanded', String(open));
+    if (open) renderTrack();
+  });
+  $('slide-track-distance').addEventListener('input', () => {
+    track.distanceIndex = Number($('slide-track-distance').value);
+    renderTrack();
+  });
+  $('slide-track-length').addEventListener('input', () => {
+    track.lengthIndex = Number($('slide-track-length').value);
+    renderTrack();
+  });
 }
 
 /* --- the printed component table ------------------------------------------
