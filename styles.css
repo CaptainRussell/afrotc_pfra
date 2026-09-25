@@ -2021,3 +2021,20 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   background: var(--surface);
   color: var(--ink-soft);
 }
+
+/* The way into a body fat assessment that the manual does not require. Set as
+ * a quiet secondary control: it is an option, not the next step. */
+.bfa-optional {
+  justify-self: start;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.bfa-optional:hover { color: var(--ink); border-color: var(--gold-deep); }

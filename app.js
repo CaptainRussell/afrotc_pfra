@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=2c4d3835a5';
-import { createAnalyzer } from './src/analysis.js?v=2c4d3835a5';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=2c4d3835a5';
+} from './src/engine.js?v=ad412d0e88';
+import { createAnalyzer } from './src/analysis.js?v=ad412d0e88';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=ad412d0e88';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent
-} from './src/track.js?v=2c4d3835a5';
+} from './src/track.js?v=ad412d0e88';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=2c4d3835a5').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=ad412d0e88').then((r) => r.json());
   return { data };
 }
 
@@ -1261,7 +1261,7 @@ const BFA_RATIO = 0.55;
  * hand than beside a scale, so the method that is actually used is the one
  * that costs no tap.
  */
-const bfa = { method: 'tape', applied: false, ratio: null };
+const bfa = { method: 'tape', applied: false, ratio: null, opened: false };
 
 /** The measurements the chosen method needs, or null if they are not all in. */
 function bfaMeasurements(sexCode) {
@@ -1308,8 +1308,10 @@ function showBfa(result, complete) {
 
   if (bfa.ratio == null || bfa.ratio < BFA_RATIO) {
     if (bfa.applied) clearBfaExemption();
+    bfa.opened = false;
     panel.hidden = true;
     $('bfa-body').hidden = true;
+    $('bfa-optional').hidden = true;
     // workBfa owns these three and is not reached on this branch, so closing
     // the panel would otherwise leave a verdict and an "Undo" behind it. They
     // are rewritten before the panel is shown again and so cannot be seen
@@ -1322,16 +1324,64 @@ function showBfa(result, complete) {
   }
 
   panel.hidden = false;
-  $('bfa-body').hidden = false;
 
-  const failing = complete && result.pass === false;
-  $('bfa-trigger').textContent = failing
-    ? `A ratio of ${bfa.ratio.toFixed(2)} with an unsatisfactory composite requires a ` +
-      'secondary body fat assessment (DAFMAN 36-2905 para 3.15.4.7). Passing it has ' +
-      'body composition scored as exempt; failing it is an unsatisfactory PFRA.'
-    : `A ratio of ${bfa.ratio.toFixed(2)} is at or above 0.55. If this assessment ` +
-      'does not meet PFRA standards, a secondary body fat assessment is required ' +
-      '(DAFMAN 36-2905 para 3.15.4.7).';
+  // Para 3.15.4.7 asks for two things at once: a ratio of 0.55 or higher, and
+  // an assessment that does not meet PFRA standards. The ratio alone is what
+  // opens this panel, and which of the three things it then says depends on
+  // whether the second condition is known yet and whether it holds.
+  //
+  // An applied pass is the exception. Once body composition is exempt the
+  // composite is being carried by the BFA, so a passing score is not evidence
+  // that none was needed and the fields stay where the member can see them.
+  const required = complete && result.pass === false;
+  const settled = complete && result.pass === true && !bfa.applied;
+  const ratio = bfa.ratio.toFixed(2);
+
+  $('bfa-trigger').textContent = bfa.applied
+    // Said in the past tense on purpose. The composite passes *because* this
+    // was applied, so describing the requirement as open would misread the
+    // score sitting above it.
+    ? `A ratio of ${ratio} and an unsatisfactory composite called for this ` +
+      'assessment (DAFMAN 36-2905 para 3.15.4.7). It passed, so body composition ' +
+      'is exempt and the composite is earned over the other three components ' +
+      '(para 3.7.2).'
+    : required
+      ? `A ratio of ${ratio} with an unsatisfactory composite requires a secondary ` +
+        'body fat assessment (DAFMAN 36-2905 para 3.15.4.7). Passing it has body ' +
+        'composition scored as exempt; failing it is an unsatisfactory PFRA.'
+      : settled
+        ? `A ratio of ${ratio} is at or above 0.55, but this assessment meets PFRA ` +
+          'standards. Para 3.15.4.7 asks for both before a secondary body fat ' +
+          'assessment is required, so none is.'
+        : `A ratio of ${ratio} is at or above 0.55. If this assessment does not meet ` +
+          'PFRA standards, a secondary body fat assessment is required (DAFMAN ' +
+          '36-2905 para 3.15.4.7).';
+
+  // Open on its own only where the manual calls for one. Anywhere else it is
+  // a measurement nobody has asked the member to give, and a set of fields is
+  // an instruction to fill them in.
+  // An applied pass holds the panel open whatever the composite now reads:
+  // the exemption is what the score rests on, and the way to undo it is the
+  // button inside.
+  const open = required || bfa.applied || bfa.opened;
+  $('bfa-body').hidden = !open;
+
+  const optional = $('bfa-optional');
+  optional.hidden = required || bfa.applied;
+  optional.textContent = bfa.opened
+    ? 'Hide the body fat assessment'
+    : settled
+      ? 'Work one out anyway'
+      : 'Work out a body fat assessment now';
+  optional.setAttribute('aria-expanded', String(open));
+
+  if (!open) {
+    // workBfa owns these and is not reached while the body is closed.
+    $('bfa-result').hidden = true;
+    $('bfa-note').hidden = true;
+    $('bfa-apply').hidden = true;
+    return;
+  }
 
   showBfaFields(sex);
   renderBfaSliders();
@@ -1576,6 +1626,13 @@ function wireBfa() {
       update();
     });
   }
+  $('bfa-optional').addEventListener('click', () => {
+    bfa.opened = !bfa.opened;
+    // Closing it throws away anything typed, so a measurement nobody asked for
+    // cannot sit in the form unseen and come back when the score moves.
+    if (!bfa.opened) clearBfaFields();
+    update();
+  });
   $('bfa-apply').addEventListener('click', () => {
     if (bfa.applied) clearBfaExemption();
     else applyBfaExemption();
@@ -1583,15 +1640,22 @@ function wireBfa() {
   });
 }
 
+/** Empty the measurement fields, without touching the rest of the panel. */
+function clearBfaFields() {
+  for (const id of ['bfa-percent', 'bfa-neck', 'bfa-abdomen', 'bfa-waist', 'bfa-buttocks']) {
+    $(id).value = '';
+  }
+  if (bfa.applied) clearBfaExemption();
+}
+
 /** Put the BFA panel back to its starting state. */
 function resetBfa() {
   bfa.method = 'tape';
   bfa.applied = false;
   bfa.ratio = null;
+  bfa.opened = false;
   bfaExemptionNote(false);
-  for (const id of ['bfa-percent', 'bfa-neck', 'bfa-abdomen', 'bfa-waist', 'bfa-buttocks']) {
-    $(id).value = '';
-  }
+  clearBfaFields();
   // The panel is hidden below, and showBfa would put these right before it was
   // seen again, but a hidden panel that disagrees with `bfa.method` is a state
   // waiting to be read wrong. Put the markup back with the object.
@@ -1599,6 +1663,7 @@ function resetBfa() {
   renderBfaSliders();
   $('bfa').hidden = true;
   $('bfa-body').hidden = true;
+  $('bfa-optional').hidden = true;
   $('bfa-result').hidden = true;
   $('bfa-note').hidden = true;
   $('bfa-apply').hidden = true;

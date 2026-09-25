@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=2c4d3835a5">
+<link rel="stylesheet" href="styles.css?v=ad412d0e88">
 </head>
 <body>
 
@@ -473,6 +473,12 @@
            among them rather than inside one, so it is titled too. -->
       <h2 class="bfa-title">Secondary Body Fat Assessment</h2>
       <p class="bfa-trigger" id="bfa-trigger"></p>
+      <!-- Para 3.15.4.7 needs both a ratio of 0.55 or higher and an assessment
+           that does not meet standards, so the measurement fields only open
+           when both hold. This is the way in for anyone who wants the number
+           anyway: a cadre member counselling a cadet who passed this time, or
+           a diagnostic run. -->
+      <button type="button" class="bfa-optional" id="bfa-optional" hidden></button>
       <div class="bfa-body" id="bfa-body" hidden>
         <!-- Tape first and tape by default: para 3.15.4.7 prefers the InBody
              where one is available, but a detachment assessment is run with a
@@ -918,6 +924,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=2c4d3835a5"></script>
+<script type="module" src="app.js?v=ad412d0e88"></script>
 </body>
 </html>
