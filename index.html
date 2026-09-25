@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=f5ea37a93a">
+<link rel="stylesheet" href="styles.css?v=2c4d3835a5">
 </head>
 <body>
 
@@ -420,18 +420,20 @@
                        aria-label="Distance to mark out">
                 <span class="slider-end high" id="track-distance-high"></span>
               </div>
-              <p class="hint track-picked" id="track-distance-picked"></p>
+              <p class="track-picked" id="track-distance-picked" aria-live="polite"></p>
             </div>
             <div class="field">
               <label for="slide-track-length">Track</label>
               <div class="slider-row">
-                <span class="slider-end low">300 m</span>
+                <!-- The end labels and the range are filled from TRACK_LENGTHS,
+                     so adding a track size is a change to that list alone. -->
+                <span class="slider-end low" id="track-length-low"></span>
                 <input type="range" class="slider" id="slide-track-length"
-                       min="0" max="1" step="1" value="1"
+                       min="0" max="2" step="1" value="2"
                        aria-label="Track size">
-                <span class="slider-end high">400 m</span>
+                <span class="slider-end high" id="track-length-high"></span>
               </div>
-              <p class="hint track-picked" id="track-length-picked"></p>
+              <p class="track-picked" id="track-length-picked" aria-live="polite"></p>
             </div>
           </div>
 
@@ -916,6 +918,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=f5ea37a93a"></script>
+<script type="module" src="app.js?v=2c4d3835a5"></script>
 </body>
 </html>

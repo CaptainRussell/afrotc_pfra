@@ -5,8 +5,8 @@
  * A 400 m track has one painted finish line and painted starts for the events
  * it was built for. A PFRA is not one of those events: 2 miles is 3,218.7 m,
  * which is eight laps and 18.7 m over, so the start has to be wheeled. This
- * works out where, for each distance the detachment assesses and for both
- * track sizes anyone round here runs on.
+ * works out where, for each distance the detachment assesses and for each
+ * track size anyone round here runs on, indoor or out.
  *
  * Two groups, because that is how a detachment tests: everyone cannot start on
  * one line. Group A keeps the painted finish line and Group B takes a line
@@ -21,20 +21,32 @@
  *
  * The shapes come from the drawings this replaced: a 400 m track as 84 m
  * straights and 116 m curves, a 300 m track as 50 m straights and 100 m
- * curves. Real tracks vary by a metre or two in the straights, which moves
+ * curves, and a 200 m indoor track as 46 m straights and 54 m curves. Real tracks vary by a metre or two in the straights, which moves
  * where a mark falls in the drawing but not how far it is wheeled, and the
  * note under the diagram says so.
  */
 
 const FEET_PER_METRE = 3.280839895;
 
-/** The two track sizes, as lengths of straight and curve in metres. */
+/**
+ * The track sizes, as lengths of straight and curve in metres.
+ *
+ * Only `length` reaches the wheel distances; the straight and curve set the
+ * proportions of the drawing and nothing else. That is why a real track being
+ * a metre out in the straights does not matter here, and why a size can be
+ * added with two numbers that sum correctly rather than with a new drawing.
+ *
+ * The 200 is an indoor track. Its turns are tight against its straights, the
+ * way an indoor oval is built to fit inside a field house, which draws as a
+ * longer, narrower ring than the outdoor sizes.
+ */
 export const TRACK_SHAPES = Object.freeze({
+  200: Object.freeze({ length: 200, straight: 46, curve: 54 }),
   300: Object.freeze({ length: 300, straight: 50, curve: 100 }),
   400: Object.freeze({ length: 400, straight: 84, curve: 116 })
 });
 
-export const TRACK_LENGTHS = Object.freeze([300, 400]);
+export const TRACK_LENGTHS = Object.freeze([200, 300, 400]);
 
 /**
  * The distances a detachment marks a track for.
@@ -111,7 +123,7 @@ export function trackPlan({ distanceId, trackLength }) {
   const startOffset = exact ? 0 : (forwards ? shape.length - remainder : -remainder);
   const wheel = exact ? null : span(Math.abs(startOffset));
 
-  // Half a lap: on both sizes that is one curve plus one straight, which puts
+  // Half a lap: on every size that is one curve plus one straight, which puts
   // Group B's line at the far end of the opposite straight.
   const groupBOffset = shape.length / 2;
 

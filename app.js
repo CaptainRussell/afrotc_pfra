@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=f5ea37a93a';
-import { createAnalyzer } from './src/analysis.js?v=f5ea37a93a';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=f5ea37a93a';
+} from './src/engine.js?v=2c4d3835a5';
+import { createAnalyzer } from './src/analysis.js?v=2c4d3835a5';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=2c4d3835a5';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent
-} from './src/track.js?v=f5ea37a93a';
+} from './src/track.js?v=2c4d3835a5';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=f5ea37a93a').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=2c4d3835a5').then((r) => r.json());
   return { data };
 }
 
@@ -2348,13 +2348,23 @@ function buildTrackFigure(plan) {
   const length = plan.shape.length;
   const extent = trackExtent(length);
 
-  // One scale for both sizes, pinned to the larger, so switching tracks
-  // shrinks the oval instead of redrawing it at the same size with different
-  // numbers on it. 400 m is the wider of the two.
-  const widest = trackExtent(400);
-  const scale = 360 / widest.width;
-  const boxW = widest.width * scale + 150;
-  const boxH = widest.height * scale + 92;
+  // Each size is drawn to the same width rather than to its true size against
+  // the others. Holding one scale across all of them read nicely with two
+  // sizes, but a 200 is half the 400 across, which left an infield too narrow
+  // for the lap line and put it through the start marks. What the shared scale
+  // bought was a sense that one track is smaller than another, and the picked
+  // label above the figure now says which track it is outright, in a size that
+  // does that job better than a subtle difference in the drawing.
+  //
+  // The box keeps a constant height, taken from whichever size is tallest once
+  // scaled, so switching tracks does not make the card jump.
+  const scale = 360 / extent.width;
+  const tallest = Math.max(...TRACK_LENGTHS.map((m) => {
+    const e = trackExtent(m);
+    return e.height * (360 / e.width);
+  }));
+  const boxW = 360 + 150;
+  const boxH = tallest + 92;
 
   const svg = svgEl('svg', {
     viewBox: `${-boxW / 2} ${-boxH / 2} ${boxW} ${boxH}`,
@@ -2539,6 +2549,13 @@ function renderTrack() {
   $('slide-track-length').setAttribute('aria-valuetext', `${length} metre track`);
   $('track-distance-low').textContent = TRACK_DISTANCES[0].label;
   $('track-distance-high').textContent = TRACK_DISTANCES[TRACK_DISTANCES.length - 1].label;
+  $('track-length-low').textContent = `${TRACK_LENGTHS[0]} m`;
+  $('track-length-high').textContent = `${TRACK_LENGTHS[TRACK_LENGTHS.length - 1]} m`;
+
+  // Both sliders have more stops than they have end labels, so the stop the
+  // handle is actually parked on is the only part of the row that says what
+  // is being drawn. It is set in the same size as the figure's own headline
+  // rather than as a caption under the track.
   $('track-distance-picked').textContent = distance.label;
   $('track-length-picked').textContent = `${length} m track`;
 

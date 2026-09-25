@@ -1486,18 +1486,28 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   grid-template-columns: 2fr 1fr;
   gap: 12px 16px;
 }
-/* Stack sooner than the other rows. The track slider has two stops, so at
+/* Stack sooner than the other rows. The track slider has few stops, so at
  * half a narrow card its thumb sits on top of the end label naming the stop
  * it is parked at, which is the one label that has to stay readable. */
 @media (max-width: 620px) {
   .track-pickers { grid-template-columns: 1fr; }
 }
 
-/* The slider ends name the extremes; this names the stop it is actually on,
- * which on a four-stop track is the only way to read it. */
+/* The slider ends name the extremes; this names the stop it is actually on.
+ * It used to be set as a hint, which put the one piece of text that says what
+ * the diagram below is showing in the same small grey as the footnotes around
+ * it. A slider with three or four unlabelled stops gives no other reading of
+ * where the handle is, so this is sized like an answer rather than a caption,
+ * and takes the gold the rest of the form uses to mean "this is your choice".
+ */
 .track-picked {
-  font-weight: 700;
-  color: var(--ink);
+  margin: 2px 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
 }
 
 .track-figure {
