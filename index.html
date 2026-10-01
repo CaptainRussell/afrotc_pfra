@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=92d0bc8020">
+<link rel="stylesheet" href="styles.css?v=4996c68508">
 </head>
 <body>
 
@@ -407,17 +407,21 @@
            on a marked course. The HAMR is run between two lines 20 m apart
            and has nothing to lay out. -->
       <div class="chart-inline" id="track-inline" hidden>
-        <button type="button" class="secondary small" id="track-toggle"
-                aria-expanded="false" aria-controls="track-body">Track Layout</button>
-        <div class="chart-body track-body" id="track-body" hidden>
+        <div class="course-toggles">
+          <button type="button" class="secondary small" id="pace-toggle"
+                  aria-expanded="false" aria-controls="course-body">Lap Pace</button>
+          <button type="button" class="secondary small" id="track-toggle"
+                  aria-expanded="false" aria-controls="course-body">Track Layout</button>
+        </div>
+        <div class="chart-body track-body" id="course-body" hidden>
           <div class="track-pickers">
             <div class="field">
-              <label for="slide-track-distance">Distance to mark</label>
+              <label for="slide-track-distance">Distance</label>
               <div class="slider-row">
                 <span class="slider-end low" id="track-distance-low"></span>
                 <input type="range" class="slider" id="slide-track-distance"
                        min="0" max="3" step="1" value="0"
-                       aria-label="Distance to mark out">
+                       aria-label="Distance being run">
                 <span class="slider-end high" id="track-distance-high"></span>
               </div>
               <p class="track-picked" id="track-distance-picked" aria-live="polite"></p>
@@ -451,13 +455,12 @@
             </div>
           </div>
 
-          <div class="track-figure" id="track-figure"></div>
-          <div class="track-groups" id="track-groups"></div>
-          <p class="hint" id="track-note"></p>
-
-          <!-- Lap pace. Same distance and track as the layout above, because
-               a lap split is only a number once you know how long a lap is
-               and how many of them there are. -->
+          <div id="pace-section" hidden>
+          <!-- Lap pace: what a member wants. Marking the track is what the
+               person running the assessment wants. They share the distance
+               and the lap above, because a split is only a number once you
+               know how long a lap is and how many of them there are, but they
+               are opened separately because they are for different people. -->
           <div class="pace">
             <div class="field pace-field">
               <label for="pace-min">Pace for a finishing time of</label>
@@ -487,11 +490,18 @@
               <p class="pace-partial" id="pace-partial" hidden></p>
             </div>
           </div>
+          </div>
+          <div id="track-section" hidden>
+          <div class="track-figure" id="track-figure"></div>
+          <div class="track-groups" id="track-groups"></div>
+          <p class="hint" id="track-note"></p>
+
           <!-- The person marking the track is outside with a wheel, not at a
                screen. This prints the layout on its own sheet: the result
                record and this are two different documents and only one of them
                goes out at a time, which is what body.printing-track decides. -->
           <button type="button" class="secondary small" id="print-track">Print Layout</button>
+          </div>
         </div>
       </div>
       <!-- Only the run and the walk: those are the events a member can leave
@@ -973,6 +983,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=92d0bc8020"></script>
+<script type="module" src="app.js?v=4996c68508"></script>
 </body>
 </html>

@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=92d0bc8020';
-import { createAnalyzer } from './src/analysis.js?v=92d0bc8020';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=92d0bc8020';
+} from './src/engine.js?v=4996c68508';
+import { createAnalyzer } from './src/analysis.js?v=4996c68508';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=4996c68508';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=92d0bc8020';
+} from './src/track.js?v=4996c68508';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=92d0bc8020').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=4996c68508').then((r) => r.json());
   return { data };
 }
 
@@ -2692,6 +2692,17 @@ function trackNote(plan) {
  * rather than merely hiding, so switching to the HAMR and back does not
  * reopen a panel the member never opened.
  */
+/**
+ * Which of the two course tools are open.
+ *
+ * They were one panel, with the pace underneath the layout, and the pace is
+ * the half a member wants: what to run each lap in. Marking a track is the
+ * half the person administering the assessment wants. Putting the member's
+ * tool behind a button named for the administrator's hid it, so they open
+ * separately and share the distance and lap above them.
+ */
+const course = { pace: false, layout: false };
+
 function showTrackPanel() {
   const event = events.cardiorespiratory;
   const wanted = event === 'run_2mile' || event === 'walk_2km';
@@ -2705,8 +2716,8 @@ function showTrackPanel() {
 
   // Follow the event the first time it is shown for it: the walk is 2 km and
   // the run is 2 miles, so the useful distance is the one being assessed.
-  // Only while the panel is closed, so it never moves under a reader.
-  if ($('track-body').hidden) {
+  // Only while both are closed, so it never moves under a reader.
+  if (!course.pace && !course.layout) {
     const wants = event === 'walk_2km' ? 'km2' : 'mile2';
     const index = TRACK_DISTANCES.findIndex((d) => d.id === wants);
     if (index >= 0) track.distanceIndex = index;
@@ -2714,9 +2725,21 @@ function showTrackPanel() {
   renderTrack();
 }
 
+/** Show whichever of the two is open, and the pickers if either is. */
+function showCourseSections() {
+  $('course-body').hidden = !(course.pace || course.layout);
+  $('pace-section').hidden = !course.pace;
+  $('track-section').hidden = !course.layout;
+  $('pace-toggle').setAttribute('aria-expanded', String(course.pace));
+  $('pace-toggle').classList.toggle('on', course.pace);
+  $('track-toggle').setAttribute('aria-expanded', String(course.layout));
+  $('track-toggle').classList.toggle('on', course.layout);
+}
+
 function closeTrackPanel() {
-  $('track-body').hidden = true;
-  $('track-toggle').setAttribute('aria-expanded', 'false');
+  course.pace = false;
+  course.layout = false;
+  showCourseSections();
 }
 
 /**
@@ -2916,7 +2939,8 @@ function renderTrack() {
 
   renderPace(distance, length);
 
-  if ($('track-body').hidden) return;   // nothing to draw into
+  showCourseSections();
+  if (!course.layout) return;   // no figure to draw into
 
   const plan = trackPlan({ distanceId: distance.id, trackLength: length });
   $('track-figure').replaceChildren(buildTrackFigure(plan));
@@ -2995,12 +3019,15 @@ function printTrackLayout() {
 }
 
 function wireTrack() {
+  $('pace-toggle').addEventListener('click', () => {
+    course.pace = !course.pace;
+    showCourseSections();
+    renderTrack();
+  });
   $('track-toggle').addEventListener('click', () => {
-    const body = $('track-body');
-    const open = body.hidden;
-    body.hidden = !open;
-    $('track-toggle').setAttribute('aria-expanded', String(open));
-    if (open) renderTrack();
+    course.layout = !course.layout;
+    showCourseSections();
+    renderTrack();
   });
   $('slide-track-distance').addEventListener('input', () => {
     track.distanceIndex = Number($('slide-track-distance').value);

@@ -2126,3 +2126,23 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   flex: 0 0 auto;
   padding: 8px 10px;
 }
+
+/* The two course tools: a lap pace for the member, a layout for whoever is
+ * marking the track. Side by side because they are peers, not a thing and a
+ * detail of it. */
+.course-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.course-toggles .secondary.on {
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+#pace-section + #track-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
