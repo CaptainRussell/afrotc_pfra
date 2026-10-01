@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=ad412d0e88';
-import { createAnalyzer } from './src/analysis.js?v=ad412d0e88';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=ad412d0e88';
+} from './src/engine.js?v=4ab1d1545b';
+import { createAnalyzer } from './src/analysis.js?v=4ab1d1545b';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=4ab1d1545b';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent
-} from './src/track.js?v=ad412d0e88';
+} from './src/track.js?v=4ab1d1545b';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=ad412d0e88').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=4ab1d1545b').then((r) => r.json());
   return { data };
 }
 
@@ -917,6 +917,26 @@ function showAltitudeApplied(result) {
  */
 const chartOpen = new Set();
 
+/** The row each open chart is currently marking, so it is only re-seated when
+ * that row actually changes. */
+const chartMarked = new Map();
+
+/**
+ * Scroll a chart's own box so the marked row sits in the middle of it.
+ *
+ * Deliberately not scrollIntoView(). That scrolls every scrollable ancestor,
+ * the page included, so with a chart open off screen one notch of the scroll
+ * wheel on a slider elsewhere would throw the viewport down to the chart and
+ * leave the control the member was adjusting somewhere above it. Moving this
+ * element's own scrollTop cannot move anything else.
+ */
+function centreInChart(host, row) {
+  const rowBox = row.getBoundingClientRect();
+  const hostBox = host.getBoundingClientRect();
+  const offset = (rowBox.top - hostBox.top) - (host.clientHeight - rowBox.height) / 2;
+  host.scrollTop += offset;
+}
+
 function renderCharts(band) {
   for (const component of COMPONENTS) {
     const host = $(`chart-body-${component}`);
@@ -931,6 +951,7 @@ function renderCharts(band) {
       host.replaceChildren();
       host.hidden = true;
       chartOpen.delete(component);
+      chartMarked.delete(component);
       toggle.setAttribute('aria-expanded', 'false');
       continue;
     }
@@ -956,6 +977,7 @@ function renderCharts(band) {
     const currentIndex = scored && scored.status !== 'exempt'
       ? scored.chartRowIndex : -1;
 
+    const wasHidden = host.hidden;
     host.replaceChildren(buildChartTable(chart, currentIndex, component));
     host.hidden = false;
     toggle.setAttribute('aria-expanded', 'true');
@@ -963,8 +985,16 @@ function renderCharts(band) {
 
     // Bring the marked row into view inside the scrolling table, so a cadet
     // does not have to hunt for the thing that was highlighted for them.
+    //
+    // Only when the chart has just opened or the marked row has moved. This
+    // runs on every update, which is every keystroke and every notch of a
+    // scroll wheel anywhere on the form, and re-seating a row that has not
+    // changed also takes the chart back off a reader who had scrolled it
+    // somewhere else.
     const marked = host.querySelector('.chart-current');
-    if (marked) marked.scrollIntoView({ block: 'nearest' });
+    const moved = chartMarked.get(component) !== currentIndex;
+    chartMarked.set(component, currentIndex);
+    if (marked && (wasHidden || moved)) centreInChart(host, marked);
   }
 }
 
