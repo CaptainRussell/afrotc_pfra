@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=7dec6b3aa7';
-import { createAnalyzer } from './src/analysis.js?v=7dec6b3aa7';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=7dec6b3aa7';
+} from './src/engine.js?v=92d0bc8020';
+import { createAnalyzer } from './src/analysis.js?v=92d0bc8020';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=92d0bc8020';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=7dec6b3aa7';
+} from './src/track.js?v=92d0bc8020';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=7dec6b3aa7').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=92d0bc8020').then((r) => r.json());
   return { data };
 }
 
@@ -1599,11 +1599,11 @@ function workBfa(sexCode) {
   const notes = [...assessment.warnings];
   if (role === 'cadet') {
     notes.push(
-      'AFROTC has not yet said whether the secondary BFA reaches cadets. The 2023 ' +
-      'supplement authorises no cadet exemptions at all and still measures body ' +
-      'composition by BMI, and the revision that would settle it against the ' +
-      'current DAFMAN and NOTACC has not been published. Check with HQ before ' +
-      'recording this.');
+      'Cadets are assessed on body fat against the DAFMAN standard, not BMI. HQ ' +
+      'confirmed at a Check 6 on 1 October 2026 that AFROTC will not set a figure ' +
+      'tighter than DAFMAN 36-2905. The 2023 supplement on the shelf still says ' +
+      'BMI and a tighter percentage; the revision carrying this has not been ' +
+      'published.');
   }
   note.textContent = notes.join(' ');
   note.hidden = notes.length === 0;
