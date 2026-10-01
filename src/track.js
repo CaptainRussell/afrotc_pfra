@@ -29,6 +29,15 @@
 const FEET_PER_METRE = 3.280839895;
 
 /**
+ * Metres from a reading taken in feet.
+ *
+ * A measuring wheel counts in feet, so a lap that was walked out rather than
+ * read off a plan arrives in feet. Everything here works in metres, and the
+ * conversion belongs beside the constant rather than in the page.
+ */
+export const metresFromFeet = (feet) => feet / FEET_PER_METRE;
+
+/**
  * The track sizes, as lengths of straight and curve in metres.
  *
  * Only `length` reaches the wheel distances; the straight and curve set the
@@ -47,6 +56,35 @@ export const TRACK_SHAPES = Object.freeze({
 });
 
 export const TRACK_LENGTHS = Object.freeze([200, 300, 400]);
+
+/** Smallest and largest lap a drawing stays sensible at, in metres. */
+export const TRACK_LENGTH_RANGE = Object.freeze({ min: 50, max: 1000 });
+
+/**
+ * The straight and curve to draw a lap of any length with.
+ *
+ * The three sizes above are drawn to the figures the hand-made layouts used.
+ * Anything else is a track somebody measured themselves, and nobody has its
+ * proportions, so they are derived: two fifths of the half lap in straight,
+ * which sits in the middle of what the three printed sizes do (46, 33 and 42
+ * per cent).
+ *
+ * Nothing a runner is told depends on that guess. The laps, the remainder,
+ * the wheel distances, the group B offset and the pace all come from the
+ * perimeter alone; the straight and the curve only decide where the marks sit
+ * in the picture, which is what the note under the figure already warns about
+ * for the printed sizes too.
+ */
+export function shapeFor(length) {
+  if (!(length > 0) || !Number.isFinite(length)) {
+    throw new RangeError(`a lap length must be a positive number, got ${JSON.stringify(length)}`);
+  }
+  const printed = TRACK_SHAPES[length];
+  if (printed) return printed;
+  const half = length / 2;
+  const straight = half * 0.4;
+  return Object.freeze({ length, straight, curve: half - straight });
+}
 
 /**
  * The distances a detachment marks a track for.
@@ -107,8 +145,7 @@ function span(metres) {
 export function trackPlan({ distanceId, trackLength }) {
   const distance = distanceById(distanceId);
   if (!distance) throw new RangeError(`unknown track distance ${JSON.stringify(distanceId)}`);
-  const shape = TRACK_SHAPES[trackLength];
-  if (!shape) throw new RangeError(`unknown track length ${JSON.stringify(trackLength)}`);
+  const shape = shapeFor(trackLength);
 
   const laps = Math.floor(distance.metres / shape.length);
   const remainder = distance.metres - laps * shape.length;
@@ -176,8 +213,7 @@ export function trackPlan({ distanceId, trackLength }) {
  * a caller can draw a mark across the track rather than a dot beside it.
  */
 export function pointOnTrack(trackLength, metres) {
-  const shape = TRACK_SHAPES[trackLength];
-  if (!shape) throw new RangeError(`unknown track length ${JSON.stringify(trackLength)}`);
+  const shape = shapeFor(trackLength);
 
   const radius = shape.curve / Math.PI;
   const half = shape.straight / 2;
@@ -215,7 +251,7 @@ export function pointOnTrack(trackLength, metres) {
 
 /** The oval's own size in metres, for fitting it to a viewBox. */
 export function trackExtent(trackLength) {
-  const shape = TRACK_SHAPES[trackLength];
+  const shape = shapeFor(trackLength);
   const radius = shape.curve / Math.PI;
   return Object.freeze({
     radius,

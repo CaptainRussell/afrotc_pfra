@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=57580e6492';
-import { createAnalyzer } from './src/analysis.js?v=57580e6492';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=57580e6492';
+} from './src/engine.js?v=7dec6b3aa7';
+import { createAnalyzer } from './src/analysis.js?v=7dec6b3aa7';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=7dec6b3aa7';
 import {
-  TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace
-} from './src/track.js?v=57580e6492';
+  TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
+} from './src/track.js?v=7dec6b3aa7';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=57580e6492').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=7dec6b3aa7').then((r) => r.json());
   return { data };
 }
 
@@ -799,6 +799,11 @@ function update() {
   // function returned before reaching them.
   showAltitudeGroup();
   showHamrLevel();
+  // The pace slider reads its ends off the 2 mile chart, so it only has them
+  // once a sex and an age band are set, and those can be answered after the
+  // track panel is already open. renderTrack() costs nothing while the panel
+  // is closed: it seats the pace controls and returns before drawing.
+  renderTrack();
   // The alternate-exercise warning is worded differently for a cadet and for
   // cadre, so it depends on the role as much as on the event. It used to be
   // refreshed only when the event changed, which left a cadre member reading
@@ -2025,6 +2030,11 @@ function dropBfaOnRemeasure() {
 
 /** Write a dragged value into the fields the rest of the app reads. */
 function onSliderInput(component) {
+  if (component === 'pace') {
+    onPaceSliderInput();
+    return;
+  }
+
   if (component === 'height') {
     const raw = Number($('slide-height').value);
     $('height').value = raw.toFixed(1);
@@ -2417,7 +2427,59 @@ function showExemptExplainer(result, exempt) {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /** What the two sliders are currently on. */
-const track = { distanceIndex: 0, lengthIndex: TRACK_LENGTHS.indexOf(400) };
+const track = {
+  distanceIndex: 0,
+  lengthIndex: TRACK_LENGTHS.indexOf(400),
+  // A lap the member measured, which wins over the slider while it is set,
+  // kept in metres whatever it was typed in.
+  customLength: null,
+  customEntry: null,
+  customUnit: 'm'
+};
+
+/**
+ * Take the measured lap off the field, in whichever unit it was given.
+ *
+ * Out of range or half typed reverts to the slider rather than drawing a lap
+ * of four metres on the way to forty. The bounds are checked in metres, so a
+ * reading in feet is converted before it is judged.
+ */
+function readCustomLap() {
+  const typed = decimal('custom-lap');
+  const unit = track.customUnit;
+  const metres = typed == null || typed === undefined
+    ? null
+    : (unit === 'ft' ? metresFromFeet(typed) : typed);
+
+  const usable = metres != null
+    && metres >= TRACK_LENGTH_RANGE.min && metres <= TRACK_LENGTH_RANGE.max;
+  track.customLength = usable ? metres : null;
+  track.customEntry = usable ? typed : null;
+
+  // The field's own bounds move with the unit, so a phone keyboard and the
+  // browser's own validation agree with what is actually accepted.
+  const field = $('custom-lap');
+  field.min = String(Math.ceil(unit === 'ft'
+    ? TRACK_LENGTH_RANGE.min * FEET_PER_METRE_UI : TRACK_LENGTH_RANGE.min));
+  field.max = String(Math.floor(unit === 'ft'
+    ? TRACK_LENGTH_RANGE.max * FEET_PER_METRE_UI : TRACK_LENGTH_RANGE.max));
+  field.placeholder = unit;
+  renderTrack();
+}
+
+/** Only for the field's own bounds; the real conversion is in src/track.js. */
+const FEET_PER_METRE_UI = 3.280839895;
+
+/**
+ * The lap now in force: a measured one if there is one, else the slider's.
+ *
+ * Only the perimeter reaches anything a runner is told, so a lap nobody has
+ * printed a layout for is as good a number as the three that have one. The
+ * drawing has to guess the proportions and says so.
+ */
+function trackLength() {
+  return track.customLength ?? TRACK_LENGTHS[track.lengthIndex];
+}
 
 const svgEl = (tag, attrs) => {
   const node = document.createElementNS(SVG_NS, tag);
@@ -2492,7 +2554,7 @@ function buildTrackFigure(plan) {
   // The box keeps a constant height, taken from whichever size is tallest once
   // scaled, so switching tracks does not make the card jump.
   const scale = 360 / extent.width;
-  const tallest = Math.max(...TRACK_LENGTHS.map((m) => {
+  const tallest = Math.max(...[...TRACK_LENGTHS, length].map((m) => {
     const e = trackExtent(m);
     return e.height * (360 / e.width);
   }));
@@ -2666,9 +2728,16 @@ function closeTrackPanel() {
  * would be overwritten a line later and reading it would be a lie.
  */
 function resetTrack() {
+  track.customLength = null;
+  track.customEntry = null;
+  track.customUnit = 'm';
+  $('custom-lap').value = '';
+  $('custom-lap-unit').value = 'm';
   $('pace-min').value = '';
   $('pace-sec').value = '';
   $('pace-readout').hidden = true;
+  $('slider-pace').hidden = true;
+  paceBounds = null;
   track.lengthIndex = TRACK_LENGTHS.indexOf(400);
   closeTrackPanel();
 }
@@ -2682,16 +2751,13 @@ function resetTrack() {
  */
 function renderPace(distance, length) {
   const readout = $('pace-readout');
-  const minutes = wholeNumber('pace-min');
-  const seconds = wholeNumber('pace-sec');
+  renderPaceSlider(distance);
 
-  // Both blank is the resting state, not an error: nothing is being aimed at
-  // yet. A part-entered or out-of-range time shows nothing rather than a
-  // number worked out from half of it.
-  const usable = minutes != null && minutes !== undefined
-    && seconds != null && seconds !== undefined && seconds <= 59
-    && minutes * 60 + seconds > 0;
-  if (!usable) {
+  // Nothing aimed at yet is the resting state, not an error. A part-entered or
+  // out-of-range time shows nothing rather than a pace worked out from half of
+  // it.
+  const target = paceSeconds();
+  if (target == null) {
     readout.hidden = true;
     return;
   }
@@ -2699,7 +2765,7 @@ function renderPace(distance, length) {
   const pace = lapPace({
     distanceId: distance.id,
     trackLength: length,
-    seconds: minutes * 60 + seconds
+    seconds: target
   });
 
   $('pace-lap').textContent = pace.lap.label;
@@ -2723,9 +2789,106 @@ function renderPace(distance, length) {
   readout.hidden = false;
 }
 
+/**
+ * The two ends of the pace slider, in seconds, or null when there is no chart
+ * to read them off yet.
+ *
+ * Anchored on the 2 mile run, which is the event the distances here are run
+ * against: the slow end is the slowest time that still passes it for this
+ * member's sex and age band, and the fast end is 10:00.
+ *
+ * The slow end is the passing time itself rather than a second past it, which
+ * is where the scoring sliders put their left hand end. Those record what
+ * happened and a fail is a real thing to record. This one sets a goal, and a
+ * goal of missing the standard is not one.
+ *
+ * Both ends are paces rather than times, so they carry over to the distances
+ * that have no standard of their own. A 10:00 2 mile is 3:06.4 per kilometre,
+ * and that is what the fast end means on a 1.5 mile, a 2 km or a 3 mile.
+ */
+function paceEnds(distance) {
+  if (!sex || !ageBand) return null;
+  const run = scorer.rangeFor({
+    component: 'cardiorespiratory', event: 'run_2mile', sex, band: ageBand
+  });
+  if (!run || !run.floor || run.floor.value == null) return null;
+
+  const mile2 = distanceById('mile2');
+  const factor = distance.metres / mile2.metres;
+  return {
+    slow: Math.round(run.floor.value * factor),
+    fast: Math.round(PACE_FAST_2MILE * factor)
+  };
+}
+
+/** The fast end of the pace slider, as a 2 mile time in seconds. */
+const PACE_FAST_2MILE = 10 * 60;
+
+/** Where the pace slider's ends currently sit, for reading a dragged value. */
+let paceBounds = null;
+
+/**
+ * Draw the pace slider for the distance now picked.
+ *
+ * Slower on the left and faster on the right, which is worst to best as every
+ * other track on the page runs, so the handle moves the same way here as it
+ * does on the run.
+ */
+function renderPaceSlider(distance) {
+  const row = $('slider-pace');
+  const input = $('slide-pace');
+  const ends = paceEnds(distance);
+  paceBounds = ends;
+
+  if (!ends) {
+    row.hidden = true;
+    return;
+  }
+
+  row.hidden = false;
+  input.min = String(ends.fast);
+  input.max = String(ends.slow);
+  input.step = '1';
+  $('pace-low').textContent = formatTime(ends.slow);
+  $('pace-high').textContent = formatTime(ends.fast);
+
+  if (dragging === 'pace') return;
+
+  const current = paceSeconds();
+  // Nothing aimed at yet parks at the left, the slowest end, the way an
+  // unentered score parks at the worst end of its own track.
+  const seated = current == null
+    ? ends.slow
+    : Math.max(ends.fast, Math.min(ends.slow, current));
+  input.value = String(ends.fast + ends.slow - seated);
+  input.setAttribute('aria-valuetext',
+    current == null ? 'not set' : formatTime(current));
+}
+
+/** The target time now in the two fields, in seconds, or null. */
+function paceSeconds() {
+  const minutes = wholeNumber('pace-min');
+  const seconds = wholeNumber('pace-sec');
+  if (minutes == null || minutes === undefined) return null;
+  if (seconds == null || seconds === undefined || seconds > 59) return null;
+  const total = minutes * 60 + seconds;
+  return total > 0 ? total : null;
+}
+
+/** Write a dragged pace back into the fields the readout is worked out from. */
+function onPaceSliderInput() {
+  if (!paceBounds) return;
+  const position = Number($('slide-pace').value);
+  const seconds = paceBounds.fast + paceBounds.slow - position;
+  $('pace-min').value = String(Math.floor(seconds / 60));
+  $('pace-sec').value = String(seconds % 60).padStart(2, '0');
+  $('slide-pace').setAttribute('aria-valuetext', formatTime(seconds));
+  renderTrack();
+}
+
 function renderTrack() {
   const distance = TRACK_DISTANCES[track.distanceIndex];
-  const length = TRACK_LENGTHS[track.lengthIndex];
+  const length = trackLength();
 
   $('slide-track-distance').max = String(TRACK_DISTANCES.length - 1);
   $('slide-track-distance').value = String(track.distanceIndex);
@@ -2743,7 +2906,13 @@ function renderTrack() {
   // is being drawn. It is set in the same size as the figure's own headline
   // rather than as a caption under the track.
   $('track-distance-picked').textContent = distance.label;
-  $('track-length-picked').textContent = `${length} m track`;
+  $('track-length-picked').textContent = track.customLength == null
+    ? `${length} m track`
+    : track.customUnit === 'ft'
+      // Both, because the reading came off a wheel in feet and every distance
+      // under the figure is given in metres first.
+      ? `${track.customEntry} ft lap, measured (${length.toFixed(1)} m)`
+      : `${length} m lap, measured`;
 
   renderPace(distance, length);
 
@@ -2806,7 +2975,7 @@ function renderTrackPrint(plan) {
 
 function printTrackLayout() {
   const distance = TRACK_DISTANCES[track.distanceIndex];
-  const length = TRACK_LENGTHS[track.lengthIndex];
+  const length = trackLength();
   renderTrackPrint(trackPlan({ distanceId: distance.id, trackLength: length }));
 
   document.body.classList.add('printing-track');
@@ -2839,7 +3008,20 @@ function wireTrack() {
   });
   $('slide-track-length').addEventListener('input', () => {
     track.lengthIndex = Number($('slide-track-length').value);
+    // Reaching for a printed size is a choice of that size, so it takes the
+    // lap back off a measured one rather than being quietly overruled by it.
+    track.customLength = null;
+    track.customEntry = null;
+    $('custom-lap').value = '';
     renderTrack();
+  });
+  $('custom-lap').addEventListener('input', readCustomLap);
+  $('custom-lap-unit').addEventListener('change', () => {
+    track.customUnit = $('custom-lap-unit').value;
+    // What is typed is re-read in the new unit rather than converted. The
+    // selector says which unit the number is in; changing someone's number
+    // underneath them would be a different, and surprising, thing to do.
+    readCustomLap();
   });
   for (const id of ['pace-min', 'pace-sec']) {
     $(id).addEventListener('input', () => renderTrack());

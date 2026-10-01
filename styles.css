@@ -2099,3 +2099,30 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   line-height: 1.5;
   color: var(--ink-faint);
 }
+
+/* A lap the member measured, beside the three the layouts were drawn for. */
+.custom-lap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.custom-lap label {
+  margin: 0;
+  font-size: .76rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.custom-lap input {
+  width: 6rem;
+  flex: 0 0 auto;
+}
+
+.custom-lap select {
+  width: auto;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+}

@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=57580e6492">
+<link rel="stylesheet" href="styles.css?v=7dec6b3aa7">
 </head>
 <body>
 
@@ -433,6 +433,20 @@
                        aria-label="Track size">
                 <span class="slider-end high" id="track-length-high"></span>
               </div>
+              <!-- A lap somebody measured themselves. Filling it takes over
+                   from the slider; moving the slider hands control back. -->
+              <div class="custom-lap">
+                <label for="custom-lap">or a measured lap</label>
+                <input type="number" id="custom-lap" inputmode="decimal" min="50" max="1000"
+                       step="1" placeholder="m" aria-label="Measured lap length">
+                <!-- A measuring wheel counts in feet, so the reading often
+                     arrives that way. The unit says what the number means; it
+                     does not convert what is already typed. -->
+                <select id="custom-lap-unit" aria-label="Units of the measured lap">
+                  <option value="m">m</option>
+                  <option value="ft">ft</option>
+                </select>
+              </div>
               <p class="track-picked" id="track-length-picked" aria-live="polite"></p>
             </div>
           </div>
@@ -453,6 +467,17 @@
                 <span class="time-colon" aria-hidden="true">:</span>
                 <input type="number" id="pace-sec" inputmode="numeric" min="0" max="59"
                        step="1" placeholder="ss" aria-label="Target seconds">
+              </div>
+              <!-- Ends come from the chart, so the track has to know the sex
+                   and age band before it can draw them. A time outside them
+                   is still typed in: the handle pins and the pace is worked
+                   out from what was typed, as the scoring sliders do. -->
+              <div class="slider-row" id="slider-pace" hidden>
+                <span class="slider-end low" id="pace-low"></span>
+                <input type="range" class="slider" id="slide-pace" data-component="pace"
+                       min="0" max="1" step="1" value="0"
+                       aria-label="Target finishing time">
+                <span class="slider-end high" id="pace-high"></span>
               </div>
             </div>
             <div class="pace-readout" id="pace-readout" hidden>
@@ -946,6 +971,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=57580e6492"></script>
+<script type="module" src="app.js?v=7dec6b3aa7"></script>
 </body>
 </html>
