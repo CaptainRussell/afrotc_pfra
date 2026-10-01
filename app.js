@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=4ab1d1545b';
-import { createAnalyzer } from './src/analysis.js?v=4ab1d1545b';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=4ab1d1545b';
+} from './src/engine.js?v=b1309c1172';
+import { createAnalyzer } from './src/analysis.js?v=b1309c1172';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=b1309c1172';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent
-} from './src/track.js?v=4ab1d1545b';
+} from './src/track.js?v=b1309c1172';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=4ab1d1545b').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=b1309c1172').then((r) => r.json());
   return { data };
 }
 
@@ -436,19 +436,42 @@ function selectSex(value) {
 }
 
 function nudge(id, delta) {
+  // A component carrying a status has no count to step. Its fields are
+  // disabled and so are these buttons, so this is the belt to that braces:
+  // reached any other way, a nudge must not quietly revoke the status.
+  //
+  // It used to, and on the wrong component. The target was mapped with
+  // `id === 'hrpu' ? 'hrpu' : 'situp'`, which sent the HAMR buttons at core
+  // endurance, and the clear went through setStatus(), which owns none of the
+  // things setExempt() puts on screen. Pressing + on the HAMR dropped an
+  // exemption from the sit-ups while the Exempt button stayed lit, and
+  // pressing + on an exempt component took its composite from 91.8 to 78.0.
+  if (statuses[componentOf(id)]) return;
+
   const input = $(id);
   const current = input.value.trim() === '' ? 0 : Number(input.value);
   const next = Math.max(0, Math.round(current) + delta);
   input.value = String(next);
-  // A nudge is a measurement, so it clears any DNS or DNF on that component.
-  const key = id === 'hrpu' ? 'hrpu' : 'situp';
-  if (statuses[componentOf(key)]) setStatus(key, null);
   update();
 }
 
 const componentOf = (field) => ({
-  hrpu: 'muscular_strength', situp: 'core_endurance', run: 'cardiorespiratory'
+  hrpu: 'muscular_strength',
+  situp: 'core_endurance',
+  hamr: 'cardiorespiratory',
+  run: 'cardiorespiratory'
 }[field]);
+
+/**
+ * The step buttons that write into a component's fields.
+ *
+ * They are disabled alongside those fields. Leaving them live on a component
+ * whose inputs are greyed out is the inconsistency the nudge bugs grew in.
+ */
+function stepsOf(component) {
+  return [...document.querySelectorAll('.step')]
+    .filter((button) => componentOf(button.dataset.target) === component);
+}
 
 /** Cycle nothing -> did not start -> did not finish -> nothing. */
 /**
@@ -493,6 +516,7 @@ function setStatus(field, value) {
     button.classList.remove('on');
     for (const id of inputs) $(id).disabled = false;
   }
+  for (const step of stepsOf(component)) step.disabled = Boolean(value);
 }
 
 function onAnyInput() {
@@ -561,6 +585,7 @@ function resetAll() {
     $(id).value = '';
     $(id).disabled = false;
   }
+  for (const button of document.querySelectorAll('.step')) button.disabled = false;
 
   resetBfa();
   resetTrack();
@@ -580,8 +605,7 @@ function resetAll() {
   lastResult = null;
   $('results').hidden = true;
   $('results').classList.remove('revealed');
-  $('target-plans').replaceChildren();
-  $('target-error').hidden = true;
+  clearPlan();
 
   showRoleControls();
   update();
@@ -825,6 +849,7 @@ function update() {
   if (!complete) {
     $('results').hidden = true;
     $('award-line').hidden = true;
+    clearPlan();
     return;
   }
 
@@ -834,6 +859,11 @@ function update() {
   renderWarnings(result);
   renderReferences(result);
   showAward(result);
+
+  // Re-run against this score rather than leaving the last one up. onPlan()
+  // reads lastResult, which was assigned above, and calls nothing that leads
+  // back here.
+  if (planTarget !== null) onPlan();
 
   if ($('results').hidden) {
     $('results').hidden = false;
@@ -1248,6 +1278,7 @@ function setExempt(component, on) {
     if (on) $(id).value = '';
     $(id).disabled = on;
   }
+  for (const button of stepsOf(component)) button.disabled = on;
 }
 
 /** Every input a component collects, whichever event it is set to. */
@@ -2897,6 +2928,24 @@ function describeEffort(rung) {
   return `${hundredths} hundredth${hundredths === 1 ? '' : 's'} off the ratio`;
 }
 
+/**
+ * The target a plan is currently showing for, or null when none is.
+ *
+ * A plan is only true of the score it was worked out from. It used to be
+ * rendered once and left there: plan a route to 75 from a composite of 57.5,
+ * then take five minutes off the run, and the same list sat on screen telling
+ * the member to cut a run they had already cut. Keeping the target means the
+ * plan can be worked out again against the score now on screen.
+ */
+let planTarget = null;
+
+/** Take the plan down, for when there is no longer a score behind it. */
+function clearPlan() {
+  planTarget = null;
+  $('target-plans').replaceChildren();
+  $('target-error').hidden = true;
+}
+
 function onPlan() {
   if (!lastResult) return;
   const errorNode = $('target-error');
@@ -2918,8 +2967,10 @@ function onPlan() {
   } catch (error) {
     errorNode.textContent = error.message;
     errorNode.hidden = false;
+    planTarget = null;
     return;
   }
+  planTarget = target;
 
   if (!plan.reachable) {
     host.append(el('p', 'card-intro',
