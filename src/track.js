@@ -224,3 +224,63 @@ export function trackExtent(trackLength) {
     height: 2 * radius
   });
 }
+
+/**
+ * A lap split, to a tenth.
+ *
+ * Tenths because that is what a watch shows and what a split is called off
+ * one. Rounded before it is split into minutes and seconds, so 119.97 reads
+ * 2:00.0 rather than 1:60.0.
+ */
+function clock(seconds) {
+  const tenths = Math.round(seconds * 10);
+  const minutes = Math.floor(tenths / 600);
+  const rest = (tenths - minutes * 600) / 10;
+  return `${minutes}:${rest.toFixed(1).padStart(4, '0')}`;
+}
+
+/**
+ * How fast each lap has to be to finish a distance in a given time.
+ *
+ * Even pace, which is what a pace plan is for: the distance divided into the
+ * time, then multiplied back up by a lap.
+ *
+ * The laps are not the whole story on a track that the distance does not
+ * divide. A 2 mile on a 400 is eight laps and 18.7 m over, and that 18.7 m is
+ * run first: the start is wheeled off the finish line precisely so the runner
+ * covers it before the first crossing. Eight laps at the right pace is still
+ * short of the time if the opening piece was run at a different one, so it
+ * gets its own split rather than being left for the runner to absorb.
+ */
+export function lapPace({ distanceId, trackLength, seconds }) {
+  if (!(seconds > 0)) {
+    throw new RangeError('a lap pace needs a target time greater than zero');
+  }
+  const plan = trackPlan({ distanceId, trackLength });
+  const perMetre = seconds / plan.distance.metres;
+  const lapSeconds = plan.shape.length * perMetre;
+
+  // Taken from the distance rather than from plan.remainder, which is rounded
+  // for printing: the splits have to add back up to the time asked for.
+  const openingMetres = plan.distance.metres - plan.laps * plan.shape.length;
+
+  return Object.freeze({
+    plan,
+    totalSeconds: seconds,
+    // Whole seconds for the time that was asked for, which is typed as
+    // minutes and seconds; the tenth belongs on the splits that were worked
+    // out, not on the figure the member set.
+    totalLabel: Number.isInteger(seconds)
+      ? `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+      : clock(seconds),
+    perMetre,
+    laps: plan.laps,
+    lap: Object.freeze({ seconds: lapSeconds, label: clock(lapSeconds) }),
+    opening: plan.exact ? null : Object.freeze({
+      metres: round1(openingMetres),
+      metresLabel: plan.remainderLabel,
+      seconds: openingMetres * perMetre,
+      label: clock(openingMetres * perMetre)
+    })
+  });
+}

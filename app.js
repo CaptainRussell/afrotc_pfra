@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=b1309c1172';
-import { createAnalyzer } from './src/analysis.js?v=b1309c1172';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=b1309c1172';
+} from './src/engine.js?v=57580e6492';
+import { createAnalyzer } from './src/analysis.js?v=57580e6492';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=57580e6492';
 import {
-  TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent
-} from './src/track.js?v=b1309c1172';
+  TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace
+} from './src/track.js?v=57580e6492';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=b1309c1172').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=57580e6492').then((r) => r.json());
   return { data };
 }
 
@@ -2077,7 +2077,14 @@ function renderRanges(band) {
       : null;
 
     if (!range) {
-      host.append(el('p', 'range-empty', 'Set your age and sex to see the chart range.'));
+      // Almost always the real reason, and the only one a member can act on.
+      // Said conditionally because rangeFor also returns null when it has no
+      // table for a combination, and telling someone who has already answered
+      // both questions to answer them again would send them looking for a
+      // control that is already set.
+      host.append(el('p', 'range-empty', sex && band
+        ? 'No chart for this combination.'
+        : 'Set your age and sex to see the chart range.'));
       continue;
     }
 
@@ -2659,8 +2666,61 @@ function closeTrackPanel() {
  * would be overwritten a line later and reading it would be a lie.
  */
 function resetTrack() {
+  $('pace-min').value = '';
+  $('pace-sec').value = '';
+  $('pace-readout').hidden = true;
   track.lengthIndex = TRACK_LENGTHS.indexOf(400);
   closeTrackPanel();
+}
+
+/**
+ * How fast each lap has to be to finish in the time the member is aiming at.
+ *
+ * Reads the distance and track already picked above, because a lap split means
+ * nothing without them: 1:51.8 is a 2 mile in 15:00 on a 400, and a different
+ * number on every other combination.
+ */
+function renderPace(distance, length) {
+  const readout = $('pace-readout');
+  const minutes = wholeNumber('pace-min');
+  const seconds = wholeNumber('pace-sec');
+
+  // Both blank is the resting state, not an error: nothing is being aimed at
+  // yet. A part-entered or out-of-range time shows nothing rather than a
+  // number worked out from half of it.
+  const usable = minutes != null && minutes !== undefined
+    && seconds != null && seconds !== undefined && seconds <= 59
+    && minutes * 60 + seconds > 0;
+  if (!usable) {
+    readout.hidden = true;
+    return;
+  }
+
+  const pace = lapPace({
+    distanceId: distance.id,
+    trackLength: length,
+    seconds: minutes * 60 + seconds
+  });
+
+  $('pace-lap').textContent = pace.lap.label;
+  $('pace-working').textContent =
+    `${pace.laps} ${pace.laps === 1 ? 'lap' : 'laps'} of ${length} m ` +
+    `for ${distance.label} in ${pace.totalLabel}.`;
+
+  const partial = $('pace-partial');
+  if (pace.opening) {
+    // The part lap is run first: the start is wheeled off the finish line so
+    // that it is covered before the first crossing. Laps alone at the right
+    // pace still miss the time if this piece is run at a different one.
+    partial.textContent =
+      `Plus the opening ${pace.opening.metresLabel} m, from the start line to ` +
+      `the painted finish, in ${pace.opening.label}. That part lap comes first, ` +
+      `so run it at this pace too or the laps will not add up to ${pace.totalLabel}.`;
+    partial.hidden = false;
+  } else {
+    partial.hidden = true;
+  }
+  readout.hidden = false;
 }
 
 function renderTrack() {
@@ -2684,6 +2744,8 @@ function renderTrack() {
   // rather than as a caption under the track.
   $('track-distance-picked').textContent = distance.label;
   $('track-length-picked').textContent = `${length} m track`;
+
+  renderPace(distance, length);
 
   if ($('track-body').hidden) return;   // nothing to draw into
 
@@ -2779,6 +2841,9 @@ function wireTrack() {
     track.lengthIndex = Number($('slide-track-length').value);
     renderTrack();
   });
+  for (const id of ['pace-min', 'pace-sec']) {
+    $(id).addEventListener('input', () => renderTrack());
+  }
   $('print-track').addEventListener('click', printTrackLayout);
 }
 

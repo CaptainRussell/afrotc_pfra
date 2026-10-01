@@ -2038,3 +2038,64 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
 }
 
 .bfa-optional:hover { color: var(--ink); border-color: var(--gold-deep); }
+
+/* --- lap pace -------------------------------------------------------------
+ *
+ * Sits under the layout and reads off the same distance and track. The lap
+ * split is the answer and is sized like one; the part lap is a correction to
+ * it and is deliberately quieter, because it is a detail of this distance on
+ * this track rather than the number the runner is holding in their head.
+ */
+.pace {
+  display: grid;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.pace-field label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.pace-readout {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--page);
+}
+
+.pace-label {
+  margin: 0;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.pace-value {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.pace-working {
+  margin: 2px 0 0;
+  font-size: .78rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.pace-partial {
+  margin: 6px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+  font-size: .72rem;
+  line-height: 1.5;
+  color: var(--ink-faint);
+}

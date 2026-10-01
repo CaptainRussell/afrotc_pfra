@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=b1309c1172">
+<link rel="stylesheet" href="styles.css?v=57580e6492">
 </head>
 <body>
 
@@ -440,6 +440,28 @@
           <div class="track-figure" id="track-figure"></div>
           <div class="track-groups" id="track-groups"></div>
           <p class="hint" id="track-note"></p>
+
+          <!-- Lap pace. Same distance and track as the layout above, because
+               a lap split is only a number once you know how long a lap is
+               and how many of them there are. -->
+          <div class="pace">
+            <div class="field pace-field">
+              <label for="pace-min">Pace for a finishing time of</label>
+              <div class="time-inputs">
+                <input type="number" id="pace-min" inputmode="numeric" min="0" max="59"
+                       step="1" placeholder="mm" aria-label="Target minutes">
+                <span class="time-colon" aria-hidden="true">:</span>
+                <input type="number" id="pace-sec" inputmode="numeric" min="0" max="59"
+                       step="1" placeholder="ss" aria-label="Target seconds">
+              </div>
+            </div>
+            <div class="pace-readout" id="pace-readout" hidden>
+              <p class="pace-label">Every lap</p>
+              <p class="pace-value" id="pace-lap"></p>
+              <p class="pace-working" id="pace-working"></p>
+              <p class="pace-partial" id="pace-partial" hidden></p>
+            </div>
+          </div>
           <!-- The person marking the track is outside with a wheel, not at a
                screen. This prints the layout on its own sheet: the result
                record and this are two different documents and only one of them
@@ -924,6 +946,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=b1309c1172"></script>
+<script type="module" src="app.js?v=57580e6492"></script>
 </body>
 </html>
