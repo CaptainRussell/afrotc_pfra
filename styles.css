@@ -1176,8 +1176,15 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 /* Under the scoreboard rather than in it: the card is the result, and this is
  * something to do with the result. Full width on a phone, where it is the only
  * way to the printed sheet. */
-.result-actions { display: flex; justify-content: center; }
-.result-actions button { width: 100%; max-width: 320px; }
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+/* Side by side where there is room, and each one wide enough to be an obvious
+ * target rather than sized to the length of its label. */
+.result-actions button { flex: 0 1 240px; max-width: 320px; }
 
 /* --- what an exempt component does to the composite ------------------------
  *
@@ -1394,6 +1401,8 @@ footer {
 /* Three buttons plus a description will not share a phone-width row without
  * crushing the text, so below this the buttons take their own line. */
 @media (max-width: 560px) {
+  .result-actions button { flex: 1 1 100%; max-width: none; }
+
   /* Height and waist each carry a slider now. Side by side they leave about a
    * hundred pixels of track apiece, which is not enough to aim a finger at, so
    * this pair splits earlier than the other two-column rows do. */
@@ -2145,4 +2154,12 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--line);
+}
+
+/* Shown only when the clipboard is refused, and then it holds a whole link, so
+ * it has to be allowed to break anywhere rather than push the card wider. */
+#share-note {
+  flex: 1 1 100%;
+  word-break: break-all;
+  text-align: center;
 }

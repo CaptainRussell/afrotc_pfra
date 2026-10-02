@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=4996c68508">
+<link rel="stylesheet" href="styles.css?v=ecffd09ef5">
 </head>
 <body>
 
@@ -676,6 +676,11 @@
          find that menu and the result is the thing worth keeping. -->
     <div class="result-actions">
       <button type="button" class="secondary" id="print-result">Print Result</button>
+      <!-- The tool keeps nothing, so a link is the only way to hand a result to
+           anyone. Everything needed to rebuild it travels in the address; the
+           only copy is the one the member chooses to send. -->
+      <button type="button" class="secondary" id="share-result">Copy Link</button>
+      <p class="hint" id="share-note" hidden></p>
     </div>
 
     <!-- Paper only, and built by renderPrintSummary().
@@ -983,6 +988,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=4996c68508"></script>
+<script type="module" src="app.js?v=ecffd09ef5"></script>
 </body>
 </html>

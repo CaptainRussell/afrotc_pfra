@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=4996c68508';
-import { createAnalyzer } from './src/analysis.js?v=4996c68508';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=4996c68508';
+} from './src/engine.js?v=ecffd09ef5';
+import { createAnalyzer } from './src/analysis.js?v=ecffd09ef5';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=ecffd09ef5';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=4996c68508';
+} from './src/track.js?v=ecffd09ef5';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=4996c68508').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=ecffd09ef5').then((r) => r.json());
   return { data };
 }
 
@@ -119,6 +119,9 @@ async function boot() {
   fillBandOptions();
   fillAltitudeOptions();
   showRoleControls();
+  // Before anything is typed, so a shared assessment is what loads rather than
+  // something a reader has to clear first.
+  applyShareLink();
   for (const button of document.querySelectorAll('.segment[data-role]')) {
     button.addEventListener('click', () => selectRole(button.dataset.role));
   }
@@ -225,6 +228,7 @@ async function boot() {
   // A cadet reading this on a phone will not go looking through the browser
   // menu for Print, and the result is the part worth keeping.
   $('print-result').addEventListener('click', () => window.print());
+  $('share-result').addEventListener('click', shareResult);
 
   setupDocuments();
   showEventDocs();
@@ -602,6 +606,11 @@ function resetAll() {
     details.open = false;
   }
 
+  // Drop a shared assessment out of the address too, or Reset Everything is
+  // undone by the next refresh.
+  if (location.search) history.replaceState({}, '', location.pathname);
+  $('share-note').hidden = true;
+
   lastResult = null;
   $('results').hidden = true;
   $('results').classList.remove('revealed');
@@ -864,6 +873,19 @@ function update() {
   renderWarnings(result);
   renderReferences(result);
   showAward(result);
+
+  // A link carrying a passed BFA applies it the first time the assessment is
+  // scoreable, because the panel needs a ratio before it has anything to
+  // exempt. Cleared straight away so it happens once.
+  if (sharedBfaPending && bfa.ratio != null && !bfa.applied) {
+    sharedBfaPending = false;
+    const measured = bfaMeasurements(sex);
+    if (measured) {
+      applyBfaExemption();
+      update();
+      return;
+    }
+  }
 
   // Re-run against this score rather than leaving the last one up. onPlan()
   // reads lastResult, which was assigned above, and calls nothing that leads
@@ -1733,6 +1755,190 @@ function resetBfa() {
   $('bfa-result').hidden = true;
   $('bfa-note').hidden = true;
   $('bfa-apply').hidden = true;
+}
+
+/* --- sharing an assessment by link ----------------------------------------
+ *
+ * The tool keeps nothing: no storage, no account, nothing sent anywhere. That
+ * is worth keeping, and it is also why there is no way to hand a result to
+ * anyone. A link closes that without giving any of it up, because the link is
+ * the record: everything needed to rebuild the assessment travels in the
+ * address, and the only copy is the one the member chose to send.
+ *
+ * Written as named parameters rather than something packed, so a reader can
+ * see what they are about to send and a cadre member can fix a typo in it
+ * without the tool's help.
+ *
+ * It carries measurements, not a person. There is no name, unit or ID in the
+ * tool to put in it.
+ */
+
+/** Which parameter holds each component's event and value. */
+const SHARE_KEYS = Object.freeze({
+  muscular_strength: { event: 'se', value: 'sv', status: 'ss' },
+  core_endurance: { event: 'ce', value: 'cv', status: 'cs' },
+  cardiorespiratory: { event: 're', value: 'rv', status: 'rs' }
+});
+
+/** The assessment now on screen, as a link that rebuilds it. */
+function buildShareLink() {
+  const params = new URLSearchParams();
+  if (role) params.set('role', role);
+  if (sex) params.set('sex', sex);
+  if (ageBand) params.set('band', ageBand);
+
+  const height = decimal('height');
+  const waist = decimal('waist');
+  if (height) params.set('ht', String(height));
+  if (waist) params.set('wa', String(waist));
+  // Not when a passed BFA is what exempted it. That exemption is already
+  // described by the bfa parameters below, and writing it as a status too
+  // would rebuild it down the Exempt button's path instead, which clears the
+  // height and waist and so takes away the ratio the BFA needs to exist.
+  if (statuses.body_composition && !bfa.applied) {
+    params.set('bs', statuses.body_composition);
+  }
+
+  for (const [component, keys] of Object.entries(SHARE_KEYS)) {
+    params.set(keys.event, events[component]);
+    if (statuses[component]) {
+      params.set(keys.status, statuses[component]);
+      continue;
+    }
+    const measured = currentMeasurement(component);
+    if (measured != null) params.set(keys.value, String(measured));
+  }
+
+  const altitude = $('altitude-group').value;
+  if (altitude) params.set('alt', altitude);
+
+  // A passed BFA is part of the result: it is what exempts body composition
+  // and re-bases the composite, so a link without it rebuilds a different
+  // score from the same measurements.
+  if (bfa.applied) {
+    params.set('bfa', bfa.method);
+    if (bfa.method === 'scale') {
+      params.set('bfp', $('bfa-percent').value);
+    } else {
+      params.set('bfn', $('bfa-neck').value);
+      if (sex === 'M') {
+        params.set('bfa_ab', $('bfa-abdomen').value);
+      } else {
+        params.set('bfw', $('bfa-waist').value);
+        params.set('bfb', $('bfa-buttocks').value);
+      }
+    }
+  }
+
+  return `${location.origin}${location.pathname}?${params.toString()}`;
+}
+
+/**
+ * Rebuild an assessment from the address, if there is one in it.
+ *
+ * Runs once at start-up, before anything has been typed, so it writes the
+ * fields and lets the ordinary render path do the rest rather than reaching
+ * into the score.
+ */
+function applyShareLink() {
+  const params = new URLSearchParams(location.search);
+  if (![...params.keys()].length) return false;
+
+  const roleWanted = params.get('role');
+  if (roleWanted === 'cadet' || roleWanted === 'cadre') selectRole(roleWanted);
+
+  const sexWanted = params.get('sex');
+  if (sexWanted === 'M' || sexWanted === 'F') selectSex(sexWanted);
+
+  const band = params.get('band');
+  if (band && scorer.data.age_bands.includes(band)) {
+    ageBand = band;
+    $('age-band').value = band;
+    // Seat the two age buttons so the form does not look unanswered.
+    const under = band === 'under25';
+    for (const button of document.querySelectorAll('.segment[data-band]')) {
+      const on = button.dataset.band === (under ? 'under25' : 'older');
+      button.classList.toggle('on', on);
+      button.setAttribute('aria-checked', String(on));
+    }
+    $('band-picker').hidden = under;
+  }
+
+  if (params.get('ht')) $('height').value = params.get('ht');
+  if (params.get('wa')) $('waist').value = params.get('wa');
+
+  for (const [component, keys] of Object.entries(SHARE_KEYS)) {
+    const event = params.get(keys.event);
+    if (event && CONTROLS[event]) {
+      $(`event-select-${component}`).value = event;
+      selectEvent(component, event);
+    }
+    const value = params.get(keys.value);
+    if (value != null && value !== '') writeMeasurement(component, Number(value));
+  }
+
+  // Statuses after the measurements, because setStatus and setExempt clear the
+  // fields they disable and would otherwise be undone by the write above.
+  if (params.get('bs')) applySharedStatus('body_composition', params.get('bs'));
+  for (const [component, keys] of Object.entries(SHARE_KEYS)) {
+    if (params.get(keys.status)) applySharedStatus(component, params.get(keys.status));
+  }
+
+  if (params.get('alt')) $('altitude-group').value = params.get('alt');
+
+  if (params.get('bfa')) {
+    bfa.method = params.get('bfa') === 'scale' ? 'scale' : 'tape';
+    bfa.opened = true;
+    const put = (id, key) => { if (params.get(key)) $(id).value = params.get(key); };
+    put('bfa-percent', 'bfp');
+    put('bfa-neck', 'bfn');
+    put('bfa-abdomen', 'bfa_ab');
+    put('bfa-waist', 'bfw');
+    put('bfa-buttocks', 'bfb');
+    // Applied after the first render, once the panel has a ratio to open on.
+    sharedBfaPending = true;
+  }
+  return true;
+}
+
+/** A shared link said this component was exempt or did not finish. */
+function applySharedStatus(component, value) {
+  if (value === 'exempt') {
+    setExempt(component, true);
+    return;
+  }
+  const field = fieldOf(component);
+  if (field) setStatus(field, value);
+}
+
+/** Put a measurement into whichever fields its event uses. */
+function writeMeasurement(component, value) {
+  const control = CONTROLS[events[component]];
+  if (control.kind === 'hold' || control.kind === 'time' || control.kind === 'walk') {
+    const [minId, secId] = control.field;
+    $(minId).value = String(Math.floor(value / 60));
+    $(secId).value = String(value % 60).padStart(2, '0');
+    return;
+  }
+  $(control.field).value = String(value);
+}
+
+/** Set when a link carried a passed BFA, which can only be applied once scored. */
+let sharedBfaPending = false;
+
+/** Copy the link, and say so where the member can see it. */
+async function shareResult() {
+  const link = buildShareLink();
+  const note = $('share-note');
+  try {
+    await navigator.clipboard.writeText(link);
+    note.textContent = 'Link copied. It carries the measurements and nothing else.';
+  } catch {
+    // Clipboard access can be refused, and a browser that refuses it should
+    // not leave the member with nothing to send.
+    note.textContent = link;
+  }
+  note.hidden = false;
 }
 
 /* --- the verbiage dialog -------------------------------------------------
