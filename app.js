@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=871b084b3a';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=871b084b3a';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=871b084b3a';
+} from './src/engine.js?v=84a89b1245';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=84a89b1245';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=84a89b1245';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=871b084b3a';
+} from './src/track.js?v=84a89b1245';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=871b084b3a').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=84a89b1245').then((r) => r.json());
   return { data };
 }
 
@@ -1916,6 +1916,24 @@ function buildShareLink() {
   const altitude = $('altitude-group').value;
   if (altitude) params.set('alt', altitude);
 
+  // The lap pace goal, with the distance and track it was set on: 14:30 is a
+  // different lap on every combination of the two. The track goes even with
+  // no goal set, because the printed result works its laps out on it.
+  if (CONTROLS[events.cardiorespiratory].kind === 'time'
+      || CONTROLS[events.cardiorespiratory].kind === 'walk') {
+    const goal = paceSeconds();
+    if (goal != null) {
+      params.set('pg', String(goal));
+      params.set('pd', TRACK_DISTANCES[track.distanceIndex].id);
+    }
+    if (track.customLength != null) {
+      params.set('tlc', String(track.customEntry));
+      if (track.customUnit === 'ft') params.set('tlu', 'ft');
+    } else if (TRACK_LENGTHS[track.lengthIndex] !== 400) {
+      params.set('tl', String(TRACK_LENGTHS[track.lengthIndex]));
+    }
+  }
+
   // A passed BFA is part of the result: it is what exempts body composition
   // and re-bases the composite, so a link without it rebuilds a different
   // score from the same measurements.
@@ -1993,6 +2011,10 @@ function applyShareLink() {
 
   if (params.get('alt')) $('altitude-group').value = params.get('alt');
 
+  // After the events, because changing the run event re-seats the pace
+  // distance while the pace is closed.
+  applySharedPace(params);
+
   if (params.get('bfa')) {
     bfa.method = params.get('bfa') === 'scale' ? 'scale' : 'tape';
     bfa.opened = true;
@@ -2006,6 +2028,34 @@ function applyShareLink() {
     sharedBfaPending = true;
   }
   return true;
+}
+
+/**
+ * The lap pace part of a shared link: the track, the distance and the goal.
+ *
+ * A link with a goal opens the lap pace on it, since the goal is what the
+ * sender wanted seen. Anything out of range is left at the default rather
+ * than drawn wrong.
+ */
+function applySharedPace(params) {
+  const length = Number(params.get('tl'));
+  if (TRACK_LENGTHS.includes(length)) track.lengthIndex = TRACK_LENGTHS.indexOf(length);
+
+  if (params.get('tlc')) {
+    const unit = params.get('tlu') === 'ft' ? 'ft' : 'm';
+    track.customUnit = unit;
+    $('custom-lap-unit').value = unit;
+    $('custom-lap').value = params.get('tlc');
+    readCustomLap();
+  }
+
+  const goal = Number(params.get('pg'));
+  if (!(goal > 0) || !Number.isInteger(goal)) return;
+  const index = TRACK_DISTANCES.findIndex((d) => d.id === params.get('pd'));
+  if (index >= 0) track.distanceIndex = index;
+  $('pace-min').value = String(Math.floor(goal / 60));
+  $('pace-sec').value = String(goal % 60).padStart(2, '0');
+  course.pace = true;
 }
 
 /** A shared link said this component was exempt or did not finish. */
