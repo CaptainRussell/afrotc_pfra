@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=088d8d12af';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=088d8d12af';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=088d8d12af';
+} from './src/engine.js?v=924b9ecf9d';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=924b9ecf9d';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=924b9ecf9d';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=088d8d12af';
+} from './src/track.js?v=924b9ecf9d';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=088d8d12af').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=924b9ecf9d').then((r) => r.json());
   return { data };
 }
 
@@ -1142,10 +1142,19 @@ function showRatio(result) {
  */
 function showAward(result) {
   const line = $('award-line');
-  if (role !== 'cadet' || !result) {
+  // A cadet award, so in the proctor view it is shown only when the assessment
+  // is one a cadet could have taken: the three AFROTC events and nothing
+  // exempt. Anything else is an active duty member's PFRA, and telling them
+  // it would not earn a cadet ribbon is noise. A proctor scoring a cadet is the
+  // case this is for, and they need the line as much as the cadet does.
+  const cadetShaped = result
+    && Object.entries(CADET_EVENTS).every(([c, event]) => result.components[c].event === event)
+    && result.exemptComponents.length === 0;
+  if (!result || (role !== 'cadet' && !cadetShaped)) {
     line.hidden = true;
     return;
   }
+  const whose = role === 'cadet' ? 'your' : "the cadet's";
 
   const award = scorer.fitnessAward(result);
   if (!award.meetsThreshold) {
@@ -1166,10 +1175,11 @@ function showAward(result) {
   }
 
   line.textContent = award.tier === 'silver_star'
-    ? `A perfect ${result.compositeText}. If this is your official PFRA for the term ` +
-      'it earns the Fitness Award, and the Silver Star device the first time you ' +
-      'score 100 at the detachment (AFROTCI 36-2011 V3, Table 15.1).'
-    : `${result.compositeText} is ${award.threshold} or above. If this is your ` +
+    ? `A perfect ${result.compositeText}. If this is ${whose} official PFRA for the ` +
+      'term it earns the Fitness Award, and the Silver Star device the first time ' +
+      `${role === 'cadet' ? 'you score' : 'they score'} 100 at the detachment ` +
+      '(AFROTCI 36-2011 V3, Table 15.1).'
+    : `${result.compositeText} is ${award.threshold} or above. If this is ${whose} ` +
       'official PFRA for the term it earns the Fitness Award, which may be received ' +
       'once per term (AFROTCI 36-2011 V3, Table 15.1).';
   line.className = `award-line award-earned${award.tier === 'silver_star' ? ' award-star' : ''}`;
