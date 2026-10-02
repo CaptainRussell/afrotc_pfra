@@ -2250,3 +2250,27 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
 }
 .breakdown-row.is-fail .breakdown-points { color: var(--fail); }
 .breakdown-row.is-exempt .breakdown-points { color: var(--ink-soft); }
+
+/* The lap pace drawing. One start and one finish, in the pace bar's blue so
+ * it reads as part of the pace rather than as the proctor's layout, and the
+ * part lap between them drawn over the lane. */
+.pace-figure { margin-top: 10px; }
+.pace-opening {
+  fill: none;
+  stroke: var(--pace-accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.track-tick.track-pace-start { stroke: var(--pace-accent); }
+.track-tick.track-pace-finish { stroke: var(--ink); stroke-dasharray: 3.5 3; }
+.track-label.track-pace-start { fill: var(--pace-accent); }
+.track-label.track-pace-finish { fill: var(--ink); }
+.pace-opening-label { fill: var(--pace-accent); font-size: 11px; font-weight: 700; }
+
+/* The drawing is scaled down to the card, so its text is set larger than the
+ * layout's to land at a readable size on a phone. There is room for it: the
+ * pace figure carries two labels where the layout carries four. */
+.pace-figure .track-count { font-size: 24px; }
+.pace-figure .pace-opening-label { font-size: 16px; }
+.pace-figure .track-label { font-size: 15px; stroke-width: 4px; }

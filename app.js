@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=924b9ecf9d';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=924b9ecf9d';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=924b9ecf9d';
+} from './src/engine.js?v=762aa91e71';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=762aa91e71';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=762aa91e71';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=924b9ecf9d';
+} from './src/track.js?v=762aa91e71';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=924b9ecf9d').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=762aa91e71').then((r) => r.json());
   return { data };
 }
 
@@ -2884,7 +2884,11 @@ function trackMark(group, at, { name, kind, inside }) {
  */
 let trackFigureSerial = 0;
 
-function buildTrackFigure(plan) {
+/**
+ * The bare oval both drawings start from: surface, lane 1 and which way round.
+ * Returns the svg and a function placing a distance along the lane on it.
+ */
+function trackCanvas(plan, ariaLabel) {
   const arrowheadId = `track-arrowhead-${trackFigureSerial += 1}`;
   const length = plan.shape.length;
   const extent = trackExtent(length);
@@ -2911,10 +2915,7 @@ function buildTrackFigure(plan) {
     viewBox: `${-boxW / 2} ${-boxH / 2} ${boxW} ${boxH}`,
     class: 'track-svg',
     role: 'img',
-    'aria-label':
-      `${length} metre track marked for ${plan.distance.label}: ` +
-      `${plan.laps} laps${plan.exact ? ' exactly' : `, plus ${plan.remainder} metres`}, ` +
-      'Group A on the painted finish line and Group B half a lap around.'
+    'aria-label': ariaLabel
   });
 
   const defs = svgEl('defs', {});
@@ -2954,6 +2955,15 @@ function buildTrackFigure(plan) {
   arrow(-20, r, 1);        // bottom straight, travelling right
   arrow(20, -r, -1);       // top straight, travelling left
 
+  return { svg, at };
+}
+
+function buildTrackFigure(plan) {
+  const { svg, at } = trackCanvas(plan,
+    `${plan.shape.length} metre track marked for ${plan.distance.label}: ` +
+    `${plan.laps} laps${plan.exact ? ' exactly' : `, plus ${plan.remainder} metres`}, ` +
+    'Group A on the painted finish line and Group B half a lap around.');
+
   const middle = svgEl('text', { x: 0, y: -10, class: 'track-count', 'text-anchor': 'middle' });
   middle.textContent = plan.exact
     ? `${plan.laps} laps exactly`
@@ -2989,6 +2999,63 @@ function buildTrackFigure(plan) {
   return svg;
 }
 
+
+/**
+ * The lap pace's drawing: one start, one finish, and the part lap between
+ * them picked out, which is the piece a runner cannot see on a painted track.
+ *
+ * Deliberately less than the layout: no Group B, no wheel distances, no
+ * count of line crossings. Those are for whoever marks the course. A runner
+ * needs where they set off, where the laps are counted from, and how long the
+ * odd first stretch should take.
+ *
+ * @param pace the lapPace() for the time set, or null before one is.
+ */
+function buildPaceFigure(plan, pace) {
+  const { svg, at } = trackCanvas(plan, plan.exact
+    ? `${plan.shape.length} metre track: ${plan.laps} full laps from the finish line.`
+    : `${plan.shape.length} metre track: start ${plan.remainderLabel} metres before ` +
+      `the finish line, then ${plan.laps} full laps.`);
+
+  if (!plan.exact) {
+    // From the start to the painted line, along the running direction. The
+    // opening length is taken from the distance rather than the rounded label,
+    // so the stretch drawn is the stretch run.
+    const opening = plan.distance.metres - plan.laps * plan.shape.length;
+    const from = plan.start.offset;
+    const steps = 48;
+    const points = [];
+    for (let i = 0; i <= steps; i += 1) {
+      const p = at(from + (opening * i) / steps);
+      points.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+    }
+    svg.append(svgEl('polyline', { points: points.join(' '), class: 'pace-opening' }));
+  }
+
+  const marks = svgEl('g', {});
+  if (plan.exact) {
+    trackMark(marks, at(0), { name: 'Start / finish', kind: 'pace-finish', inside: false });
+  } else {
+    trackMark(marks, at(0), { name: 'Finish', kind: 'pace-finish', inside: false });
+    trackMark(marks, at(plan.start.offset), { name: 'Start', kind: 'pace-start', inside: true });
+  }
+  svg.append(marks);
+
+  const middle = svgEl('text', { x: 0, y: -6, class: 'track-count', 'text-anchor': 'middle' });
+  middle.textContent = pace
+    ? `${plan.laps} laps × ${pace.lap.label}`
+    : `${plan.laps} full laps`;
+  svg.append(middle);
+
+  if (!plan.exact) {
+    const under = svgEl('text', { x: 0, y: 20, class: 'pace-opening-label', 'text-anchor': 'middle' });
+    under.textContent = pace
+      ? `after the first ${pace.opening.metresLabel} m in ${pace.opening.label}`
+      : `after the first ${plan.remainderLabel} m`;
+    svg.append(under);
+  }
+  return svg;
+}
 
 /** The same plan in words, which is what someone holding a wheel reads. */
 function buildTrackGroups(plan, host) {
@@ -3121,13 +3188,16 @@ function resetTrack() {
 function renderPace(distance, length) {
   const readout = $('pace-readout');
   renderPaceSlider(distance);
+  const figure = $('pace-figure');
 
   // Nothing aimed at yet is the resting state, not an error. A part-entered or
   // out-of-range time shows nothing rather than a pace worked out from half of
   // it.
   const target = paceSeconds();
+  const plan = trackPlan({ distanceId: distance.id, trackLength: length });
   if (target == null) {
     readout.hidden = true;
+    if (course.pace) figure.replaceChildren(buildPaceFigure(plan, null));
     return;
   }
 
@@ -3137,6 +3207,7 @@ function renderPace(distance, length) {
     seconds: target
   });
 
+  if (course.pace) figure.replaceChildren(buildPaceFigure(plan, pace));
   $('pace-lap').textContent = pace.lap.label;
   $('pace-working').textContent =
     `${pace.laps} ${pace.laps === 1 ? 'lap' : 'laps'} of ${length} m ` +
