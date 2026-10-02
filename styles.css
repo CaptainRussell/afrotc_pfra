@@ -1720,6 +1720,7 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   .event-picker,
   .documents,
   .result-actions,
+  .breakdown,
   #aim-card,
   #proctor-card,
   .foldable,
@@ -2209,3 +2210,43 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
   word-break: break-all;
   text-align: center;
 }
+
+/* Where the composite came from, one row per component under the number. Left
+ * aligned inside a centred card, because these are rows to read across. */
+.breakdown {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+  text-align: left;
+}
+.breakdown-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "name points" "measured points";
+  align-items: center;
+  column-gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 2px;
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  cursor: pointer;
+}
+.breakdown-row:hover .breakdown-name { text-decoration: underline; }
+.breakdown-row:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.breakdown-name { grid-area: name; font-weight: 700; font-size: .9rem; }
+.breakdown-measured { grid-area: measured; font-size: .8rem; color: var(--ink-soft); }
+.breakdown-points {
+  grid-area: points;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--pass);
+}
+.breakdown-row.is-fail .breakdown-points { color: var(--fail); }
+.breakdown-row.is-exempt .breakdown-points { color: var(--ink-soft); }

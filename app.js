@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=83c7ea110d';
-import { createAnalyzer } from './src/analysis.js?v=83c7ea110d';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=83c7ea110d';
+} from './src/engine.js?v=af2d8cb878';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=af2d8cb878';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=af2d8cb878';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=83c7ea110d';
+} from './src/track.js?v=af2d8cb878';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=83c7ea110d').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=af2d8cb878').then((r) => r.json());
   return { data };
 }
 
@@ -202,6 +202,10 @@ async function boot() {
   advanceOnFull('plank-min', 'plank-sec', 1);
 
   $('plan-button').addEventListener('click', onPlan);
+  $('target').addEventListener('input', () => {
+    targetEdited = true;
+    $('target-why').hidden = true;
+  });
   $('tally-button').addEventListener('click', () => {
     $('scoreboard').scrollIntoView({ behavior: motion(), block: 'start' });
   });
@@ -403,7 +407,9 @@ function showAltNotes() {
  */
 function showNotFinished() {
   const event = events.cardiorespiratory;
-  const wanted = event === 'run_2mile' || event === 'walk_2km';
+  // Not for a cadet working out their own score: a DNF is something a proctor
+  // records on the day, not a result anyone plans for.
+  const wanted = role !== 'cadet' && (event === 'run_2mile' || event === 'walk_2km');
   const button = $('dnf-run');
   // Switching to the HAMR while a DNF is set would strand it out of reach.
   if (!wanted && statuses.cardiorespiratory === 'dnf') setStatus('run', null);
@@ -572,11 +578,7 @@ function resetAll() {
     statuses[component] = null;
   }
 
-  for (const [component, fallback] of [
-    ['muscular_strength', 'hand_release_pushup'],
-    ['core_endurance', 'situp'],
-    ['cardiorespiratory', 'run_2mile']
-  ]) {
+  for (const [component, fallback] of Object.entries(CADET_EVENTS)) {
     if (events[component] !== fallback) {
       $(`event-select-${component}`).value = fallback;
       selectEvent(component, fallback);
@@ -615,6 +617,7 @@ function resetAll() {
   $('results').hidden = true;
   $('results').classList.remove('revealed');
   clearPlan();
+  targetEdited = false;
 
   showRoleControls();
   update();
@@ -868,11 +871,13 @@ function update() {
   }
 
   renderScoreboard(result);
+  renderBreakdown(result);
   renderPrintSummary(result);
   renderFailures(result);
   renderWarnings(result);
   renderReferences(result);
   showAward(result);
+  suggestTarget(result);
 
   // A link carrying a passed BFA applies it the first time the assessment is
   // scoreable, because the panel needs a ratio before it has anything to
@@ -1234,8 +1239,8 @@ function showAltitudeGroup() {
 
 /** Shown until the question is answered. Kept beside index.html's copy. */
 const ROLE_PROMPT =
-  'Start here. This decides which components you are assessed on and what the ' +
-  'rest of the form offers.';
+  'Start here. Cadets see their four components and nothing else; cadre also get ' +
+  'alternate events, exemptions and the proctor tools.';
 
 function selectRole(value) {
   role = value;
@@ -1245,19 +1250,22 @@ function selectRole(value) {
     button.setAttribute('aria-checked', String(on));
   }
 
-  // An exemption claimed as cadre must not survive a switch back to cadet: it
-  // would sit there scoring nothing and failing nothing, for a member who is
-  // not authorised one.
+  // Nothing a cadre member set up may survive a switch to cadet. An exemption
+  // would sit there scoring nothing and failing nothing for a member who is not
+  // authorised one, and an alternate event would score a cadet on a chart
+  // NOTACC CY26-092 says they are never assessed on. A DNF goes too: the button
+  // that would clear it is about to be hidden.
   if (role === 'cadet') {
     for (const component of COMPONENTS) {
       if (statuses[component] === 'exempt') setExempt(component, false);
     }
+    lockCadetEvents();
+    if (statuses.cardiorespiratory === 'dnf') setStatus('run', null);
   }
 
   $('role-hint').textContent = role === 'cadet'
-    ? 'Four components, in this order: waist to height, hand-release push-ups, ' +
-      'sit-ups and the 2 mile run. NOTACC CY26-092 sets all four exclusively, and ' +
-      'AFROTCI 36-2011 V3 requires a most recent PFRA with no exemptions.'
+    ? 'Waist to height, hand-release push-ups, sit-ups and the 2 mile run. Those ' +
+      'four are the whole cadet assessment (NOTACC CY26-092).'
     : role === 'cadre'
       ? 'Alternate events and component exemptions are available for active ' +
         'duty members.'
@@ -1267,12 +1275,50 @@ function selectRole(value) {
   update();
 }
 
-/** Exempt is cadre-only; everything else stays where it is. */
+/**
+ * Show each control to the people it is for.
+ *
+ * A cadet is assessed on exactly three events and the waist to height ratio,
+ * and cannot be exempted, so the controls for anything else are noise to them:
+ * changing the exercise, exempting a component, recording a DNF, laying out a
+ * track and the proctor's notes. Hidden for a cadet, shown for cadre, and shown
+ * before either is chosen so nothing looks missing to someone who has not
+ * answered yet.
+ *
+ * Altitude stays for everyone. Attachment 3 is a property of where the run
+ * was held, not of who ran it.
+ */
 function showRoleControls() {
+  const cadet = role === 'cadet';
   for (const button of document.querySelectorAll('.exempt-toggle')) {
     button.hidden = role !== 'cadre';
   }
+  for (const button of document.querySelectorAll('.swap[data-swap]')) {
+    button.hidden = cadet;
+    if (cadet) closePicker(button.dataset.swap);
+  }
+  $('proctor-card').hidden = cadet;
+  // Both of these also depend on the event, so they work the role out
+  // themselves rather than being set here and overwritten on the next swap.
+  showNotFinished();
+  showCourseSections();
 }
+
+/** Put every component back on its cadet event, if it is not there already. */
+function lockCadetEvents() {
+  for (const [component, event] of Object.entries(CADET_EVENTS)) {
+    if (events[component] === event) continue;
+    $(`event-select-${component}`).value = event;
+    selectEvent(component, event);
+  }
+}
+
+/** The three events NOTACC CY26-092 sets for cadets, by component. */
+const CADET_EVENTS = Object.freeze({
+  muscular_strength: 'hand_release_pushup',
+  core_endurance: 'situp',
+  cardiorespiratory: 'run_2mile'
+});
 
 /**
  * Mark a component exempt, or take the exemption off again.
@@ -1424,8 +1470,11 @@ function showBfa(result, complete) {
   const required = complete && result.pass === false;
   const settled = complete && result.pass === true && !bfa.applied;
   const ratio = bfa.ratio.toFixed(2);
+  const cadet = role === 'cadet';
 
-  $('bfa-trigger').textContent = bfa.applied
+  $('bfa-trigger').textContent = cadet
+    ? cadetBfaLine(ratio, { required, settled })
+    : bfa.applied
     // Said in the past tense on purpose. The composite passes *because* this
     // was applied, so describing the requirement as open would misread the
     // score sitting above it.
@@ -1451,16 +1500,22 @@ function showBfa(result, complete) {
   // An applied pass holds the panel open whatever the composite now reads:
   // the exemption is what the score rests on, and the way to undo it is the
   // button inside.
-  const open = required || bfa.applied || bfa.opened;
+  //
+  // Not for a cadet, though. The proctor takes these measurements, not the
+  // cadet, so for them the panel is the one sentence above with the numbers
+  // behind a link, to try if they want to.
+  const open = (required && !cadet) || bfa.applied || bfa.opened;
   $('bfa-body').hidden = !open;
 
   const optional = $('bfa-optional');
-  optional.hidden = required || bfa.applied;
+  optional.hidden = (required && !cadet) || bfa.applied;
   optional.textContent = bfa.opened
-    ? 'Hide the body fat assessment'
-    : settled
-      ? 'Work one out anyway'
-      : 'Work out a body fat assessment now';
+    ? (cadet ? 'Hide the numbers' : 'Hide the body fat assessment')
+    : cadet
+      ? 'Try the numbers'
+      : settled
+        ? 'Work one out anyway'
+        : 'Work out a body fat assessment now';
   optional.setAttribute('aria-expanded', String(open));
 
   if (!open) {
@@ -1474,6 +1529,31 @@ function showBfa(result, complete) {
   showBfaFields(sex);
   renderBfaSliders();
   workBfa(sex);
+}
+
+/**
+ * The body fat panel for a cadet, in one sentence.
+ *
+ * The rest of the panel is written for whoever does the taping: methods,
+ * attachments, which way each site rounds. A cadet needs to know whether it
+ * applies to them and what the standard is, and nothing else.
+ */
+function cadetBfaLine(ratio, { required, settled }) {
+  const standard = scorer.data.body_fat.standards[sex];
+  if (bfa.applied) {
+    return 'Your body fat is within the standard, so body composition is left out ' +
+      'and your composite is scored on the other three components.';
+  }
+  if (required) {
+    return `Your ratio is ${ratio} and your PFRA is unsatisfactory, so the proctor ` +
+      `will check your body fat. The standard is ${standard}% or under, and passing ` +
+      'it leaves body composition out of your score.';
+  }
+  if (settled) {
+    return `Your ratio is ${ratio}, but you are passing, so no body fat check is needed.`;
+  }
+  return `Your ratio is ${ratio}. If your PFRA comes out unsatisfactory, the proctor ` +
+    `will check your body fat; the standard is ${standard}% or under.`;
 }
 
 /** Which measurement fields this member's BFA needs. */
@@ -1869,6 +1949,9 @@ function applyShareLink() {
 
   for (const [component, keys] of Object.entries(SHARE_KEYS)) {
     const event = params.get(keys.event);
+    // A cadet link naming another event keeps the cadet event and drops the
+    // number with it: 60 HAMR shuttles written into the run read as 1:00.
+    if (event && role === 'cadet' && CADET_EVENTS[component] !== event) continue;
     if (event && CONTROLS[event]) {
       $(`event-select-${component}`).value = event;
       selectEvent(component, event);
@@ -1903,6 +1986,7 @@ function applyShareLink() {
 
 /** A shared link said this component was exempt or did not finish. */
 function applySharedStatus(component, value) {
+  if (role === 'cadet') return;
   if (value === 'exempt') {
     setExempt(component, true);
     return;
@@ -2554,6 +2638,39 @@ function renderScoreboard(result) {
 }
 
 /**
+ * One row per component under the composite: what was entered and what it
+ * earned, red where it is below the minimum. Each row is a button back to its
+ * component's card, which is where the number would be changed.
+ */
+function renderBreakdown(result) {
+  const host = $('breakdown');
+  host.replaceChildren();
+  for (const component of COMPONENTS) {
+    const scored = result.components[component];
+    const item = el('li');
+    const row = el('button', 'breakdown-row');
+    row.type = 'button';
+    if (!scored.meetsMinimum) row.classList.add('is-fail');
+    if (scored.status === 'exempt') row.classList.add('is-exempt');
+
+    const measured = scored.measured && scored.measured.ratio != null
+      ? `Ratio ${scored.measured.ratio.toFixed(2)}`
+      : describeMeasured(component, scored);
+    row.append(
+      el('span', 'breakdown-name',
+        component === 'body_composition' ? 'Waist to Height' : scored.eventLabel),
+      el('span', 'breakdown-measured', measured),
+      el('span', 'breakdown-points', describeEarned(scored)));
+    row.addEventListener('click', () => {
+      document.querySelector(`.event[data-component="${component}"]`)
+        .scrollIntoView({ behavior: motion(), block: 'start' });
+    });
+    item.append(row);
+    host.append(item);
+  }
+}
+
+/**
  * Say the two things an exempt component does to a composite.
  *
  * Someone reading a scoreboard sees a number and a rating. When a component is
@@ -2933,6 +3050,10 @@ function showTrackPanel() {
 
 /** Show whichever of the two is open, and the pickers if either is. */
 function showCourseSections() {
+  // The layout is for whoever marks the track. A cadet keeps the lap pace.
+  const toggle = $('track-toggle');
+  toggle.hidden = role === 'cadet';
+  if (toggle.hidden) course.layout = false;
   $('course-body').hidden = !(course.pace || course.layout);
   $('pace-section').hidden = !course.pace;
   $('track-section').hidden = !course.layout;
@@ -3391,11 +3512,17 @@ function renderWarnings(result) {
   const card = $('warnings-card');
   const list = $('warning-list');
   list.replaceChildren();
-  if (result.warnings.length === 0) {
+  // The body fat panel says this already, in more detail and nearer the
+  // ratio it is about, so while it is on screen the warning is a repeat.
+  // showBfa() runs before this, so the panel's state is current.
+  const warnings = $('bfa').hidden
+    ? result.warnings
+    : result.warnings.filter((warning) => !warning.includes('3.15.4.7'));
+  if (warnings.length === 0) {
     card.hidden = true;
     return;
   }
-  for (const warning of result.warnings) list.append(el('li', null, warning));
+  for (const warning of warnings) list.append(el('li', null, warning));
   card.hidden = false;
 }
 
@@ -3413,7 +3540,7 @@ function describeEffort(rung) {
     return `${rung.distance.reps} more rep${rung.distance.reps === 1 ? '' : 's'}`;
   }
   if (rung.distance.seconds != null) {
-    return `${rung.distance.seconds} second${rung.distance.seconds === 1 ? '' : 's'} faster`;
+    return `${describeSeconds(rung.distance.seconds)} ${rung.direction ?? 'faster'}`;
   }
   const hundredths = Math.round(rung.distance.ratio * 100);
   return `${hundredths} hundredth${hundredths === 1 ? '' : 's'} off the ratio`;
@@ -3482,15 +3609,88 @@ function onPlan() {
     } else {
       const list = el('ul');
       for (const step of entry.steps) {
-        list.append(el('li', null,
+        const item = el('li', null,
           `${step.eventLabel}: ${describeEffort(step.rung)} ` +
-          `to reach ${describeReach(step.rung)} for ${step.rung.points.toFixed(1)} points`));
+          `to reach ${describeReach(step.rung)} for ${step.rung.points.toFixed(1)} points`);
+        const pace = planPace(step);
+        if (pace) item.append(pace);
+        list.append(item);
       }
       box.append(list);
       box.append(el('p', 'plan-total', `Reaches ${entry.total.toFixed(1)}.`));
     }
     host.append(box);
   }
+}
+
+/**
+ * The lap time a run target comes to, with a way into the lap pace for it.
+ *
+ * "13:44 or faster" is a goal; "1:43 a lap" is something to run on the day.
+ * The two features answer halves of the same question, so a run step in a
+ * plan says the second half and opens the pace calculator already set to it.
+ */
+function planPace(step) {
+  if (step.component !== 'cardiorespiratory' || events.cardiorespiratory !== 'run_2mile') {
+    return null;
+  }
+  const seconds = step.rung.reach.seconds;
+  if (seconds == null) return null;
+
+  const length = trackLength();
+  const pace = lapPace({ distanceId: 'mile2', trackLength: length, seconds });
+  const line = el('span', 'plan-pace',
+    ` That is ${pace.lap.label} a lap on a ${length} m track. `);
+  const open = el('button', 'plan-pace-open', 'Open Lap Pace');
+  open.type = 'button';
+  open.addEventListener('click', () => openPaceFor(seconds));
+  line.append(open);
+  return line;
+}
+
+/** Open the lap pace on the 2 mile, set to a finishing time, and go to it. */
+function openPaceFor(seconds) {
+  const index = TRACK_DISTANCES.findIndex((d) => d.id === 'mile2');
+  if (index >= 0) track.distanceIndex = index;
+  $('pace-min').value = String(Math.floor(seconds / 60));
+  $('pace-sec').value = String(seconds % 60).padStart(2, '0');
+  course.pace = true;
+  renderTrack();
+  $('pace-toggle').scrollIntoView({ behavior: motion(), block: 'start' });
+}
+
+/**
+ * The next composite worth aiming at from this one, and why.
+ *
+ * The box used to hold 75 whatever the score, so a cadet on 82 asking how to
+ * get to 75 was told they were already there. Below the mark it is the mark.
+ * Above it, Excellent at 90, then for a cadet the Fitness Award at 95
+ * (AFROTCI 36-2011 V3, Table 15.1), then 100.
+ */
+function nextGoal(result) {
+  if (!result.pass) {
+    return { value: result.passingComposite, why: 'The passing mark for your age and sex.' };
+  }
+  const goals = [{ value: 90, why: 'Excellent.' }];
+  if (role === 'cadet') goals.push({ value: 95, why: 'The cadet Fitness Award.' });
+  goals.push({ value: 100, why: 'A perfect score.' });
+  return goals.find((goal) => result.composite < goal.value) ?? goals[goals.length - 1];
+}
+
+/** Whether the member has typed their own target, which is then left alone. */
+let targetEdited = false;
+
+/** Fill the target box with the next goal, unless the member chose one. */
+function suggestTarget(result) {
+  const why = $('target-why');
+  if (targetEdited) {
+    why.hidden = true;
+    return;
+  }
+  const goal = nextGoal(result);
+  $('target').value = String(goal.value);
+  why.textContent = `Suggested: ${goal.why}`;
+  why.hidden = false;
 }
 
 function renderReferences(result) {

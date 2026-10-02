@@ -23,7 +23,7 @@
 import {
   COMPONENTS, COMPONENT_LABELS, STATUS, formatTime, MEASURES, EVENT_KINDS, TABLES,
   EVENT_PHRASES
-} from './engine.js?v=83c7ea110d';
+} from './engine.js?v=af2d8cb878';
 
 const TRAINABLE_SOON = Object.freeze(['muscular_strength', 'core_endurance', 'cardiorespiratory']);
 
@@ -314,13 +314,20 @@ export function analyzeGap(data, result) {
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
+/**
+ * A stretch of time the way a runner says it: "45 seconds", but "1:46" rather
+ * than "106 seconds", which nobody can picture against a stopwatch.
+ */
+export const describeSeconds = (seconds) =>
+  seconds >= 60 ? formatTime(seconds) : plural(seconds, 'second');
+
 function describeDistance(rung) {
   if (rung.distance.reps != null) return plural(rung.distance.reps, 'more rep');
   if (rung.distance.shuttles != null) return plural(rung.distance.shuttles, 'more shuttle');
   if (rung.distance.seconds != null) {
     // A run wants seconds cut off; a plank wants seconds added on. The rung
     // carries which, because the number alone does not say.
-    return `${plural(rung.distance.seconds, 'second')} ${rung.direction}`;
+    return `${describeSeconds(rung.distance.seconds)} ${rung.direction}`;
   }
   return `${plural(Math.round(rung.distance.ratio * 100), 'hundredth')} off the ratio`;
 }
@@ -349,7 +356,8 @@ function summarize(result, mandatory, remainingGap, paths, projectedComposite, s
 
   const cheapest = paths.find((p) => p.closesGap);
   parts.push(mandatory.length > 0
-    ? `After that the composite is still ${remainingGap.toFixed(1)} short.`
+    ? `Reaching the minimum brings the composite to ${projectedComposite.toFixed(1)}, ` +
+      `still ${remainingGap.toFixed(1)} short of ${result.passingComposite.toFixed(1)}.`
     : `Every component meets its minimum, but the composite is ${remainingGap.toFixed(1)} ` +
       `short of ${result.passingComposite.toFixed(1)}.`);
   if (cheapest) {

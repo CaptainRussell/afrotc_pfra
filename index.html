@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=83c7ea110d">
+<link rel="stylesheet" href="styles.css?v=af2d8cb878">
 </head>
 <body>
 
@@ -81,7 +81,7 @@
         <h2>Waist to Height (WHtR)</h2>
         <div class="event-tools">
           <button type="button" class="verbiage-open" data-verbiage="body_composition"
-                title="What the assessment administrator reads out">Verbiage</button>
+                title="What the assessment administrator reads out">How It's Measured</button>
           <button type="button" class="exempt-toggle" data-exempt="body_composition"
                   title="Cadre and staff on profile. Not authorised for cadets."
                   hidden>Exempt</button>
@@ -152,7 +152,7 @@
                   aria-expanded="false" aria-controls="event-muscular_strength"
                   title="Change exercise">Change Exercise</button>
           <button type="button" class="verbiage-open" data-verbiage="muscular_strength"
-                title="What the assessment administrator reads out">Verbiage</button>
+                title="What the assessment administrator reads out">How It's Graded</button>
           <button type="button" class="exempt-toggle" data-exempt="muscular_strength"
                   title="Cadre and staff on profile. Not authorised for cadets."
                   hidden>Exempt</button>
@@ -208,7 +208,7 @@
                   aria-expanded="false" aria-controls="event-core_endurance"
                   title="Change exercise">Change Exercise</button>
           <button type="button" class="verbiage-open" data-verbiage="core_endurance"
-                title="What the assessment administrator reads out">Verbiage</button>
+                title="What the assessment administrator reads out">How It's Graded</button>
           <button type="button" class="exempt-toggle" data-exempt="core_endurance"
                   title="Cadre and staff on profile. Not authorised for cadets."
                   hidden>Exempt</button>
@@ -272,7 +272,7 @@
                   aria-expanded="false" aria-controls="event-cardiorespiratory"
                   title="Change exercise">Change Exercise</button>
           <button type="button" class="verbiage-open" data-verbiage="cardiorespiratory"
-                title="What the assessment administrator reads out">Verbiage</button>
+                title="What the assessment administrator reads out">How It's Graded</button>
           <button type="button" class="exempt-toggle" data-exempt="cardiorespiratory"
                   title="Cadre and staff on profile. Not authorised for cadets."
                   hidden>Exempt</button>
@@ -664,6 +664,11 @@
         <div class="meter-mark" hidden></div>
       </div>
       <p class="meter-legend" id="meter-legend"></p>
+      <!-- Where the composite came from, under the number it adds up to. Each
+           component's points are also on its own card, but on a phone those
+           cards are several screens above this one. A row takes you back to
+           its card. Screen only: the printed sheet has its own table. -->
+      <ul class="breakdown" id="breakdown" aria-label="Points by component"></ul>
       <!-- Only on an assessment with a component exempt. Two things about such
            a composite are not readable off the number: it was divided by
            something other than 100, and it cannot be rated Excellent. Both are
@@ -716,6 +721,9 @@
           <label for="target">Target composite</label>
           <input type="number" id="target" inputmode="decimal" min="0" max="100" step="0.5"
                  value="75">
+          <!-- Says why the box holds the number it does, until the member types
+               their own. -->
+          <p class="hint" id="target-why" hidden></p>
         </div>
         <button type="button" class="secondary" id="plan-button">Show me how</button>
       </div>
@@ -995,6 +1003,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=83c7ea110d"></script>
+<script type="module" src="app.js?v=af2d8cb878"></script>
 </body>
 </html>
