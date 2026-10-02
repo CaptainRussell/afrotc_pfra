@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=af2d8cb878';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=af2d8cb878';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=af2d8cb878';
+} from './src/engine.js?v=5078a41671';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=5078a41671';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=5078a41671';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=af2d8cb878';
+} from './src/track.js?v=5078a41671';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=af2d8cb878').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=5078a41671').then((r) => r.json());
   return { data };
 }
 
@@ -118,7 +118,8 @@ async function boot() {
 
   fillBandOptions();
   fillAltitudeOptions();
-  showRoleControls();
+  // Before the share link, which may name cadre instead.
+  applyRole(DEFAULT_ROLE);
   // Before anything is typed, so a shared assessment is what loads rather than
   // something a reader has to clear first.
   applyShareLink();
@@ -567,7 +568,6 @@ function resetAll() {
   }
   $('band-picker').hidden = true;
   $('age-band').value = '';
-  $('role-hint').textContent = ROLE_PROMPT;
 
   // Statuses before fields: clearing an exemption re-enables the inputs it
   // disabled, and doing it the other way round leaves them disabled.
@@ -619,7 +619,9 @@ function resetAll() {
   clearPlan();
   targetEdited = false;
 
-  showRoleControls();
+  // Last, after the events are back on their defaults, so applyRole() has
+  // nothing left to switch.
+  applyRole(DEFAULT_ROLE);
   update();
   window.scrollTo({ top: 0, behavior: motion() });
 }
@@ -1237,12 +1239,29 @@ function showAltitudeGroup() {
 
 /* --- who is being assessed ------------------------------------------------ */
 
-/** Shown until the question is answered. Kept beside index.html's copy. */
-const ROLE_PROMPT =
-  'Start here. Cadets see their four components and nothing else; cadre also get ' +
-  'alternate events, exemptions and the proctor tools.';
+/** The line under the role picker. The cadet one is also in index.html. */
+const ROLE_HINTS = Object.freeze({
+  cadet: 'Waist to height, hand-release push-ups, sit-ups and the 2 mile run. Those ' +
+    'four are the whole cadet assessment (NOTACC CY26-092).',
+  cadre: 'Alternate events, component exemptions and the proctor tools are available ' +
+    'for active duty members.'
+});
+
+/** The role a fresh page and Reset Everything start on. */
+const DEFAULT_ROLE = 'cadet';
 
 function selectRole(value) {
+  applyRole(value);
+  update();
+}
+
+/**
+ * Set the role and everything that follows from it, without rescoring.
+ *
+ * Split from selectRole() so start-up and Reset Everything can put the page
+ * on the default role before the rest of the page is ready to score.
+ */
+function applyRole(value) {
   role = value;
   for (const button of document.querySelectorAll('.segment[data-role]')) {
     const on = button.dataset.role === value;
@@ -1263,16 +1282,9 @@ function selectRole(value) {
     if (statuses.cardiorespiratory === 'dnf') setStatus('run', null);
   }
 
-  $('role-hint').textContent = role === 'cadet'
-    ? 'Waist to height, hand-release push-ups, sit-ups and the 2 mile run. Those ' +
-      'four are the whole cadet assessment (NOTACC CY26-092).'
-    : role === 'cadre'
-      ? 'Alternate events and component exemptions are available for active ' +
-        'duty members.'
-      : ROLE_PROMPT;
+  $('role-hint').textContent = ROLE_HINTS[role] ?? '';
 
   showRoleControls();
-  update();
 }
 
 /**
@@ -1281,9 +1293,8 @@ function selectRole(value) {
  * A cadet is assessed on exactly three events and the waist to height ratio,
  * and cannot be exempted, so the controls for anything else are noise to them:
  * changing the exercise, exempting a component, recording a DNF, laying out a
- * track and the proctor's notes. Hidden for a cadet, shown for cadre, and shown
- * before either is chosen so nothing looks missing to someone who has not
- * answered yet.
+ * track and the proctor's notes. Hidden for a cadet, which is the default, and
+ * shown for cadre.
  *
  * Altitude stays for everyone. Attachment 3 is a property of where the run
  * was held, not of who ran it.

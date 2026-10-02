@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=af2d8cb878">
+<link rel="stylesheet" href="styles.css?v=5078a41671">
 </head>
 <body>
 
@@ -30,18 +30,17 @@
     <div class="field" id="field-role">
       <span class="label-text" id="role-label">Assessing</span>
       <div class="segmented" role="radiogroup" aria-labelledby="role-label">
-        <button type="button" class="segment" role="radio" aria-checked="false"
+        <button type="button" class="segment on" role="radio" aria-checked="true"
                 data-role="cadet">AFROTC Cadet</button>
         <button type="button" class="segment" role="radio" aria-checked="false"
                 data-role="cadre">Active Duty / Cadre</button>
       </div>
-      <!-- Kept in step with selectRole(): this is the cadet wording, which is
-           the default, and the button click rewrites it for cadre. -->
-      <!-- Kept in step with ROLE_PROMPT in app.js: this is the unanswered
-           wording, and selecting a role rewrites it. -->
+      <!-- Cadet is the default, on load and on Reset Everything, because most
+           people opening this are cadets checking their own score. Kept in step
+           with ROLE_HINTS.cadet in app.js, which rewrites it on a switch. -->
       <p class="hint" id="role-hint">
-        Start here. This decides which components you are assessed on and what
-        the rest of the form offers.
+        Waist to height, hand-release push-ups, sit-ups and the 2 mile run. Those
+        four are the whole cadet assessment (NOTACC CY26-092).
       </p>
     </div>
 
@@ -1003,6 +1002,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=af2d8cb878"></script>
+<script type="module" src="app.js?v=5078a41671"></script>
 </body>
 </html>
