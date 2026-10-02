@@ -771,16 +771,19 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
  * cadre control and takes the second row when the name is long. */
 .event-head {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 6px 12px;
 }
-.event-head h2 { grid-area: 1 / 1; font-size: 1rem; }
-.event-head .chip { grid-area: 1 / 2; }
+.event-head h2 { grid-area: 1 / 2; font-size: 1rem; }
+.event-head .chip { grid-area: 1 / 3; }
+/* The picture takes both rows on the left, so the name and its tools stay
+ * lined up with each other beside it. */
+.event-head .event-icon { grid-area: 1 / 1 / 3 / 2; }
 /* Both event controls share the second row. They wrap on a narrow screen
  * rather than squeezing the exercise name above them. */
 .event-head .event-tools {
-  grid-area: 2 / 1 / 3 / -1;
+  grid-area: 2 / 2 / 3 / -1;
   justify-self: start;
   display: flex;
   flex-wrap: wrap;
@@ -2305,3 +2308,32 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
 .pace-figure .track-count { font-size: 24px; }
 .pace-figure .pace-opening-label { font-size: 16px; }
 .pace-figure .track-label { font-size: 15px; stroke-width: 4px; }
+
+/* --- the picture beside each component -----------------------------------
+ * A tile so the four line up down the page whatever the figure's shape. The
+ * accent is the pace blue: the one part of each picture that is not a body
+ * (the band at the waist, the arrow under the HAMR) and not a score, so it
+ * borrows neither the pass green nor the setting gold. */
+.event-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--page);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+.event-icon-svg {
+  width: 34px;
+  height: 34px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.event-icon-svg .icon-head { fill: currentColor; stroke: none; }
+.event-icon-svg .icon-thin { stroke-width: 2; }
+.event-icon-svg .icon-floor { stroke-width: 1.6; opacity: .5; }
+.event-icon-svg .icon-accent { stroke: var(--pace-accent); }
