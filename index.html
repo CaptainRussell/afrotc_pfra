@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=ecffd09ef5">
+<link rel="stylesheet" href="styles.css?v=c243fefc0a">
 </head>
 <body>
 
@@ -408,11 +408,18 @@
            and has nothing to lay out. -->
       <div class="chart-inline" id="track-inline" hidden>
         <div class="course-toggles">
-          <button type="button" class="secondary small" id="pace-toggle"
-                  aria-expanded="false" aria-controls="course-body">Lap Pace</button>
           <button type="button" class="secondary small" id="track-toggle"
                   aria-expanded="false" aria-controls="course-body">Track Layout</button>
         </div>
+        <!-- The lap pace is for every member who runs, so it is a bar of its
+             own rather than one more chip beside the proctor's layout. Last
+             before the body, so what it opens appears directly under it. -->
+        <button type="button" class="pace-bar" id="pace-toggle"
+                aria-expanded="false" aria-controls="course-body">
+          <span class="pace-bar-title">Lap Pace</span>
+          <span class="pace-bar-hint">How fast each lap needs to be for your goal time</span>
+          <span class="pace-bar-chevron" aria-hidden="true">&#9662;</span>
+        </button>
         <div class="chart-body track-body" id="course-body" hidden>
           <div class="track-pickers">
             <div class="field">
@@ -988,6 +995,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=ecffd09ef5"></script>
+<script type="module" src="app.js?v=c243fefc0a"></script>
 </body>
 </html>

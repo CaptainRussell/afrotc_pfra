@@ -16,6 +16,11 @@
  * palette and outranks both of these.
  */
 :root {
+  /* The lap pace bar. Lifted from the shield blue so it reads on the dark
+   * card; the light palette uses the shield blue as it is. */
+  --pace-accent: #4aa3cf;
+  --pace-bg: #4aa3cf1f;
+
   /* Iowa State University brand, lifted for a dark background */
   --cardinal: #ef4054;
   --cardinal-dark: #c8102e;
@@ -69,6 +74,8 @@
 /* The light palette, kept whole and unused. Set data-theme="light" on <html>
  * to get it back. */
 :root[data-theme="light"] {
+  --pace-accent: #006186;
+  --pace-bg: #0061861a;
   --cardinal: #c8102e;
   --cardinal-dark: #9c0c24;
 
@@ -2148,6 +2155,45 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
 .course-toggles .secondary.on {
   border-color: var(--gold);
   color: var(--ink);
+}
+
+/* The lap pace, full width under the run and the walk. A cadet looking for
+ * how fast to go should not have to guess that a small grey chip holds it.
+ * Blue because gold here means a setting somebody chose and cardinal means a
+ * fail or a reset. */
+.pace-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 2px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: var(--pace-bg);
+  border: 1px solid var(--pace-accent);
+  border-left-width: 4px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.pace-bar:hover { background: color-mix(in srgb, var(--pace-accent) 22%, transparent); }
+.pace-bar:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+.pace-bar-title { font-weight: 800; font-size: .95rem; }
+.pace-bar-hint { grid-column: 1; font-size: .8rem; color: var(--ink-soft); }
+.pace-bar-chevron {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  color: var(--pace-accent);
+  font-size: 1rem;
+  transition: transform .15s ease;
+}
+.pace-bar.on .pace-bar-chevron { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .pace-bar-chevron { transition: none; }
 }
 
 #pace-section + #track-section {
