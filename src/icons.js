@@ -8,10 +8,11 @@
  * at the hip is a sit-up, a forward lean in mid stride is a run. The floor
  * exercises stand on a floor line so a push-up cannot be read as a lean.
  *
- * Body composition is a person with a band at the waist and a height arrow
- * beside them, because a tape measure on its own says "measuring", not "waist
- * to height". The band, and the arrow under the HAMR runner, are the accent:
- * the one thing in each picture that is not a body.
+ * Body composition is a person with their arms up, the way a member stands to
+ * be taped, with a band at the waist and a height arrow beside them: a tape
+ * measure on its own says "measuring", not "waist to height". The band, and
+ * the arrow under the HAMR runner, are the accent: the one thing in each
+ * picture that is not a body.
  *
  * Markup only, on a 32 by 32 grid, so the page owns colour and size.
  */
@@ -23,10 +24,11 @@ const PUSHUP = floor + head(6, 13.5) + '<path d="M9 16.5 L29 26.5 M9.5 16.5 L9.5
 
 const SHAPES = Object.freeze({
   waist_to_height:
-    head(11, 5) +
-    '<path d="M11 9 V19 M11 19 L8 29 M11 19 L14 29 M11 11 L6 19 M11 11 L16 19"/>' +
-    '<path d="M6.5 15.5 Q11 18.5 15.5 15.5" class="icon-accent"/>' +
-    '<path d="M25 3 V29 M25 3 L23 6 M25 3 L27 6 M25 29 L23 26 M25 29 L27 26" ' +
+    head(11, 6.5) +
+    '<path d="M11 10.5 V20 M11 20 L8.5 29.5 M11 20 L13.5 29.5 M11 11.5 L4.5 4 ' +
+    'M11 11.5 L17.5 4"/>' +
+    '<path d="M6.5 16.5 Q11 19.5 15.5 16.5" class="icon-accent"/>' +
+    '<path d="M26 3 V29.5 M26 3 L24 6 M26 3 L28 6 M26 29.5 L24 26.5 M26 29.5 L28 26.5" ' +
     'class="icon-thin"/>',
   hand_release_pushup: PUSHUP,
   pushup: PUSHUP,
@@ -36,9 +38,10 @@ const SHAPES = Object.freeze({
   cross_leg_reverse_crunch:
     floor + head(4.5, 25.5) +
     '<path d="M8 27 L18 26.5 L12 17.5 L19 12 M9 28 L15 28.5"/>',
+  // The forearms point forward, under the head, as they lie in a plank.
   forearm_plank:
-    floor + head(5, 18.5) +
-    '<path d="M8 21.5 L29 26.5 M8 21.5 L8 27.5 L13 27.5"/>',
+    floor + head(6.5, 18.5) +
+    '<path d="M9.5 21.5 L29.5 26.5 M9.5 21.5 L9.5 27.5 L3.5 27.5"/>',
   run_2mile:
     head(19.5, 5) +
     '<path d="M18 9 L14.5 18 M14.5 18 L20 21.5 L21 28.5 M14.5 18 L10.5 23.5 L5 22 ' +
@@ -49,10 +52,12 @@ const SHAPES = Object.freeze({
     'M17 10.5 L21 13 L24 10.5 M17 10.5 L13 12.5 L11 15.5"/>' +
     '<path d="M4 29 H28 M7 26.5 L4 29 L7 31.5 M25 26.5 L28 29 L25 31.5" ' +
     'class="icon-accent icon-thin"/>',
+  // Upright where the runner leans, a straight front leg and a bent back
+  // knee, and the arms swung opposite: a stride, not a stance.
   walk_2km:
-    head(15, 5) +
-    '<path d="M15 9 L15.5 18.5 M15.5 18.5 L20.5 28.5 M15.5 18.5 L13 23.5 L10 28.5 ' +
-    'M15 11.5 L19.5 17 M15 11.5 L11 16.5"/>'
+    head(16.5, 4.5) +
+    '<path d="M16 8.5 L15 18.5 M15 18.5 L19.5 28.5 M15 18.5 L12.5 23.5 L9 28 ' +
+    'M15.7 11 L20.5 17.5 M15.7 11 L10.5 16.5"/>'
 });
 
 /** The pictogram for an event, or for 'waist_to_height', as SVG markup. */

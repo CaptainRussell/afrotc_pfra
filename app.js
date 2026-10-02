@@ -18,13 +18,13 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=432f89e0a3';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=432f89e0a3';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=432f89e0a3';
-import { eventIcon } from './src/icons.js?v=432f89e0a3';
+} from './src/engine.js?v=b9e9ecf50f';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=b9e9ecf50f';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=b9e9ecf50f';
+import { eventIcon } from './src/icons.js?v=b9e9ecf50f';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=432f89e0a3';
+} from './src/track.js?v=b9e9ecf50f';
 
 const $ = (id) => document.getElementById(id);
 
@@ -103,7 +103,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=432f89e0a3').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=b9e9ecf50f').then((r) => r.json());
   return { data };
 }
 
@@ -215,12 +215,12 @@ async function boot() {
   // class for its looks and would otherwise be wired up as an event picker for
   // a component named "undefined".
   for (const button of document.querySelectorAll('.swap[data-swap]')) {
-    button.addEventListener('click', () => {
-      const component = button.dataset.swap;
-      if ($(`event-${component}`).hidden) openPicker(component);
-      else closePicker(component);
-    });
+    button.addEventListener('click', () => togglePicker(button.dataset.swap));
   }
+  for (const button of document.querySelectorAll('[data-swap-icon]')) {
+    button.addEventListener('click', () => togglePicker(button.dataset.swapIcon));
+  }
+  buildEventOptions();
   // Scoped to [data-component] for the same reason the swap buttons are scoped
   // to [data-swap]: the Altitude panel reuses .event-picker for its looks, and
   // its change event would otherwise be handled as an event swap for a
@@ -313,7 +313,15 @@ function openPicker(component) {
   $(`event-${component}`).hidden = false;
   document.querySelector(`.swap[data-swap="${component}"]`)
     .setAttribute('aria-expanded', 'true');
-  $(`event-select-${component}`).focus();
+  $(`icon-${component}`).setAttribute('aria-expanded', 'true');
+  const current = $(`event-${component}`).querySelector('.event-option[aria-pressed="true"]');
+  (current ?? $(`event-select-${component}`)).focus();
+}
+
+/** The picture and the Change Exercise button both toggle the picker. */
+function togglePicker(component) {
+  if ($(`event-${component}`).hidden) openPicker(component);
+  else closePicker(component);
 }
 
 /** Mirrors closePicker: choosing is the end of the errand, so it folds away. */
@@ -330,10 +338,12 @@ function closePicker(component) {
   $(`event-${component}`).hidden = true;
   const button = document.querySelector(`.swap[data-swap="${component}"]`);
   button.setAttribute('aria-expanded', 'false');
+  $(`icon-${component}`).setAttribute('aria-expanded', 'false');
   // Focus would otherwise be left on a control that is no longer on screen.
-  if ($(`event-select-${component}`).contains(document.activeElement)
-      || document.activeElement === $(`event-select-${component}`)) {
-    button.focus();
+  // Back to the picture, which is the bigger target and the one named for it.
+  if ($(`event-${component}`).contains(document.activeElement)) {
+    const icon = $(`icon-${component}`);
+    (icon.disabled ? button : icon).focus();
   }
 }
 
@@ -427,7 +437,53 @@ function showNotFinished() {
 function showEventIcons() {
   $('icon-body_composition').innerHTML = eventIcon('waist_to_height');
   for (const [component, event] of Object.entries(events)) {
-    $(`icon-${component}`).innerHTML = eventIcon(event);
+    const icon = $(`icon-${component}`);
+    icon.innerHTML = eventIcon(event);
+    if (!icon.disabled) {
+      icon.setAttribute('aria-label', `Change exercise, now ${EVENT_LABELS[event]}`);
+    }
+    for (const option of document.querySelectorAll(`#event-${component} .event-option`)) {
+      option.setAttribute('aria-pressed', String(option.dataset.value === event));
+    }
+  }
+}
+
+/**
+ * The picker as a list of pictures and names, built from the select.
+ *
+ * A select cannot hold a picture, so its options are drawn as buttons, each
+ * with the same pictogram the component shows once it is chosen. The select
+ * stays, hidden, as the one place the choice is held: everything that reads
+ * or sets an event already goes through it, and a tap here just sets it and
+ * fires the change it would have fired itself.
+ */
+function buildEventOptions() {
+  for (const select of document.querySelectorAll('.event-picker select[data-component]')) {
+    const component = select.dataset.component;
+    const list = el('div', 'event-options');
+    list.setAttribute('role', 'group');
+    list.setAttribute('aria-label', `${COMPONENT_LABELS[component]} exercise`);
+    for (const option of select.options) {
+      const button = el('button', 'event-option');
+      button.type = 'button';
+      button.dataset.value = option.value;
+      button.setAttribute('aria-pressed', String(option.value === events[component]));
+      const picture = el('span', 'event-option-icon');
+      picture.innerHTML = eventIcon(option.value);
+      button.append(picture, el('span', 'event-option-name', EVENT_LABELS[option.value]));
+      button.addEventListener('click', () => {
+        if (select.value === option.value) {
+          closePicker(component);
+          return;
+        }
+        select.value = option.value;
+        select.dispatchEvent(new Event('change'));
+      });
+      list.append(button);
+    }
+    select.hidden = true;
+    select.previousElementSibling.hidden = true;   // its "Event" label
+    select.after(list);
   }
 }
 
@@ -1334,6 +1390,20 @@ function showRoleControls() {
   for (const button of document.querySelectorAll('.swap[data-swap]')) {
     button.hidden = cadet;
     if (cadet) closePicker(button.dataset.swap);
+  }
+  for (const icon of document.querySelectorAll('[data-swap-icon]')) {
+    icon.disabled = cadet;
+    icon.classList.toggle('can-swap', !cadet);
+    if (cadet) {
+      icon.setAttribute('aria-hidden', 'true');
+      icon.removeAttribute('title');
+      icon.removeAttribute('aria-label');
+    } else {
+      icon.removeAttribute('aria-hidden');
+      icon.title = 'Change exercise';
+      icon.setAttribute('aria-label',
+        `Change exercise, now ${EVENT_LABELS[events[icon.dataset.swapIcon]]}`);
+    }
   }
   $('proctor-card').hidden = cadet;
   // Both of these also depend on the event, so they work the role out
