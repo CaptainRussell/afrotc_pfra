@@ -1802,6 +1802,37 @@ a.secondary.small:hover { border-color: var(--cardinal); color: var(--cardinal);
     color: #444;
   }
 
+  /* --- the lap pace of the run ---------------------------------------------
+   * Words on the left, the drawing on the right, so it costs the height of
+   * the drawing and no more. Kept whole: a split torn from its drawing is no
+   * use at the track. The screen's brick and pale blue are too faint on
+   * paper, so the oval goes grey and the part lap goes the shield blue.
+   */
+  .print-only.print-pace {
+    --oval-surface: #e2e2e2;
+    --pace-accent: #006186;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 10pt;
+    padding-top: 4pt;
+    border-top: 1pt solid #000;
+    break-inside: avoid;
+  }
+  .print-only.print-pace:empty { display: none; }
+  .print-pace-title { font-size: 10pt; margin: 0 0 2pt; }
+  .print-pace-goal { margin: 0; font-size: 9pt; }
+  .print-pace-lap { margin: 1pt 0; font-size: 13pt; font-weight: 800; }
+  .print-pace-working { margin: 0; font-size: 8.5pt; line-height: 1.35; }
+  .print-pace .track-svg { max-height: 30mm; }
+  .print-pace .track-lane { stroke: #444; }
+  .print-pace .track-arrow { stroke: #444; }
+  .print-pace .track-arrowhead { fill: #444; }
+  .print-pace .track-label { stroke: #fff; }
+  .print-pace .track-count { fill: #000; font-size: 24px; }
+  .print-pace .pace-opening-label { font-size: 16px; }
+  .print-pace .track-label { font-size: 15px; stroke-width: 4px; }
+
   /* One sheet.
    *
    * The budget is a US Letter page less its margins, which is about 965

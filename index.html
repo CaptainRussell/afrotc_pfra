@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=4d08674d73">
+<link rel="stylesheet" href="styles.css?v=871b084b3a">
 </head>
 <body>
 
@@ -719,6 +719,13 @@
       <ul id="warning-list"></ul>
     </div>
 
+    <!-- Paper only, and built by renderPrintPace(): the average lap of the
+         run or walk that was recorded, so the split goes back to the track.
+         After the failures and warnings rather than under the component
+         table: why a result failed belongs next to it, and a pace is the
+         thing that can go over onto a second sheet if anything has to. -->
+    <div class="print-only print-pace" id="print-pace"></div>
+
     <div class="card" id="aim-card">
       <h2>Aim for a Score</h2>
       <p class="card-intro">Enter a composite you want and see what reaches it.</p>
@@ -1009,6 +1016,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=4d08674d73"></script>
+<script type="module" src="app.js?v=871b084b3a"></script>
 </body>
 </html>

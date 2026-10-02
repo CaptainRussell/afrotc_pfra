@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=4d08674d73';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=4d08674d73';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=4d08674d73';
+} from './src/engine.js?v=871b084b3a';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=871b084b3a';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=871b084b3a';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=4d08674d73';
+} from './src/track.js?v=871b084b3a';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=4d08674d73').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=871b084b3a').then((r) => r.json());
   return { data };
 }
 
@@ -875,6 +875,7 @@ function update() {
   renderScoreboard(result);
   renderBreakdown(result);
   renderPrintSummary(result);
+  renderPrintPace(result);
   renderFailures(result);
   renderWarnings(result);
   renderReferences(result);
@@ -3236,6 +3237,46 @@ function renderPace(distance, length) {
 }
 
 /**
+ * The lap pace of the run on the printed result.
+ *
+ * Worked out from the time actually run, not from a goal typed into the lap
+ * pace: the sheet is a record of this assessment, and "1:56 a lap" says how it
+ * was run in a way a cadet can take back to the track. The time is the one
+ * recorded, before any altitude correction, because that is what the laps took.
+ *
+ * Read as an average: nobody runs even laps, so it is the pace that would have
+ * given this time. On whichever track is picked in the lap pace, 400 m unless
+ * changed. Empty, and so not printed, for the HAMR, a DNF or an exemption.
+ */
+function renderPrintPace(result) {
+  const host = $('print-pace');
+  const scored = result?.components?.cardiorespiratory;
+  const distanceId = { run_2mile: 'mile2', walk_2km: 'km2' }[scored?.event];
+  const seconds = scored?.measured?.seconds;
+  if (!distanceId || !(seconds > 0)) {
+    host.replaceChildren();
+    return;
+  }
+
+  const length = trackLength();
+  const pace = lapPace({ distanceId, trackLength: length, seconds });
+  const plan = pace.plan;
+  const words = el('div', 'print-pace-words');
+  words.append(el('h2', 'print-pace-title', 'Lap Pace'));
+  words.append(el('p', 'print-pace-goal',
+    `${plan.distance.label} ${distanceId === 'km2' ? 'walked' : 'run'} in ` +
+    `${pace.totalLabel}, on a ${length} m track`));
+  words.append(el('p', 'print-pace-lap', `${pace.lap.label} a lap`));
+  // Said without "before" or "after" the line: on a 300 the start sits past
+  // the finish and the first stretch is most of a lap.
+  words.append(el('p', 'print-pace-working', pace.opening
+    ? `On average. At that pace the first ${pace.opening.metresLabel} m, from the ` +
+      `start to the finish line, took ${pace.opening.label}, then ${plan.laps} laps.`
+    : `On average, over ${plan.laps} laps from the finish line.`));
+  host.replaceChildren(words, buildPaceFigure(plan, pace));
+}
+
+/**
  * The two ends of the pace slider, in seconds, or null when there is no chart
  * to read them off yet.
  *
@@ -3372,6 +3413,7 @@ function renderTrack() {
       : `${length} m lap, measured`;
 
   renderPace(distance, length);
+  renderPrintPace(lastResult);
 
   showCourseSections();
   if (!course.layout) return;   // no figure to draw into
