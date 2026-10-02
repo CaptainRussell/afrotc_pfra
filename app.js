@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=fc96866cae';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=fc96866cae';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=fc96866cae';
+} from './src/engine.js?v=088d8d12af';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=088d8d12af';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=088d8d12af';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=fc96866cae';
+} from './src/track.js?v=088d8d12af';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=fc96866cae').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=088d8d12af').then((r) => r.json());
   return { data };
 }
 

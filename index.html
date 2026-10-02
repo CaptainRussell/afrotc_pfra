@@ -9,7 +9,7 @@
      page background dark before the stylesheet arrives. -->
 <meta name="color-scheme" content="dark light">
 <link rel="icon" href="assets/afrotc-shield-icon.png" type="image/png" sizes="96x96">
-<link rel="stylesheet" href="styles.css?v=fc96866cae">
+<link rel="stylesheet" href="styles.css?v=088d8d12af">
 </head>
 <body>
 
@@ -26,10 +26,14 @@
   <form id="assessment" class="card" novalidate autocomplete="off">
 
     <!-- Above age and sex because it frames them: the same charts, but a
-         different set of things a member is allowed to do. -->
+         different set of things a member is allowed to do.
+
+         No visible heading. It was "Assessing", which read wrongly once the
+         second choice became Proctor / Cadre: a proctor runs the assessment
+         rather than taking it. The two buttons and the line under them say
+         what the switch is; the name is kept for screen readers. -->
     <div class="field" id="field-role">
-      <span class="label-text" id="role-label">Assessing</span>
-      <div class="segmented" role="radiogroup" aria-labelledby="role-label">
+      <div class="segmented" role="radiogroup" aria-label="Which view of the calculator">
         <button type="button" class="segment on" role="radio" aria-checked="true"
                 data-role="cadet">AFROTC Cadet</button>
         <button type="button" class="segment" role="radio" aria-checked="false"
@@ -1002,6 +1006,6 @@
   <p class="created-by">Created by Captain Scott Russell, Operations Flight Commander, AFROTC Detachment 250</p>
 </footer>
 
-<script type="module" src="app.js?v=fc96866cae"></script>
+<script type="module" src="app.js?v=088d8d12af"></script>
 </body>
 </html>
