@@ -35,9 +35,14 @@ const SHAPES = Object.freeze({
   situp:
     floor + head(9, 9) +
     '<path d="M11 12.5 L16 26 L23 18 L28 28 M12 15 L16.5 17.5"/>',
+  // At the top of a rep: lower back on the floor, shoulders curled up, knees
+  // drawn toward the chest, and the arms folded with the hands on the
+  // shoulders, as the verbiage requires throughout. The fold is kept clear
+  // of the thigh so it reads as arms, not as more leg.
   cross_leg_reverse_crunch:
-    floor + head(4.5, 25.5) +
-    '<path d="M8 27 L18 26.5 L12 17.5 L19 12 M9 28 L15 28.5"/>',
+    floor + head(5, 17.5) +
+    '<path d="M7.5 21.5 L11.5 27 L20 27.5 M20 27.5 L18.5 14.5 L27 13.5 ' +
+    'M9 22.5 L13.5 20 L9.5 19"/>',
   // The forearms point forward, under the head, as they lie in a plank.
   forearm_plank:
     floor + head(6.5, 18.5) +
