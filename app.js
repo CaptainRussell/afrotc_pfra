@@ -18,13 +18,13 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=714c145c4a';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=714c145c4a';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=714c145c4a';
-import { eventIcon } from './src/icons.js?v=714c145c4a';
+} from './src/engine.js?v=c1401fb0cb';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=c1401fb0cb';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=c1401fb0cb';
+import { eventIcon } from './src/icons.js?v=c1401fb0cb';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=714c145c4a';
+} from './src/track.js?v=c1401fb0cb';
 
 const $ = (id) => document.getElementById(id);
 
@@ -103,7 +103,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=714c145c4a').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=c1401fb0cb').then((r) => r.json());
   return { data };
 }
 
@@ -211,12 +211,6 @@ async function boot() {
   $('tally-button').addEventListener('click', () => {
     $('scoreboard').scrollIntoView({ behavior: motion(), block: 'start' });
   });
-  // Scoped to [data-swap], not to .swap: the Altitude control borrows the same
-  // class for its looks and would otherwise be wired up as an event picker for
-  // a component named "undefined".
-  for (const button of document.querySelectorAll('.swap[data-swap]')) {
-    button.addEventListener('click', () => togglePicker(button.dataset.swap));
-  }
   for (const button of document.querySelectorAll('[data-swap-icon]')) {
     button.addEventListener('click', () => togglePicker(button.dataset.swapIcon));
   }
@@ -311,14 +305,12 @@ function selectAgeGroup(choice) {
 
 function openPicker(component) {
   $(`event-${component}`).hidden = false;
-  document.querySelector(`.swap[data-swap="${component}"]`)
-    .setAttribute('aria-expanded', 'true');
   $(`icon-${component}`).setAttribute('aria-expanded', 'true');
   const current = $(`event-${component}`).querySelector('.event-option[aria-pressed="true"]');
   (current ?? $(`event-select-${component}`)).focus();
 }
 
-/** The picture and the Change Exercise button both toggle the picker. */
+/** Tapping the picture opens the picker, and tapping it again closes it. */
 function togglePicker(component) {
   if ($(`event-${component}`).hidden) openPicker(component);
   else closePicker(component);
@@ -336,14 +328,12 @@ function closeAltitudePanel() {
 
 function closePicker(component) {
   $(`event-${component}`).hidden = true;
-  const button = document.querySelector(`.swap[data-swap="${component}"]`);
-  button.setAttribute('aria-expanded', 'false');
-  $(`icon-${component}`).setAttribute('aria-expanded', 'false');
-  // Focus would otherwise be left on a control that is no longer on screen.
-  // Back to the picture, which is the bigger target and the one named for it.
-  if ($(`event-${component}`).contains(document.activeElement)) {
-    const icon = $(`icon-${component}`);
-    (icon.disabled ? button : icon).focus();
+  const icon = $(`icon-${component}`);
+  icon.setAttribute('aria-expanded', 'false');
+  // Focus would otherwise be left on a control that is no longer on screen,
+  // so it goes back to the picture that opened the picker.
+  if ($(`event-${component}`).contains(document.activeElement) && !icon.disabled) {
+    icon.focus();
   }
 }
 
@@ -1387,11 +1377,8 @@ function showRoleControls() {
   for (const button of document.querySelectorAll('.exempt-toggle')) {
     button.hidden = role !== 'cadre';
   }
-  for (const button of document.querySelectorAll('.swap[data-swap]')) {
-    button.hidden = cadet;
-    if (cadet) closePicker(button.dataset.swap);
-  }
   for (const icon of document.querySelectorAll('[data-swap-icon]')) {
+    if (cadet) closePicker(icon.dataset.swapIcon);
     icon.disabled = cadet;
     icon.classList.toggle('can-swap', !cadet);
     if (cadet) {

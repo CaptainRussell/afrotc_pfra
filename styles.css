@@ -767,8 +767,9 @@ form.card { display: grid; gap: 14px; padding-bottom: 20px; }
 .event:focus-within { border-color: var(--cardinal); }
 
 /* Explicit placement rather than wrapping: the exercise and its score are what
- * a cadet reads, so they hold the first row at any width. Change Exercise is a
- * cadre control and takes the second row when the name is long. */
+ * a cadet reads, so they hold the first row at any width. The tools take the
+ * second row, and the picture, which changes the exercise in the proctor
+ * view, sits to the left of both. */
 .event-head {
   display: grid;
   grid-template-columns: auto 1fr auto;
