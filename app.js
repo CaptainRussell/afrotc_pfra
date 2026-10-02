@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=84a89b1245';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=84a89b1245';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=84a89b1245';
+} from './src/engine.js?v=c8964f86f1';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=c8964f86f1';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=c8964f86f1';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=84a89b1245';
+} from './src/track.js?v=c8964f86f1';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=84a89b1245').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=c8964f86f1').then((r) => r.json());
   return { data };
 }
 
@@ -3335,10 +3335,12 @@ function renderPrintPace(result) {
  * fast end is WALK_FASTEST, 14:00. Run paces would put the whole slider at a
  * jog no walker reaches.
  *
- * Every other distance is anchored on the 2 mile run: the slow end is the
- * slowest time that still passes it for this member's sex and age band, and
- * the fast end is 10:00. Both are paces rather than times, so they carry over
- * to the 1.5 and 3 mile, which have no standard of their own.
+ * Every other distance is anchored on the 2 mile run, with the same right hand
+ * end as the run's own slider: the time that earns full marks for this
+ * member's sex and age band. The slow end is the slowest time that still
+ * passes. Both are paces rather than times, so they carry over to the 1.5 and
+ * 3 mile, which have no standard of their own. A faster goal can still be
+ * typed in; the handle pins at the end, as it does on the run.
  *
  * The slow end is the passing time itself rather than a second past it, which
  * is where the scoring sliders put their left hand end. Those record what
@@ -3359,18 +3361,16 @@ function paceEnds(distance) {
   const run = scorer.rangeFor({
     component: 'cardiorespiratory', event: 'run_2mile', sex, band: ageBand
   });
-  if (!run || !run.floor || run.floor.value == null) return null;
+  if (!run || !run.floor || run.floor.value == null || !run.best) return null;
 
   const mile2 = distanceById('mile2');
   const factor = distance.metres / mile2.metres;
   return {
     slow: Math.round(run.floor.value * factor),
-    fast: Math.round(PACE_FAST_2MILE * factor)
+    // SLIDER_MEASURES.time.best, so the two run tracks end in the same place.
+    fast: Math.round(SLIDER_MEASURES.time.best(run) * factor)
   };
 }
-
-/** The fast end of the pace slider, as a 2 mile time in seconds. */
-const PACE_FAST_2MILE = 10 * 60;
 
 /** Where the pace slider's ends currently sit, for reading a dragged value. */
 let paceBounds = null;
