@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=c243fefc0a';
-import { createAnalyzer } from './src/analysis.js?v=c243fefc0a';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=c243fefc0a';
+} from './src/engine.js?v=83c7ea110d';
+import { createAnalyzer } from './src/analysis.js?v=83c7ea110d';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=83c7ea110d';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=c243fefc0a';
+} from './src/track.js?v=83c7ea110d';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=c243fefc0a').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=83c7ea110d').then((r) => r.json());
   return { data };
 }
 
@@ -3022,21 +3022,32 @@ function renderPace(distance, length) {
  * The two ends of the pace slider, in seconds, or null when there is no chart
  * to read them off yet.
  *
- * Anchored on the 2 mile run, which is the event the distances here are run
- * against: the slow end is the slowest time that still passes it for this
- * member's sex and age band, and the fast end is 10:00.
+ * The 2 km is the walk's distance, and nobody runs a PFRA over it, so it takes
+ * the walk slider's ends: the slow end is this member's walk standard and the
+ * fast end is WALK_FASTEST, 14:00. Run paces would put the whole slider at a
+ * jog no walker reaches.
+ *
+ * Every other distance is anchored on the 2 mile run: the slow end is the
+ * slowest time that still passes it for this member's sex and age band, and
+ * the fast end is 10:00. Both are paces rather than times, so they carry over
+ * to the 1.5 and 3 mile, which have no standard of their own.
  *
  * The slow end is the passing time itself rather than a second past it, which
  * is where the scoring sliders put their left hand end. Those record what
  * happened and a fail is a real thing to record. This one sets a goal, and a
  * goal of missing the standard is not one.
- *
- * Both ends are paces rather than times, so they carry over to the distances
- * that have no standard of their own. A 10:00 2 mile is 3:06.4 per kilometre,
- * and that is what the fast end means on a 1.5 mile, a 2 km or a 3 mile.
  */
 function paceEnds(distance) {
   if (!sex || !ageBand) return null;
+
+  if (distance.id === 'km2') {
+    const walk = scorer.rangeFor({
+      component: 'cardiorespiratory', event: 'walk_2km', sex, band: ageBand
+    });
+    if (!walk || !walk.standard || walk.standard.seconds == null) return null;
+    return { slow: walk.standard.seconds, fast: WALK_FASTEST };
+  }
+
   const run = scorer.rangeFor({
     component: 'cardiorespiratory', event: 'run_2mile', sex, band: ageBand
   });
