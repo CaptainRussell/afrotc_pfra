@@ -18,12 +18,12 @@
 import {
   createScorer, COMPONENTS, COMPONENT_LABELS, EVENT_LABELS, EVENT_PHRASES,
   DET250_EVENTS, formatTime
-} from './src/engine.js?v=762aa91e71';
-import { createAnalyzer, describeSeconds } from './src/analysis.js?v=762aa91e71';
-import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=762aa91e71';
+} from './src/engine.js?v=4d08674d73';
+import { createAnalyzer, describeSeconds } from './src/analysis.js?v=4d08674d73';
+import { VERBIAGE, VERBIAGE_SOURCE, verbiageFor } from './src/verbiage.js?v=4d08674d73';
 import {
   TRACK_DISTANCES, TRACK_LENGTHS, trackPlan, pointOnTrack, trackExtent, lapPace, distanceById, TRACK_LENGTH_RANGE, metresFromFeet
-} from './src/track.js?v=762aa91e71';
+} from './src/track.js?v=4d08674d73';
 
 const $ = (id) => document.getElementById(id);
 
@@ -102,7 +102,7 @@ const MAX_POINTS = {
  */
 async function loadResources() {
   if (window.__PFRA_INLINE__) return window.__PFRA_INLINE__;
-  const data = await fetch('./pfra-scoring-data.json?v=762aa91e71').then((r) => r.json());
+  const data = await fetch('./pfra-scoring-data.json?v=4d08674d73').then((r) => r.json());
   return { data };
 }
 
@@ -1255,7 +1255,7 @@ const ROLE_HINTS = Object.freeze({
     'four are the whole cadet assessment (NOTACC CY26-092).',
   cadre: 'Everything in the cadet view, plus what a proctor or active duty member ' +
     'needs: alternate events, component exemptions, Did Not Finish on the run or ' +
-    'walk, and the proctor notes.'
+    'walk, the track layout for marking a course, and the proctor notes.'
 });
 
 /** The role a fresh page and Reset Everything start on. */
@@ -1303,10 +1303,10 @@ function applyRole(value) {
  *
  * A cadet is assessed on exactly three events and the waist to height ratio,
  * and cannot be exempted, so the controls for anything else are noise to them:
- * changing the exercise, exempting a component, recording a DNF and the
- * proctor's notes. Hidden for a cadet, which is the default, and shown for
- * cadre. The track layout stays for both: cadets mark out a course to train on
- * as often as proctors mark one to test on.
+ * changing the exercise, exempting a component, recording a DNF, laying out a
+ * track and the proctor's notes. Hidden for a cadet, which is the default, and
+ * shown for cadre. The track layout is hidden in showCourseSections(), which
+ * owns that panel; a cadet keeps the simpler drawing in the lap pace.
  *
  * Altitude stays for everyone. Attachment 3 is a property of where the run
  * was held, not of who ran it.
@@ -3140,6 +3140,12 @@ function showTrackPanel() {
 
 /** Show whichever of the two is open, and the pickers if either is. */
 function showCourseSections() {
+  // The layout is for whoever marks the track. A cadet has the lap pace, which
+  // draws the start, the finish and the part lap between them, and that is the
+  // part of the layout a runner needs.
+  const toggle = $('track-toggle');
+  toggle.hidden = role === 'cadet';
+  if (toggle.hidden) course.layout = false;
   $('course-body').hidden = !(course.pace || course.layout);
   $('pace-section').hidden = !course.pace;
   $('track-section').hidden = !course.layout;
